@@ -6,8 +6,8 @@ import { Menu, X, Home, Settings, PlusCircle, LogOut, MessageSquare } from 'luci
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/lib/store/auth-store';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Logo } from '@/components/ui/logo';
+import { ThemeToggle } from '@/components/custom/theme-toggle';
+import { Logo } from '@/components/custom/logo';
 
 /**
  * Dashboard navigation component

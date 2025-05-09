@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { Facebook, Linkedin, Sparkles } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { PlaceholderImage } from "@/components/ui/placeholder-image";
-import { Logo } from "@/components/ui/logo";
-import { DashboardIcon } from "@/components/ui/dashboard-icon";
+import { ThemeToggle } from "@/components/custom/theme-toggle";
+import { PlaceholderImage } from "@/components/custom/placeholder-image";
+import { Logo } from "@/components/custom/logo";
+import { DashboardIcon } from "@/components/custom/dashboard-icon";
 
 export default function Home() {
   return (

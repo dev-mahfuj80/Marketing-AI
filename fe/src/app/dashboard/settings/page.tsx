@@ -1,10 +1,9 @@
-import { Metadata } from 'next';
+"use client";
+
 import { SocialConnections } from '@/components/dashboard/social-connections';
 
-export const metadata: Metadata = {
-  title: 'Settings | Marketing AI Dashboard',
-  description: 'Manage your account settings and social media connections',
-};
+// Client components cannot export metadata
+// Page title is controlled by the layout.tsx file
 
 export default function SettingsPage() {
   return (

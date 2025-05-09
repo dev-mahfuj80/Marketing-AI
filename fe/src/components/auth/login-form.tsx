@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Form,
-  FormField,
-  FormLabel,
   FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { useAuthStore } from '@/lib/store/auth-store';
@@ -65,40 +66,52 @@ export function LoginForm() {
         </div>
       )}
 
-      <Form form={form} onSubmit={onSubmit}>
-        <div className="space-y-4">
-          <FormField name="email">
-            <FormLabel className="text-foreground">Email</FormLabel>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                type="email" 
-                placeholder="name@example.com" 
-                {...form.register('email')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="email" />
-          </FormField>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Email</FormLabel>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    type="email" 
+                    placeholder="name@example.com" 
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <FormField name="password">
-            <div className="flex items-center justify-between">
-              <FormLabel className="text-foreground">Password</FormLabel>
-              <Link href="/forgot-password" className="text-xs text-primary hover:underline transition-colors">
-                Forgot password?
-              </Link>
-            </div>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                type="password" 
-                placeholder="••••••••"
-                {...form.register('password')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="password" />
-          </FormField>
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-foreground">Password</FormLabel>
+                  <Link href="/forgot-password" className="text-xs text-primary hover:underline transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    type="password" 
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <Button 
             type="submit" 
@@ -107,7 +120,7 @@ export function LoginForm() {
           >
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
-        </div>
+        </form>
       </Form>
 
       <div className="text-center text-sm mt-6 text-muted-foreground">

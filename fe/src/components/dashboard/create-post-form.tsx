@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Form,
-  FormField,
-  FormLabel,
   FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 
@@ -107,126 +108,146 @@ export function CreatePostForm() {
         </div>
       )}
 
-      <Form form={form} onSubmit={onSubmit}>
-        {/* Select Platforms */}
-        <div className="mb-6">
-          <h2 className="mb-2 text-lg font-medium">Select Platforms</h2>
-          <div className="flex flex-wrap gap-4">
-            <div className={`relative flex items-center rounded-md border p-4 ${!isFacebookConnected ? 'cursor-not-allowed opacity-60' : ''}`}>
-              <input
-                type="checkbox"
-                id="facebook-platform"
-                className="mr-2"
-                checked={form.getValues('platforms').includes('FACEBOOK')}
-                onChange={() => handlePlatformChange('FACEBOOK')}
-                disabled={!isFacebookConnected || isLoading}
-              />
-              <label 
-                htmlFor="facebook-platform" 
-                className={`cursor-pointer text-sm font-medium ${!isFacebookConnected ? 'cursor-not-allowed' : ''}`}
-              >
-                Facebook
-              </label>
-              {!isFacebookConnected && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-100/80">
-                  <a href="/dashboard/settings" className="text-xs font-medium text-primary hover:underline">
-                    Connect Facebook
-                  </a>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Select Platforms */}
+          <div className="space-y-2">
+            <h2 className="text-lg font-medium">Select Platforms</h2>
+            <div className="flex flex-wrap gap-4">
+              <div className={`relative flex items-center rounded-md border p-4 ${!isFacebookConnected ? 'cursor-not-allowed opacity-60' : ''}`}>
+                <input
+                  type="checkbox"
+                  id="facebook-platform"
+                  className="mr-2"
+                  checked={form.getValues('platforms').includes('FACEBOOK')}
+                  onChange={() => handlePlatformChange('FACEBOOK')}
+                  disabled={!isFacebookConnected || isLoading}
+                />
+                <label 
+                  htmlFor="facebook-platform" 
+                  className={`cursor-pointer text-sm font-medium ${!isFacebookConnected ? 'cursor-not-allowed' : ''}`}
+                >
+                  Facebook
+                </label>
+                {!isFacebookConnected && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-100/80">
+                    <a href="/dashboard/settings" className="text-xs font-medium text-primary hover:underline">
+                      Connect Facebook
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className={`relative flex items-center rounded-md border p-4 ${!isLinkedInConnected ? 'cursor-not-allowed opacity-60' : ''}`}>
+                <input
+                  type="checkbox"
+                  id="linkedin-platform"
+                  className="mr-2"
+                  checked={form.getValues('platforms').includes('LINKEDIN')}
+                  onChange={() => handlePlatformChange('LINKEDIN')}
+                  disabled={!isLinkedInConnected || isLoading}
+                />
+                <label 
+                  htmlFor="linkedin-platform" 
+                  className={`cursor-pointer text-sm font-medium ${!isLinkedInConnected ? 'cursor-not-allowed' : ''}`}
+                >
+                  LinkedIn
+                </label>
+                {!isLinkedInConnected && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-100/80">
+                    <a href="/dashboard/settings" className="text-xs font-medium text-primary hover:underline">
+                      Connect LinkedIn
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+            {form.formState.errors.platforms && (
+              <p className="mt-2 text-sm text-red-600">{form.formState.errors.platforms.message}</p>
+            )}
+          </div>
+
+          {/* Post Content */}
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Post Content</FormLabel>
+                <FormControl>
+                  <textarea
+                    className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Write your post content here..."
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <div className="text-xs text-gray-500">
+                  {form.watch('content').length}/500 characters
                 </div>
-              )}
-            </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className={`relative flex items-center rounded-md border p-4 ${!isLinkedInConnected ? 'cursor-not-allowed opacity-60' : ''}`}>
-              <input
-                type="checkbox"
-                id="linkedin-platform"
-                className="mr-2"
-                checked={form.getValues('platforms').includes('LINKEDIN')}
-                onChange={() => handlePlatformChange('LINKEDIN')}
-                disabled={!isLinkedInConnected || isLoading}
-              />
-              <label 
-                htmlFor="linkedin-platform" 
-                className={`cursor-pointer text-sm font-medium ${!isLinkedInConnected ? 'cursor-not-allowed' : ''}`}
-              >
-                LinkedIn
-              </label>
-              {!isLinkedInConnected && (
-                <div className="absolute inset-0 flex items-center justify-center rounded-md bg-gray-100/80">
-                  <a href="/dashboard/settings" className="text-xs font-medium text-primary hover:underline">
-                    Connect LinkedIn
-                  </a>
+          {/* Media URL */}
+          <FormField
+            control={form.control}
+            name="mediaUrl"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Media URL (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <div className="text-xs text-gray-500">
+                  Add an image or video URL to include in your post
                 </div>
-              )}
-            </div>
-          </div>
-          {form.formState.errors.platforms && (
-            <p className="mt-2 text-sm text-red-600">{form.formState.errors.platforms.message}</p>
-          )}
-        </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Post Content */}
-        <FormField name="content">
-          <FormLabel>Post Content</FormLabel>
-          <FormControl>
-            <textarea
-              className="w-full min-h-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Write your post content here..."
-              {...form.register('content')}
-              disabled={isLoading}
-            />
-          </FormControl>
-          <div className="mt-1 text-xs text-gray-500">
-            {form.watch('content').length}/500 characters
-          </div>
-          <FormMessage name="content" />
-        </FormField>
+          {/* Schedule Post */}
+          <FormField
+            control={form.control}
+            name="scheduledDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Schedule Post (Optional)</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Input
+                      type="datetime-local"
+                      disabled={isLoading}
+                      className="pl-10"
+                      {...field}
+                    />
+                    <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  </div>
+                </FormControl>
+                <div className="text-xs text-gray-500">
+                  Schedule your post for a future date and time
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {/* Media URL */}
-        <FormField name="mediaUrl">
-          <FormLabel>Media URL (Optional)</FormLabel>
-          <FormControl>
-            <Input
-              type="url"
-              placeholder="https://example.com/image.jpg"
-              {...form.register('mediaUrl')}
-              disabled={isLoading}
-            />
-          </FormControl>
-          <div className="mt-1 text-xs text-gray-500">
-            Add an image or video URL to include in your post
-          </div>
-          <FormMessage name="mediaUrl" />
-        </FormField>
-
-        {/* Schedule Post */}
-        <FormField name="scheduledDate">
-          <FormLabel>Schedule Post (Optional)</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <Input
-                type="datetime-local"
-                {...form.register('scheduledDate')}
-                disabled={isLoading}
-                className="pl-10"
-              />
-              <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
-          </FormControl>
-          <div className="mt-1 text-xs text-gray-500">
-            Schedule your post for a future date and time
-          </div>
-          <FormMessage name="scheduledDate" />
-        </FormField>
-
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          className="mt-6"
-          disabled={isLoading || (!isFacebookConnected && !isLinkedInConnected)}
-        >
-          {isLoading ? 'Creating Post...' : 'Create Post'}
-        </Button>
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            className="w-full mt-6"
+            disabled={isLoading || (!isFacebookConnected && !isLinkedInConnected)}
+          >
+            {isLoading ? 'Creating Post...' : 'Create Post'}
+          </Button>
+        </form>
       </Form>
     </div>
   );

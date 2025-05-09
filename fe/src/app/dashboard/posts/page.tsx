@@ -1,10 +1,9 @@
-import { Metadata } from 'next';
+"use client";
+
 import PostList from '@/components/dashboard/post-list';
 
-export const metadata: Metadata = {
-  title: 'Posts | Marketing AI Dashboard',
-  description: 'View and manage your social media posts',
-};
+// Client components cannot export metadata
+// Page title is now controlled by the layout.tsx file
 
 export default function PostsPage() {
   return (

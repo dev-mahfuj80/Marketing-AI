@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Form,
-  FormField,
-  FormLabel,
   FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { useAuthStore } from '@/lib/store/auth-store';
@@ -72,62 +73,86 @@ export function RegisterForm() {
         </div>
       )}
 
-      <Form form={form} onSubmit={onSubmit}>
-        <div className="space-y-4">
-          <FormField name="name">
-            <FormLabel className="text-foreground">Full Name</FormLabel>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                placeholder="John Doe" 
-                {...form.register('name')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="name" />
-          </FormField>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Full Name</FormLabel>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    placeholder="John Doe" 
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <FormField name="email">
-            <FormLabel className="text-foreground">Email</FormLabel>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                type="email" 
-                placeholder="name@example.com" 
-                {...form.register('email')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="email" />
-          </FormField>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Email</FormLabel>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    type="email" 
+                    placeholder="name@example.com" 
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <FormField name="password">
-            <FormLabel className="text-foreground">Password</FormLabel>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                type="password" 
-                placeholder="••••••••"
-                {...form.register('password')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="password" />
-          </FormField>
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Password</FormLabel>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    type="password" 
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          <FormField name="confirmPassword">
-            <FormLabel className="text-foreground">Confirm Password</FormLabel>
-            <FormControl>
-              <Input 
-                className="bg-background border-input focus:border-primary"
-                type="password" 
-                placeholder="••••••••"
-                {...form.register('confirmPassword')} 
-                disabled={isLoading}
-              />
-            </FormControl>
-            <FormMessage name="confirmPassword" />
-          </FormField>
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-foreground">Confirm Password</FormLabel>
+                <FormControl>
+                  <Input 
+                    className="bg-background border-input focus:border-primary"
+                    type="password" 
+                    placeholder="••••••••"
+                    disabled={isLoading}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <Button 
             type="submit" 
@@ -136,7 +161,7 @@ export function RegisterForm() {
           >
             {isLoading ? 'Creating account...' : 'Create Account'}
           </Button>
-        </div>
+        </form>
       </Form>
 
       <div className="text-center text-sm mt-6 text-muted-foreground">

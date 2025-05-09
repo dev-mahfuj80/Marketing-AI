@@ -1,12 +1,14 @@
-import { Metadata } from 'next';
-import { Facebook, Linkedin, AlertCircle } from 'lucide-react';
+"use client";
 
-export const metadata: Metadata = {
-  title: 'Dashboard | Marketing AI Dashboard',
-  description: 'Your social media marketing dashboard',
-};
+import { Facebook, Linkedin, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+// Client components cannot export metadata
+// Page title is controlled by the layout.tsx file
 
 export default function DashboardPage() {
+  const router = useRouter();
+  
   // This would normally fetch data from the backend
   // Will be implemented with actual data fetching in a future step
   
@@ -73,7 +75,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 className="inline-flex items-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                onClick={() => window.location.href = '/dashboard/create-post'}
+                onClick={() => router.push('/dashboard/create-post')}
               >
                 Create New Post
               </button>

@@ -1,10 +1,9 @@
-import { Metadata } from 'next';
+"use client";
+
 import { CreatePostForm } from '@/components/dashboard/create-post-form';
 
-export const metadata: Metadata = {
-  title: 'Create Post | Marketing AI Dashboard',
-  description: 'Create and publish posts to your social media accounts',
-};
+// Client components cannot export metadata
+// Page title is controlled by the layout.tsx file
 
 export default function CreatePostPage() {
   return (
