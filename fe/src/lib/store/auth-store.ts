@@ -1,181 +1,208 @@
+// Using JSDoc comments instead of @ts-nocheck to fix type issues
+/**
+ * @typedef {Object} User
+ * @property {string} id - User ID
+ * @property {string} email - User email
+ * @property {string} name - User name
+ * @property {Object} connections - Social connections
+ * @property {boolean} connections.facebook - Facebook connection status
+ * @property {boolean} connections.linkedin - LinkedIn connection status
+ */
+
+/**
+ * @typedef {Object} AuthState
+ * @property {User|null} user - Current user
+ * @property {boolean} isAuthenticated - Authentication status
+ * @property {boolean} isLoading - Loading status
+ * @property {string|null} error - Error message
+ */
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import axios from 'axios';
+import { authApi } from '../api';
+import { AxiosError } from 'axios';
 
-// Types
-export type User = {
-  id: number;
-  name: string;
+// Define user type
+export interface User {
+  id: string;
   email: string;
-  role: string;
-  emailVerified: boolean;
-  facebookToken: string | null;
-  facebookTokenExpiry: string | null;
-  linkedInToken: string | null;
-  linkedInTokenExpiry: string | null;
-  createdAt: string;
-  updatedAt: string;
-};
+  name: string;
+  connections: {
+    facebook: boolean;
+    linkedin: boolean;
+  };
+}
 
-type AuthState = {
+export interface AuthState {
   user: User | null;
-  isLoading: boolean;
   isAuthenticated: boolean;
+  isLoading: boolean;
   error: string | null;
-  // Actions
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  fetchUser: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => void;
-  clearError: () => void;
-};
+  checkAuthStatus: () => Promise<void>;
+  connectFacebook: () => Promise<void>;
+  connectLinkedin: () => Promise<void>;
+  resetError: () => void;
+}
 
-// API base URL - this should come from env variables in production
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-export const useAuthStore = create<AuthState>()(
+// Create auth store with simple implementation
+export const useAuthStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
-      isLoading: false,
       isAuthenticated: false,
+      isLoading: false,
       error: null,
 
-      // Login action
+      // Login function
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
+          const response = await authApi.login(email, password);
           
-          const response = await axios.post(
-            `${API_URL}/api/auth/login`,
-            { email, password },
-            { withCredentials: true } // Important for cookies
-          );
+          console.log('Storing user data in auth store:', response.data.user);
           
-          const { user } = response.data;
-          
+          // Store the user data from the response
           set({
-            user,
+            user: response.data.user,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (error) {
-          const err = error as Error & { response?: { data?: { message?: string } } };
+          const axiosError = error as AxiosError<{ message: string }>;
+          const errorMessage = axiosError.response?.data?.message || 'Login failed';
           set({
-            error: err.response?.data?.message || 'Login failed',
             isLoading: false,
-            isAuthenticated: false,
+            error: errorMessage,
           });
+          throw error;
         }
       },
 
-      // Register action
+      // Register function
       register: async (name: string, email: string, password: string) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
-          
-          const response = await axios.post(
-            `${API_URL}/api/auth/register`,
-            { name, email, password },
-            { withCredentials: true }
-          );
-          
-          const { user } = response.data;
-          
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          await authApi.register(name, email, password);
+          set({ isLoading: false });
         } catch (error) {
-          const err = error as Error & { response?: { data?: { message?: string } } };
+          const axiosError = error as AxiosError<{ message: string }>;
+          const errorMessage = axiosError.response?.data?.message || 'Registration failed';
           set({
-            error: err.response?.data?.message || 'Registration failed',
             isLoading: false,
-            isAuthenticated: false,
+            error: errorMessage,
           });
+          throw error;
         }
       },
 
-      // Logout action
+      // Logout function
       logout: async () => {
+        set({ isLoading: true });
         try {
-          set({ isLoading: true, error: null });
-          
-          await axios.post(
-            `${API_URL}/api/auth/logout`,
-            {},
-            { withCredentials: true }
-          );
-          
+          await authApi.logout();
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
           });
         } catch (error) {
-          const err = error as Error & { response?: { data?: { message?: string } } };
+          const axiosError = error as AxiosError<{ message: string }>;
+          const errorMessage = axiosError.response?.data?.message || 'Logout failed';
           set({
-            error: err.response?.data?.message || 'Logout failed',
             isLoading: false,
+            error: errorMessage,
           });
+          throw error;
         }
       },
 
-      // Fetch current user
-      fetchUser: async () => {
+      // Check if user is authenticated
+      checkAuthStatus: async () => {
         try {
           set({ isLoading: true, error: null });
-          
-          const response = await axios.get(
-            `${API_URL}/api/auth/me`,
-            { withCredentials: true }
-          );
-          
-          const { user } = response.data;
-          
+          const response = await authApi.checkStatus();
           set({
-            user,
+            user: response.user,
             isAuthenticated: true,
             isLoading: false,
           });
         } catch (error) {
-          const err = error as Error & { response?: { data?: { message?: string }, status?: number } };
-          // Only set error if it's not a 401 (unauthorized)
-          if (err.response?.status !== 401) {
-            set({
-              error: err.response?.data?.message || 'Failed to fetch user',
-              isLoading: false,
-            });
-          } else {
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
-          }
-        }
-      },
-
-      // Update user information
-      updateUser: (userData: Partial<User>) => {
-        const currentUser = get().user;
-        if (currentUser) {
+          const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
           set({
-            user: { ...currentUser, ...userData },
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: errorMessage,
           });
         }
       },
-      
-      // Clear error
-      clearError: () => set({ error: null }),
+
+      // Connect Facebook
+      connectFacebook: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          // In a real implementation, call the API to connect Facebook
+          await authApi.getConnections();
+          
+          // For now, mock a successful connection
+          set((state: AuthState) => ({
+            user: state.user ? {
+              ...state.user,
+              connections: {
+                ...state.user.connections,
+                facebook: true
+              }
+            } : null,
+            isLoading: false
+          }));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Facebook connection failed';
+          set({
+            error: errorMessage,
+            isLoading: false
+          });
+        }
+      },
+
+      // Connect LinkedIn
+      connectLinkedin: async () => {
+        try {
+          set({ isLoading: true, error: null });
+          // In a real implementation, call the API to connect LinkedIn
+          await authApi.getConnections();
+          
+          // For now, mock a successful connection
+          set((state: AuthState) => ({
+            user: state.user ? {
+              ...state.user,
+              connections: {
+                ...state.user.connections,
+                linkedin: true
+              }
+            } : null,
+            isLoading: false
+          }));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'LinkedIn connection failed';
+          set({
+            error: errorMessage,
+            isLoading: false
+          });
+        }
+      },
+
+      // Reset error
+      resetError: () => set({ error: null }),
     }),
     {
-      name: 'auth-storage', // localStorage key
-      partialize: (state) => ({
+      name: 'auth-storage',
+      // Only store non-function values
+      partialize: (state: AuthState) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated,
+        isAuthenticated: state.isAuthenticated 
       }),
     }
   )
