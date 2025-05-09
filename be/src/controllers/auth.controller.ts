@@ -1,0 +1,220 @@
+import type { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { 
+  hashPassword, 
+  verifyPassword, 
+  generateTokens, 
+  refreshAccessToken,
+  revokeRefreshToken
+} from '../utils/auth';
+import { env } from '../config/env';
+
+const prisma = new PrismaClient();
+
+/**
+ * User registration controller
+ */
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: 'User already exists with this email' });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
+
+    // Generate tokens
+    const tokens = await generateTokens(user);
+
+    // Set cookies
+    res.cookie('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: env.isProduction(),
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      sameSite: 'lax',
+    });
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.isProduction(),
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'lax',
+      path: '/api/auth/refresh', // Only send cookie to refresh endpoint
+    });
+
+    // Return user data (excluding sensitive information)
+    const { password: _, ...userWithoutPassword } = user;
+    return res.status(201).json({
+      message: 'User registered successfully',
+      user: userWithoutPassword,
+      accessToken: tokens.accessToken,
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({ message: 'Server error during registration' });
+  }
+};
+
+/**
+ * User login controller
+ */
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || !user.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Verify password
+    const isPasswordValid = await verifyPassword(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate tokens
+    const tokens = await generateTokens(user);
+
+    // Set cookies
+    res.cookie('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: env.isProduction(),
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      sameSite: 'lax',
+    });
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: env.isProduction(),
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'lax',
+      path: '/api/auth/refresh', // Only send cookie to refresh endpoint
+    });
+
+    // Return user data (excluding sensitive information)
+    const { password: _, ...userWithoutPassword } = user;
+    return res.status(200).json({
+      message: 'Login successful',
+      user: userWithoutPassword,
+      accessToken: tokens.accessToken,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ message: 'Server error during login' });
+  }
+};
+
+/**
+ * Token refresh controller
+ */
+export const refresh = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(401).json({ message: 'Refresh token required' });
+    }
+
+    // Generate new access token
+    const accessToken = await refreshAccessToken(refreshToken);
+    
+    if (!accessToken) {
+      return res.status(401).json({ message: 'Invalid or expired refresh token' });
+    }
+
+    // Set new access token cookie
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: env.isProduction(),
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      sameSite: 'lax',
+    });
+
+    return res.status(200).json({
+      message: 'Token refreshed successfully',
+      accessToken,
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return res.status(500).json({ message: 'Server error during token refresh' });
+  }
+};
+
+/**
+ * Logout controller
+ */
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    
+    // Revoke refresh token from database if it exists
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+
+    // Clear cookies
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken', { path: '/api/auth/refresh' });
+
+    return res.status(200).json({ message: 'Logout successful' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ message: 'Server error during logout' });
+  }
+};
+
+/**
+ * Get current user controller
+ */
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        emailVerified: true,
+        facebookToken: true,
+        linkedInToken: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    return res.status(500).json({ message: 'Server error getting current user' });
+  }
+};

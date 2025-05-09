@@ -8,9 +8,73 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  name  String
-  email String  @unique
+  id                Int       @id @default(autoincrement())
+  name              String
+  email             String    @unique
+  password          String?
+  avatar            String?   // Profile picture URL
+  role              Role      @default(USER)
+  emailVerified     Boolean   @default(false)
+  
+  // Social media tokens
+  facebookToken     String?   // Facebook access token
+  facebookTokenExpiry DateTime?
+  linkedInToken     String?   // LinkedIn access token
+  linkedInTokenExpiry DateTime?
+  
+  // Relationships
+  posts             Post[]    // User's social media posts
+  refreshTokens     RefreshToken[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  
+  @@index([userId])
+}
+
+model Post {
+  id            Int       @id @default(autoincrement())
+  content       String
+  mediaUrl      String?
+  platformId    String?   // ID of the post on social platform
+  platform      Platform  // Facebook, LinkedIn, etc.
+  publishedAt   DateTime?
+  status        PostStatus @default(DRAFT)
+  engagement    Json?     // Likes, comments, shares as JSON
+  
+  // Relations
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  
+  @@index([userId])
+  @@index([platform, publishedAt])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Platform {
+  FACEBOOK
+  LINKEDIN
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
 }
