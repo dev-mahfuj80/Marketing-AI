@@ -40,7 +40,7 @@ export interface AuthState {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => Promise<boolean>;
   checkAuthStatus: () => Promise<void>;
   connectFacebook: () => Promise<void>;
   connectLinkedin: () => Promise<void>;
@@ -103,11 +103,26 @@ export const useAuthStore = create(
         set({ isLoading: true });
         try {
           await authApi.logout();
+          // Clear the auth token cookie by setting it to expire in the past
+          document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+          
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
+            error: null,
           });
+          
+          // Clear any persisted state
+          localStorage.removeItem('auth-storage');
+          sessionStorage.clear();
+          
+          // Force a reload to ensure all state is cleared
+          if (typeof window !== 'undefined') {
+            window.location.href = '/';
+          }
+          
+          return true;
         } catch (error) {
           const axiosError = error as AxiosError<{ message: string }>;
           const errorMessage = axiosError.response?.data?.message || 'Logout failed';
@@ -115,7 +130,8 @@ export const useAuthStore = create(
             isLoading: false,
             error: errorMessage,
           });
-          throw error;
+          console.error('Logout error:', error);
+          return false;
         }
       },
 

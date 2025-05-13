@@ -15,8 +15,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
+import { useEffect } from "react";
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -28,11 +29,22 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+  
   // Type-safe state selectors
   const login = useAuthStore((state: AuthState) => state.login);
+  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
   const isLoading = useAuthStore((state: AuthState) => state.isLoading);
   const error = useAuthStore((state: AuthState) => state.error);
   const resetError = useAuthStore((state: AuthState) => state.resetError);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push(redirectUrl);
+    }
+  }, [isAuthenticated, redirectUrl, router]);
 
   // React Hook Form with Zod validation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,8 +64,8 @@ export default function LoginPage() {
       // Use our centralized auth store login function
       await login(values.email, values.password);
 
-      // If no error was thrown, redirect to dashboard
-      router.push("/dashboard");
+      // If no error was thrown, redirect to the intended URL or dashboard
+      router.push(redirectUrl);
     } catch (error) {
       // Error is already handled by the auth store
       console.error("Login failed:", error);

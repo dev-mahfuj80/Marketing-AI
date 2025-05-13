@@ -5,14 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
 import { ArrowRight, CheckCircle2, Share2, BarChart2 } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useAuthStore, AuthState } from "@/lib/store/auth-store";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const [isClient, setIsClient] = useState(false);
+
+  // Set isClient to true after component mounts (client-side only)
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const handleGetStarted = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    } else {
+      router.push('/login?redirect=/dashboard');
+    }
+  };
   return (
     <main className="flex min-h-screen flex-col">
       <Navbar />
 
       {/* Hero Section */}
-      <section className="pt-24 md:pt-32 pb-12 md:pb-20 px-4 md:px-6 mt-16">
+      <section id="hero" className="pt-24 md:pt-32 pb-12 md:pb-20 px-4 md:px-6 mt-16">
         <div className="container mx-auto max-w-screen-xl">
           <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-center">
             <div className="flex-1 space-y-6">
@@ -24,10 +44,14 @@ export default function Home() {
                 AI, and schedule posts - all from one dashboard.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Button size="lg" asChild>
-                  <Link href="/register">
+                <Button 
+                  size="lg" 
+                  onClick={isClient ? handleGetStarted : undefined}
+                  asChild={false}
+                >
+                  <div className="flex items-center">
                     Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                  </div>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link href="/login">Login to Dashboard</Link>
@@ -58,7 +82,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900">
+      <section id="features" className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto max-w-screen-xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">Powerful Features</h2>
@@ -106,7 +130,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 md:py-20 px-4 md:px-6">
+      <section id="cta" className="py-12 md:py-20 px-4 md:px-6">
         <div className="container mx-auto max-w-screen-xl">
           <div className="bg-primary/5 border rounded-xl p-8 md:p-12">
             <div className="max-w-3xl mx-auto text-center space-y-6">

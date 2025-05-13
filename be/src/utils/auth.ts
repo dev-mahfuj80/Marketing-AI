@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import type { User } from "@prisma/client";
@@ -40,9 +40,10 @@ export const verifyPassword = async (
  * Generate JWT access token
  */
 export const generateAccessToken = (payload: TokenPayload): string => {
-  return jwt.sign(payload, env.JWT_SECRET as jwt.Secret, {
-    expiresIn: env.JWT_ACCESS_EXPIRY,
-  });
+  const signOptions: SignOptions = {
+    expiresIn: env.JWT_ACCESS_EXPIRY
+  };
+  return jwt.sign(payload, env.JWT_SECRET, signOptions);
 };
 
 /**
@@ -51,9 +52,10 @@ export const generateAccessToken = (payload: TokenPayload): string => {
 export const generateRefreshToken = async (
   payload: TokenPayload
 ): Promise<string> => {
-  const token = jwt.sign(payload, env.JWT_SECRET as jwt.Secret, {
-    expiresIn: env.JWT_REFRESH_EXPIRY,
-  });
+  const signOptions: SignOptions = {
+    expiresIn: env.JWT_REFRESH_EXPIRY
+  };
+  const token = jwt.sign(payload, env.JWT_SECRET, signOptions);
 
   // Calculate expiry date
   const expiryDays = parseInt(env.JWT_REFRESH_EXPIRY) || 7;
