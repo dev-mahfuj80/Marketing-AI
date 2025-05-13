@@ -56,6 +56,14 @@ export const authApi = {
   getConnections: async () => {
     return api.get("/auth/connections");
   },
+
+  forgotPassword: async (email: string) => {
+    return api.post("/auth/request-password-reset", { email });
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    return api.post("/auth/reset-password", { token, password });
+  },
 };
 
 // Social Media Posts API calls

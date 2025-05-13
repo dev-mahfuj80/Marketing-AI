@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   LogOut,
@@ -15,6 +15,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { AuthGuard } from "@/components/auth-guard";
 
 interface NavItemProps {
   path: string;
@@ -42,7 +43,6 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Authentication state
   const { logout } = useAuthStore((state) => ({
@@ -51,66 +51,7 @@ export default function DashboardLayout({
   
   // UI state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    // Only run on client
-    if (typeof window === 'undefined') return;
-
-    const verifyAuth = async () => {
-      try {
-        const response = await fetch('http://localhost:3001/auth/me', {
-          credentials: 'include',
-        });
-        
-        if (!response.ok) throw new Error('Not authenticated');
-        
-        const data = await response.json();
-        if (!data.user) throw new Error('No user data');
-        
-        // Update auth state
-        setIsAuthenticated(true);
-        useAuthStore.setState({
-          user: data.user,
-          isLoading: false,
-        });
-        
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        // Clear any invalid auth state
-        document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        localStorage.removeItem('auth-storage');
-        
-        // Redirect to login
-        router.push(`/login?redirect=${encodeURIComponent(pathname || '/dashboard')}`);
-      } finally {
-        setIsLoading(false);
-        setIsClient(true);
-      }
-    };
-    
-    verifyAuth();
-  }, [router, pathname]);
-
-  // Show loading state while checking auth
-  if (isLoading || !isClient) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-12 w-12 text-primary animate-spin" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If not authenticated, don't render anything (will be redirected by the effect)
-  if (!isAuthenticated) {
-    return null;
-  }
 
   // Determine active path for navigation highlighting
   const getIsActive = (path: string) => {
@@ -156,83 +97,85 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="flex min-h-screen">
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-64 flex-col border-r bg-card p-4">
-        <div className="flex items-center justify-center py-4 mb-8">
-          <h1 className="text-xl font-bold">Marketing AI</h1>
-        </div>
-
-        <nav className="flex flex-col gap-2">
-          {navItems.map((item) => (
-            <NavItem
-              key={item.path}
-              path={item.path}
-              label={item.label}
-              icon={item.icon}
-              isActive={getIsActive(item.path)}
-            />
-          ))}
-        </nav>
-
-        <div className="mt-auto pt-4">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2"
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut size={18} />
-            )}
-            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile header and menu */}
-      <div className="flex flex-col flex-1">
-        <header className="md:hidden flex items-center justify-between border-b p-4">
-          <h1 className="text-lg font-bold">Marketing AI</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </Button>
-        </header>
-
-        {/* Mobile Sidebar */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden flex flex-col p-4 border-b">
-            <nav className="flex flex-col gap-2">
-              {navItems.map((item) => (
-                <NavItem
-                  key={item.path}
-                  path={item.path}
-                  label={item.label}
-                  icon={item.icon}
-                  isActive={getIsActive(item.path)}
-                />
-              ))}
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={handleLogout}
-              >
-                <LogOut size={18} />
-                <span>Logout</span>
-              </Button>
-            </nav>
+    <AuthGuard>
+      <div className="flex min-h-screen">
+        {/* Desktop Sidebar */}
+        <div className="hidden md:flex w-64 flex-col border-r bg-card p-4">
+          <div className="flex items-center justify-center py-4 mb-8">
+            <h1 className="text-xl font-bold">Marketing AI</h1>
           </div>
-        )}
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8">{children}</main>
+          <nav className="flex flex-col gap-2">
+            {navItems.map((item) => (
+              <NavItem
+                key={item.path}
+                path={item.path}
+                label={item.label}
+                icon={item.icon}
+                isActive={getIsActive(item.path)}
+              />
+            ))}
+          </nav>
+
+          <div className="mt-auto pt-4">
+            <Button
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              {isLoggingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut size={18} />
+              )}
+              <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile header and menu */}
+        <div className="flex flex-col flex-1">
+          <header className="md:hidden flex items-center justify-between border-b p-4">
+            <h1 className="text-lg font-bold">Marketing AI</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </Button>
+          </header>
+
+          {/* Mobile Sidebar */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden flex flex-col p-4 border-b">
+              <nav className="flex flex-col gap-2">
+                {navItems.map((item) => (
+                  <NavItem
+                    key={item.path}
+                    path={item.path}
+                    label={item.label}
+                    icon={item.icon}
+                    isActive={getIsActive(item.path)}
+                  />
+                ))}
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={18} />
+                  <span>Logout</span>
+                </Button>
+              </nav>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <main className="flex-1 p-4 md:p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   );
 }

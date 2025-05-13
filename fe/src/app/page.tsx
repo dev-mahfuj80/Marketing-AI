@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/navbar";
-import { ArrowRight, CheckCircle2, Share2, BarChart2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Share2, BarChart2, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
@@ -11,20 +11,38 @@ import { useEffect, useState } from "react";
 
 export default function Home() {
   const router = useRouter();
-  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const { isAuthenticated, isLoading, checkAuthStatus } = useAuthStore((state: AuthState) => ({
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    checkAuthStatus: state.checkAuthStatus
+  }));
   const [isClient, setIsClient] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Set isClient to true after component mounts (client-side only)
+  // Set isClient to true after component mounts and check auth status
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    checkAuthStatus().catch(err => console.error('Failed to check auth status:', err));
+  }, [checkAuthStatus]);
 
-  const handleGetStarted = (e: React.MouseEvent) => {
+  const handleGetStarted = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
+    setIsRedirecting(true);
+    
+    try {
+      // Double-check authentication status before redirecting
+      await checkAuthStatus();
+      
+      if (isAuthenticated) {
+        router.push('/dashboard');
+      } else {
+        router.push('/login?redirect=/dashboard');
+      }
+    } catch (error) {
+      console.error('Authentication check failed:', error);
       router.push('/login?redirect=/dashboard');
+    } finally {
+      setIsRedirecting(false);
     }
   };
   return (
@@ -47,14 +65,33 @@ export default function Home() {
                 <Button 
                   size="lg" 
                   onClick={isClient ? handleGetStarted : undefined}
+                  disabled={!isClient || isRedirecting || isLoading}
                   asChild={false}
                 >
                   <div className="flex items-center">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    {isRedirecting || isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isAuthenticated ? 'Going to Dashboard...' : 'Redirecting...'}
+                      </>
+                    ) : (
+                      <>
+                        Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </div>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <Link href="/login">Login to Dashboard</Link>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  asChild={!isRedirecting && !isLoading}
+                  disabled={isRedirecting || isLoading}
+                >
+                  {isRedirecting || isLoading ? (
+                    <div>Please wait...</div>
+                  ) : (
+                    <Link href="/login">Login to Dashboard</Link>
+                  )}
                 </Button>
               </div>
             </div>
