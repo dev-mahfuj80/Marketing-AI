@@ -44,10 +44,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   
-  // Authentication state
-  const { logout } = useAuthStore((state) => ({
-    logout: state.logout,
-  }));
+  // Authentication state - use direct selector to avoid recreating objects
+  const logout = useAuthStore((state) => state.logout);
   
   // UI state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

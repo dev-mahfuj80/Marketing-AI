@@ -88,9 +88,7 @@ router.get("/me", authenticate, ((
  */
 router.post(
   "/forgot-password",
-  [
-    body("email").isEmail().withMessage("Please provide a valid email"),
-  ],
+  [body("email").isEmail().withMessage("Please provide a valid email")],
   ((req: Request, res: Response, next: NextFunction) => {
     requestPasswordReset(req, res).catch(next);
   }) as RequestHandler
@@ -103,9 +101,7 @@ router.post(
  */
 router.post(
   "/request-password-reset",
-  [
-    body("email").isEmail().withMessage("Please provide a valid email"),
-  ],
+  [body("email").isEmail().withMessage("Please provide a valid email")],
   ((req: Request, res: Response, next: NextFunction) => {
     requestPasswordReset(req, res).catch(next);
   }) as RequestHandler

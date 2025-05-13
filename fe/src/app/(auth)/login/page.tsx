@@ -30,11 +30,13 @@ const formSchema = z.object({
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get('redirect') || '/dashboard';
-  
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+
   // Type-safe state selectors
   const login = useAuthStore((state: AuthState) => state.login);
-  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const isAuthenticated = useAuthStore(
+    (state: AuthState) => state.isAuthenticated
+  );
   const isLoading = useAuthStore((state: AuthState) => state.isLoading);
   const error = useAuthStore((state: AuthState) => state.error);
   const resetError = useAuthStore((state: AuthState) => state.resetError);
@@ -97,7 +99,11 @@ export default function LoginPage() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="your.email@example.com" autoComplete="username" {...field} />
+                    <Input
+                      placeholder="your.email@example.com"
+                      autoComplete="username"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +125,12 @@ export default function LoginPage() {
                     </Link>
                   </div>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" autoComplete="current-password" {...field} />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

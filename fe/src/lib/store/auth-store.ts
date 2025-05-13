@@ -17,10 +17,10 @@
  * @property {string|null} error - Error message
  */
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authApi } from '../api';
-import { AxiosError } from 'axios';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { authApi } from "../api";
+import { AxiosError } from "axios";
 
 // Define user type
 export interface User {
@@ -61,9 +61,9 @@ export const useAuthStore = create(
         try {
           set({ isLoading: true, error: null });
           const response = await authApi.login(email, password);
-          
-          console.log('Storing user data in auth store:', response.data.user);
-          
+
+          console.log("Storing user data in auth store:", response.data.user);
+
           // Store the user data from the response
           set({
             user: response.data.user,
@@ -72,7 +72,8 @@ export const useAuthStore = create(
           });
         } catch (error) {
           const axiosError = error as AxiosError<{ message: string }>;
-          const errorMessage = axiosError.response?.data?.message || 'Login failed';
+          const errorMessage =
+            axiosError.response?.data?.message || "Login failed";
           set({
             isLoading: false,
             error: errorMessage,
@@ -89,7 +90,8 @@ export const useAuthStore = create(
           set({ isLoading: false });
         } catch (error) {
           const axiosError = error as AxiosError<{ message: string }>;
-          const errorMessage = axiosError.response?.data?.message || 'Registration failed';
+          const errorMessage =
+            axiosError.response?.data?.message || "Registration failed";
           set({
             isLoading: false,
             error: errorMessage,
@@ -104,33 +106,35 @@ export const useAuthStore = create(
         try {
           await authApi.logout();
           // Clear the auth token cookie by setting it to expire in the past
-          document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          
+          document.cookie =
+            "auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
           set({
             user: null,
             isAuthenticated: false,
             isLoading: false,
             error: null,
           });
-          
+
           // Clear any persisted state
-          localStorage.removeItem('auth-storage');
+          localStorage.removeItem("auth-storage");
           sessionStorage.clear();
-          
+
           // Force a reload to ensure all state is cleared
-          if (typeof window !== 'undefined') {
-            window.location.href = '/';
+          if (typeof window !== "undefined") {
+            window.location.href = "/";
           }
-          
+
           return true;
         } catch (error) {
           const axiosError = error as AxiosError<{ message: string }>;
-          const errorMessage = axiosError.response?.data?.message || 'Logout failed';
+          const errorMessage =
+            axiosError.response?.data?.message || "Logout failed";
           set({
             isLoading: false,
             error: errorMessage,
           });
-          console.error('Logout error:', error);
+          console.error("Logout error:", error);
           return false;
         }
       },
@@ -146,7 +150,8 @@ export const useAuthStore = create(
             isLoading: false,
           });
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+          const errorMessage =
+            error instanceof Error ? error.message : "Authentication failed";
           set({
             user: null,
             isAuthenticated: false,
@@ -162,23 +167,28 @@ export const useAuthStore = create(
           set({ isLoading: true, error: null });
           // In a real implementation, call the API to connect Facebook
           await authApi.getConnections();
-          
+
           // For now, mock a successful connection
           set((state: AuthState) => ({
-            user: state.user ? {
-              ...state.user,
-              connections: {
-                ...state.user.connections,
-                facebook: true
-              }
-            } : null,
-            isLoading: false
+            user: state.user
+              ? {
+                  ...state.user,
+                  connections: {
+                    ...state.user.connections,
+                    facebook: true,
+                  },
+                }
+              : null,
+            isLoading: false,
           }));
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Facebook connection failed';
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Facebook connection failed";
           set({
             error: errorMessage,
-            isLoading: false
+            isLoading: false,
           });
         }
       },
@@ -189,23 +199,28 @@ export const useAuthStore = create(
           set({ isLoading: true, error: null });
           // In a real implementation, call the API to connect LinkedIn
           await authApi.getConnections();
-          
+
           // For now, mock a successful connection
           set((state: AuthState) => ({
-            user: state.user ? {
-              ...state.user,
-              connections: {
-                ...state.user.connections,
-                linkedin: true
-              }
-            } : null,
-            isLoading: false
+            user: state.user
+              ? {
+                  ...state.user,
+                  connections: {
+                    ...state.user.connections,
+                    linkedin: true,
+                  },
+                }
+              : null,
+            isLoading: false,
           }));
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'LinkedIn connection failed';
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "LinkedIn connection failed";
           set({
             error: errorMessage,
-            isLoading: false
+            isLoading: false,
           });
         }
       },
@@ -214,11 +229,11 @@ export const useAuthStore = create(
       resetError: () => set({ error: null }),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       // Only store non-function values
       partialize: (state: AuthState) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )

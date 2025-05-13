@@ -8,13 +8,22 @@ import { z } from "zod";
 import { postsApi } from "@/lib/api";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/lib/store/auth-store";
 
 // Form schema using Zod
 const formSchema = z.object({
-  content: z.string()
+  content: z
+    .string()
     .min(5, { message: "Post content must be at least 5 characters long" })
     .max(1000, { message: "Post content must be less than 1000 characters" }),
   image: z.instanceof(FileList).optional(),
@@ -30,7 +39,7 @@ export default function CreatePostPage() {
   const [success, setSuccess] = useState("");
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  
+
   // Initialize react-hook-form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -44,46 +53,45 @@ export default function CreatePostPage() {
   // Character count display
   const content = form.watch("content");
   const characterCount = content?.length || 0;
-  
+
   // Handle form submission
   async function onSubmit(values: FormValues) {
     // Reset status
     setError("");
     setSuccess("");
     setIsSubmitting(true);
-    
+
     // Validate form - at least one platform must be selected
     if (!values.publishToFacebook && !values.publishToLinkedin) {
       setError("Please select at least one platform to publish to");
       setIsSubmitting(false);
       return;
     }
-    
+
     try {
       // Prepare form data for image upload
       const formData = new FormData();
       formData.append("content", values.content);
       formData.append("publishToFacebook", String(values.publishToFacebook));
       formData.append("publishToLinkedin", String(values.publishToLinkedin));
-      
+
       // Append image file if provided
       if (values.image && values.image.length > 0) {
         formData.append("image", values.image[0]);
       }
-      
+
       // Send to API
       const response = await postsApi.createPost(formData);
-      
+
       setSuccess("Post created successfully!");
-      
+
       // Reset form
       form.reset();
-      
+
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         router.push("/dashboard");
       }, 2000);
-      
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         setError(error.response.data.message || "Failed to create post");
@@ -103,19 +111,19 @@ export default function CreatePostPage() {
           Create and publish content to your social media accounts
         </p>
       </div>
-      
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
           {error}
         </div>
       )}
-      
+
       {success && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
           {success}
         </div>
       )}
-      
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -125,7 +133,7 @@ export default function CreatePostPage() {
               <FormItem>
                 <FormLabel>Post Content</FormLabel>
                 <FormControl>
-                  <textarea 
+                  <textarea
                     className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="What would you like to share today?"
                     {...field}
@@ -140,19 +148,20 @@ export default function CreatePostPage() {
               </FormItem>
             )}
           />
-          
+
           <FormField
             control={form.control}
             name="image"
-            render={({ field: { value, onChange, ...field } }) => (
+            render={({ field: { value, onChange, ...restField } }) => (
               <FormItem>
                 <FormLabel>Image (Optional)</FormLabel>
                 <FormControl>
                   <Input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => onChange(e.target.files)}
-                    {...field}
+                    // Explicitly type the event for better lint/type safety
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.files)}
+                    {...restField}
                   />
                 </FormControl>
                 <FormDescription>
@@ -162,7 +171,7 @@ export default function CreatePostPage() {
               </FormItem>
             )}
           />
-          
+
           <div className="flex gap-4 pt-4">
             <FormField
               control={form.control}
@@ -173,9 +182,11 @@ export default function CreatePostPage() {
                     <input
                       type="checkbox"
                       checked={field.value}
-                      onChange={field.onChange}
+                      onChange={e => field.onChange(e.target.checked)}
                       disabled={!user?.facebookConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-checked={field.value}
+                      aria-label="Publish to Facebook"
                     />
                   </FormControl>
                   <FormLabel className="text-base font-normal">
@@ -189,7 +200,7 @@ export default function CreatePostPage() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="publishToLinkedin"
@@ -199,9 +210,11 @@ export default function CreatePostPage() {
                     <input
                       type="checkbox"
                       checked={field.value}
-                      onChange={field.onChange}
+                      onChange={e => field.onChange(e.target.checked)}
                       disabled={!user?.linkedinConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      aria-checked={field.value}
+                      aria-label="Publish to LinkedIn"
                     />
                   </FormControl>
                   <FormLabel className="text-base font-normal">
@@ -216,10 +229,10 @@ export default function CreatePostPage() {
               )}
             />
           </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full md:w-auto" 
+
+          <Button
+            type="submit"
+            className="w-full md:w-auto"
             disabled={isSubmitting}
           >
             {isSubmitting ? "Publishing..." : "Publish Post"}

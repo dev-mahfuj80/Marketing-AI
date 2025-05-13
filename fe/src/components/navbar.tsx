@@ -12,7 +12,9 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const user = useAuthStore((state: AuthState) => state.user);
-  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const isAuthenticated = useAuthStore(
+    (state: AuthState) => state.isAuthenticated
+  );
   const logout = useAuthStore((state: AuthState) => state.logout);
   const router = useRouter();
 
@@ -29,7 +31,7 @@ export function Navbar() {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: "smooth" });
     }
     setIsMenuOpen(false); // Close mobile menu after clicking a link
   };
@@ -71,7 +73,7 @@ export function Navbar() {
           <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
             <li>
               <button
-                onClick={() => scrollToSection('hero')}
+                onClick={() => scrollToSection("hero")}
                 className="block w-full text-left py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
               >
                 Home
@@ -79,7 +81,7 @@ export function Navbar() {
             </li>
             <li>
               <button
-                onClick={() => scrollToSection('features')}
+                onClick={() => scrollToSection("features")}
                 className="block w-full text-left py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
               >
                 Features
@@ -87,7 +89,7 @@ export function Navbar() {
             </li>
             <li>
               <button
-                onClick={() => scrollToSection('cta')}
+                onClick={() => scrollToSection("cta")}
                 className="block w-full text-left py-2 pl-3 pr-4 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:p-0 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
               >
                 Get Started
@@ -99,18 +101,23 @@ export function Navbar() {
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src="/avatar-placeholder.png" alt={user?.name || "User"} />
+                  <AvatarImage
+                    src="/avatar-placeholder.png"
+                    alt={user?.name || "User"}
+                  />
                   <AvatarFallback className="bg-primary text-primary-foreground">
                     {user?.name?.[0] || "U"}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="text-sm font-medium">{user?.name}</span>
-                  <span className="text-xs text-muted-foreground">{user?.email}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user?.email}
+                  </span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleLogout}
                   className="flex items-center gap-2"
                 >

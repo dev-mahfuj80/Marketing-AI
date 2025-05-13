@@ -1,1 +1,1 @@
-declare module '@hookform/resolvers/zod';
+declare module "@hookform/resolvers/zod";

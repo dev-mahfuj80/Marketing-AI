@@ -47,18 +47,20 @@ export default function ForgotPasswordPage() {
 
     try {
       // Added a short timeout to ensure the UI shows loading state for better UX
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 800));
       const response = await authApi.forgotPassword(values.email);
-      console.log('Password reset request successful:', response);
+      console.log("Password reset request successful:", response);
       setIsSubmitted(true);
     } catch (err: unknown) {
       console.error("Password reset request failed:", err);
       // Type guard for axios error responses
-      const isAxiosError = (error: unknown): error is { response?: { data?: { message?: string } } } => 
-        error !== null && 
-        typeof error === 'object' && 
-        'response' in (error as Record<string, unknown>);
-      
+      const isAxiosError = (
+        error: unknown
+      ): error is { response?: { data?: { message?: string } } } =>
+        error !== null &&
+        typeof error === "object" &&
+        "response" in (error as Record<string, unknown>);
+
       // Check for specific error responses from the server
       if (isAxiosError(err) && err?.response?.data?.message) {
         setError(err.response.data.message);
@@ -84,11 +86,16 @@ export default function ForgotPasswordPage() {
 
         {isSubmitted ? (
           <div className="space-y-6">
-            <Alert variant="default" className="bg-primary/10 border-primary/30">
+            <Alert
+              variant="default"
+              className="bg-primary/10 border-primary/30"
+            >
               <CheckCircle2 className="h-5 w-5 text-primary" />
               <AlertTitle>Email Sent!</AlertTitle>
               <AlertDescription>
-                If an account exists with the email you provided, we&apos;ve sent instructions to reset your password. Please check your inbox and follow the instructions.
+                If an account exists with the email you provided, we&apos;ve
+                sent instructions to reset your password. Please check your
+                inbox and follow the instructions.
               </AlertDescription>
             </Alert>
             <div className="flex justify-center">
@@ -111,7 +118,10 @@ export default function ForgotPasswordPage() {
             )}
 
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
+              >
                 <FormField
                   control={form.control}
                   name="email"
@@ -132,11 +142,7 @@ export default function ForgotPasswordPage() {
                 />
 
                 <div className="space-y-4">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
+                  <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
                       <div className="flex items-center justify-center">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

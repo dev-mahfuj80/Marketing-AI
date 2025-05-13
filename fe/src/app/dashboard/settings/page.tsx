@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Facebook, Linkedin, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import {
+  Facebook,
+  Linkedin,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { authApi } from "@/lib/api";
 
@@ -21,7 +27,7 @@ export default function SettingsPage() {
     lastSyncFacebook: null,
     lastSyncLinkedin: null,
   });
-  
+
   // Type-safe selectors
   const user = useAuthStore((state) => state.user);
   const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
@@ -30,11 +36,11 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchConnectionStatus = async () => {
       if (!user) return;
-      
+
       setIsLoading(true);
       try {
         const response = await authApi.getConnections();
-        
+
         setConnectionStatus({
           facebook: response.data.facebookConnected || false,
           linkedin: response.data.linkedinConnected || false,
@@ -60,7 +66,7 @@ export default function SettingsPage() {
   // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
-    
+
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
       year: "numeric",
@@ -92,7 +98,7 @@ export default function SettingsPage() {
 
       <div className="bg-card rounded-lg border p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Connected Accounts</h2>
-        
+
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <RefreshCw className="animate-spin h-8 w-8 text-muted-foreground" />
@@ -122,12 +128,13 @@ export default function SettingsPage() {
                   </p>
                   {connectionStatus.facebook && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Last synced: {formatDate(connectionStatus.lastSyncFacebook)}
+                      Last synced:{" "}
+                      {formatDate(connectionStatus.lastSyncFacebook)}
                     </p>
                   )}
                 </div>
               </div>
-              
+
               <Button
                 variant={connectionStatus.facebook ? "outline" : "default"}
                 size="sm"
@@ -136,7 +143,7 @@ export default function SettingsPage() {
                 {connectionStatus.facebook ? "Reconnect" : "Connect"}
               </Button>
             </div>
-            
+
             {/* LinkedIn Connection */}
             <div className="flex items-start justify-between flex-col md:flex-row gap-4">
               <div className="flex items-center gap-3">
@@ -160,12 +167,13 @@ export default function SettingsPage() {
                   </p>
                   {connectionStatus.linkedin && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Last synced: {formatDate(connectionStatus.lastSyncLinkedin)}
+                      Last synced:{" "}
+                      {formatDate(connectionStatus.lastSyncLinkedin)}
                     </p>
                   )}
                 </div>
               </div>
-              
+
               <Button
                 variant={connectionStatus.linkedin ? "outline" : "default"}
                 size="sm"
@@ -183,7 +191,7 @@ export default function SettingsPage() {
         <p className="text-muted-foreground mb-4">
           Manage your account preferences and personal information
         </p>
-        
+
         <div className="space-y-4">
           <div>
             <h3 className="font-medium mb-1">Email Address</h3>
@@ -191,7 +199,7 @@ export default function SettingsPage() {
               {user?.email || "Loading..."}
             </p>
           </div>
-          
+
           <div>
             <h3 className="font-medium mb-1">Name</h3>
             <p className="text-muted-foreground">

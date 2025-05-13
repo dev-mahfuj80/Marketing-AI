@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '../utils/auth';
+import type { Request, Response, NextFunction } from "express";
+import { PrismaClient } from "@prisma/client";
+import { verifyToken } from "../utils/auth";
 
 const prisma = new PrismaClient();
 
@@ -20,23 +20,27 @@ declare global {
 /**
  * Authentication middleware - verifies JWT token from Authorization header or cookies
  */
-export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     // Get token from Authorization header or cookies
     const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith('Bearer ')
+    const token = authHeader?.startsWith("Bearer ")
       ? authHeader.substring(7)
       : req.cookies?.accessToken;
 
     if (!token) {
-      res.status(401).json({ message: 'Authentication required' });
+      res.status(401).json({ message: "Authentication required" });
       return;
     }
 
     // Verify token
     const payload = verifyToken(token);
     if (!payload) {
-      res.status(401).json({ message: 'Invalid or expired token' });
+      res.status(401).json({ message: "Invalid or expired token" });
       return;
     }
 
@@ -46,7 +50,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     });
 
     if (!user) {
-      res.status(401).json({ message: 'User not found' });
+      res.status(401).json({ message: "User not found" });
       return;
     }
 
@@ -59,7 +63,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
-    res.status(401).json({ message: 'Authentication failed' });
+    res.status(401).json({ message: "Authentication failed" });
   }
 };
 
@@ -69,11 +73,11 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 export const authorize = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
+      return res.status(401).json({ message: "Authentication required" });
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
+      return res.status(403).json({ message: "Insufficient permissions" });
     }
 
     next();

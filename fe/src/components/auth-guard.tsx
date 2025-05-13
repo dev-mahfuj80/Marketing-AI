@@ -13,16 +13,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isChecking, setIsChecking] = useState(true);
-  
-  const { 
-    isAuthenticated, 
-    checkAuthStatus, 
-    isLoading
-  } = useAuthStore(state => ({
-    isAuthenticated: state.isAuthenticated,
-    checkAuthStatus: state.checkAuthStatus,
-    isLoading: state.isLoading
-  }));
+
+  // Use individual selectors to avoid recreating objects on every render
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
+  const isLoading = useAuthStore((state) => state.isLoading);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -42,7 +37,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     // Only redirect after we've checked authentication status
     if (!isChecking && !isAuthenticated && !isLoading) {
       // Redirect to login with return URL
-      router.push(`/login?redirect=${encodeURIComponent(pathname || '/dashboard')}`);
+      router.push(
+        `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
+      );
     }
   }, [isAuthenticated, isChecking, isLoading, pathname, router]);
 

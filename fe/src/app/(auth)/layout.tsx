@@ -1,9 +1,9 @@
-import React from 'react';
-import type { Viewport } from 'next';
+import React from "react";
+import type { Viewport } from "next";
 
 // Add explicit viewport configuration for the auth group
 export const viewport: Viewport = {
-  width: 'device-width',
+  width: "device-width",
   initialScale: 1,
   maximumScale: 1,
 };
@@ -13,9 +13,5 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen bg-background">
-      {children}
-    </div>
-  );
+  return <div className="min-h-screen bg-background">{children}</div>;
 }
