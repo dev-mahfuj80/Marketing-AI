@@ -1,6 +1,5 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { Router } from "express";
-import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { body } from "express-validator";
 import { validationResult } from "express-validator";
 import {
@@ -81,5 +80,53 @@ router.get("/me", authenticate, ((
 ) => {
   getCurrentUser(req, res).catch(next);
 }) as RequestHandler);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ */
+router.post(
+  "/forgot-password",
+  [
+    body("email").isEmail().withMessage("Please provide a valid email"),
+  ],
+  ((req: Request, res: Response, next: NextFunction) => {
+    requestPasswordReset(req, res).catch(next);
+  }) as RequestHandler
+);
+
+/**
+ * @route   POST /api/auth/request-password-reset
+ * @desc    Alias for forgot-password (for backwards compatibility)
+ * @access  Public
+ */
+router.post(
+  "/request-password-reset",
+  [
+    body("email").isEmail().withMessage("Please provide a valid email"),
+  ],
+  ((req: Request, res: Response, next: NextFunction) => {
+    requestPasswordReset(req, res).catch(next);
+  }) as RequestHandler
+);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password with token
+ * @access  Public
+ */
+router.post(
+  "/reset-password",
+  [
+    body("token").notEmpty().withMessage("Token is required"),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters"),
+  ],
+  ((req: Request, res: Response, next: NextFunction) => {
+    resetPassword(req, res).catch(next);
+  }) as RequestHandler
+);
 
 export default router;

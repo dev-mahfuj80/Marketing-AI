@@ -3,6 +3,10 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "nodemon --exec bun index.ts",
+    "prisma:generate": "prisma generate"
+  },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/bun": "latest",
@@ -23,6 +27,8 @@
     "express": "^5.1.0",
     "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^7.0.3",
+    "nodemon": "^3.1.10",
     "prisma": "^6.7.0"
   }
 }

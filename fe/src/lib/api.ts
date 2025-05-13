@@ -37,47 +37,70 @@ export const authApi = {
   },
 
   register: async (name: string, email: string, password: string) => {
-    return api.post("/auth/register", { name, email, password });
+    return api.post("/api/auth/register", { name, email, password });
   },
 
   logout: async () => {
-    return api.post("/auth/logout");
+    return api.post("/api/auth/logout");
   },
 
   me: async () => {
-    return api.get("/auth/me");
+    return api.get("/api/auth/me");
   },
 
   checkStatus: async () => {
-    const response = await api.get("/auth/me");
+    const response = await api.get("/api/auth/me");
     return response.data;
   },
 
   getConnections: async () => {
-    return api.get("/auth/connections");
+    return api.get("/api/auth/connections");
   },
 
   forgotPassword: async (email: string) => {
-    return api.post("/auth/request-password-reset", { email });
+    try {
+      console.log('Sending password reset request for email:', email);
+      
+      // Try the first endpoint format
+      try {
+        const response = await api.post("/api/auth/forgot-password", { email });
+        console.log('Password reset response:', response);
+        return response;
+      } catch (innerError) {
+        console.log('First endpoint failed, trying alternative endpoint', innerError);
+        // If first endpoint fails, try the second format
+        const response = await api.post("/api/auth/request-password-reset", { email });
+        console.log('Password reset response from alternative endpoint:', response);
+        return response;
+      }
+    } catch (error) {
+      console.error('Both password reset request endpoints failed:', error);
+      throw error;
+    }
   },
 
   resetPassword: async (token: string, password: string) => {
-    return api.post("/auth/reset-password", { token, password });
+    try {
+      return await api.post("/api/auth/reset-password", { token, password });
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
   },
 };
 
 // Social Media Posts API calls
 export const postsApi = {
   getFacebookPosts: async () => {
-    return api.get("/posts/facebook");
+    return api.get("/api/posts/facebook");
   },
 
   getLinkedinPosts: async () => {
-    return api.get("/posts/linkedin");
+    return api.get("/api/posts/linkedin");
   },
 
   createPost: async (formData: FormData) => {
-    return api.post("/posts/publish", formData, {
+    return api.post("/api/posts/publish", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

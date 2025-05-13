@@ -16,9 +16,11 @@ import { z } from "zod";
 import Link from "next/link";
 import { useState } from "react";
 import { authApi } from "@/lib/api";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+
+// NOTE: Metadata should be in a separate layout.tsx file since we can't use it in client components
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -44,11 +46,25 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      await authApi.forgotPassword(values.email);
+      // Added a short timeout to ensure the UI shows loading state for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const response = await authApi.forgotPassword(values.email);
+      console.log('Password reset request successful:', response);
       setIsSubmitted(true);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Password reset request failed:", err);
-      setError("We encountered an error. Please try again later.");
+      // Type guard for axios error responses
+      const isAxiosError = (error: unknown): error is { response?: { data?: { message?: string } } } => 
+        error !== null && 
+        typeof error === 'object' && 
+        'response' in (error as Record<string, unknown>);
+      
+      // Check for specific error responses from the server
+      if (isAxiosError(err) && err?.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("We encountered an error. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +137,14 @@ export default function ForgotPasswordPage() {
                     className="w-full"
                     disabled={isLoading}
                   >
-                    {isLoading ? "Processing..." : "Reset Password"}
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </div>
+                    ) : (
+                      "Reset Password"
+                    )}
                   </Button>
 
                   <div className="text-center">

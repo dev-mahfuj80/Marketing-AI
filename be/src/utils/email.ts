@@ -1,15 +1,39 @@
 import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 
-const transporter = nodemailer.createTransport({
-  host: env.SMTP_HOST,
-  port: parseInt(env.SMTP_PORT || '587'),
-  secure: env.SMTP_SECURE === 'true',
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASSWORD,
-  },
-});
+// Check if we're in development mode to use a test account
+const isDev = env.NODE_ENV === 'development' || env.NODE_ENV === 'test';
+
+// For development, use a test account or console output
+let transporter: nodemailer.Transporter;
+
+if (isDev && (!env.SMTP_USER || !env.SMTP_PASSWORD)) {
+  console.log('⚠️ Email service running in DEVELOPMENT MODE - emails will not be sent');
+  console.log('⚠️ To send actual emails, configure SMTP settings in your .env file');
+  
+  // Create a mock transporter that just logs emails
+  transporter = {
+    sendMail: async (mailOptions: any) => {
+      console.log('====== MOCK EMAIL SENT ======');
+      console.log('To:', mailOptions.to);
+      console.log('Subject:', mailOptions.subject);
+      console.log('Reset URL extracted from email:', mailOptions.html.match(/href="([^"]+)"/)?.[1] || 'URL not found');
+      console.log('==============================');
+      return { messageId: 'mock-email-id' };
+    }
+  } as any;
+} else {
+  // Use real email transporter for production or when credentials are provided
+  transporter = nodemailer.createTransport({
+    host: env.SMTP_HOST,
+    port: parseInt(env.SMTP_PORT || '587'),
+    secure: env.SMTP_SECURE === 'true',
+    auth: {
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASSWORD,
+    },
+  });
+}
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
   const resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
