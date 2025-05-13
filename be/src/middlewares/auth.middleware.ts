@@ -20,7 +20,7 @@ declare global {
 /**
  * Authentication middleware - verifies JWT token from Authorization header or cookies
  */
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Get token from Authorization header or cookies
     const authHeader = req.headers.authorization;
@@ -29,13 +29,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       : req.cookies?.accessToken;
 
     if (!token) {
-      return res.status(401).json({ message: 'Authentication required' });
+      res.status(401).json({ message: 'Authentication required' });
+      return;
     }
 
     // Verify token
     const payload = verifyToken(token);
     if (!payload) {
-      return res.status(401).json({ message: 'Invalid or expired token' });
+      res.status(401).json({ message: 'Invalid or expired token' });
+      return;
     }
 
     // Check if user exists
@@ -44,7 +46,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     });
 
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      res.status(401).json({ message: 'User not found' });
+      return;
     }
 
     // Add user to request object
@@ -56,7 +59,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
 
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Authentication failed' });
+    res.status(401).json({ message: 'Authentication failed' });
   }
 };
 
