@@ -44,9 +44,9 @@ export const generateAccessToken = (payload: TokenPayload): string => {
   // Create a properly typed options object
   const options: SignOptions = {
     // Handle expiresIn type properly - it can be a string like '1h' or a number of seconds
-    expiresIn: env.JWT_ACCESS_EXPIRY as any
+    expiresIn: env.JWT_ACCESS_EXPIRY as any,
   };
-  
+
   // Using any to bypass TypeScript's strict checking for jwt.sign
   return jwt.sign(payload, env.JWT_SECRET as any, options);
 };
@@ -60,9 +60,9 @@ export const generateRefreshToken = async (
   // Create a properly typed options object
   const options: SignOptions = {
     // Handle expiresIn type properly - it can be a string like '7d' or a number of seconds
-    expiresIn: env.JWT_REFRESH_EXPIRY as any
+    expiresIn: env.JWT_REFRESH_EXPIRY as any,
   };
-  
+
   // Using any to bypass TypeScript's strict checking for jwt.sign
   const token = jwt.sign(payload, env.JWT_SECRET as any, options);
 

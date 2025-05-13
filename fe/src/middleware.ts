@@ -1,52 +1,42 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Define paths that require authentication
-const protectedPaths = [
-  '/dashboard',
-  '/dashboard/posts',
-  '/dashboard/create-post',
-  '/dashboard/settings',
-];
-
-// Define paths that are only accessible for non-authenticated users
-const authPaths = [
-  '/login',
-  '/register',
-];
+// Define public routes that don't require authentication
+const publicPaths = ["/login", "/register"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
-  const isAuthPath = authPaths.some(path => pathname.startsWith(path));
   
-  // Check for authentication token in cookies
-  const hasAuthCookie = request.cookies.has('accessToken');
+  // Check if this is a public path
+  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
   
-  // Redirect authenticated users away from auth pages (login/register)
-  if (isAuthPath && hasAuthCookie) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+  // Get the token from the cookies
+  const token = request.cookies.get("auth_token")?.value;
+  
+  // If the path is for dashboard and there's no token, redirect to login
+  if (!isPublicPath && !token) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
   
-  // Redirect unauthenticated users to login page from protected routes
-  if (isProtectedPath && !hasAuthCookie) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  // If the user is on login/register but already has a token, redirect to dashboard
+  if (isPublicPath && token) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
   
+  // Continue with the request if everything is fine
   return NextResponse.next();
 }
 
-// Configure which paths the middleware runs on
+// Configure which paths the middleware will run on
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
+     * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public files (public assets)
-     * - api routes (backend API)
+     * - public files (manifest.json, robots.txt, etc.)
      */
-    '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|manifest.json).*)",
   ],
 };
