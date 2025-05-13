@@ -18,19 +18,22 @@ import { useEffect, useState } from "react";
 export default function Home() {
   const router = useRouter();
   // Use individual selectors to avoid recreating objects on every render
-  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const isAuthenticated = useAuthStore(
+    (state: AuthState) => state.isAuthenticated
+  );
   const isLoading = useAuthStore((state: AuthState) => state.isLoading);
-  const checkAuthStatus = useAuthStore((state: AuthState) => state.checkAuthStatus);
+  // const checkAuthStatus = useAuthStore((state: AuthState) => state.checkAuthStatus);
   const [isClient, setIsClient] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Set isClient to true after component mounts and check auth status
   useEffect(() => {
     setIsClient(true);
-    checkAuthStatus().catch((err) =>
-      console.error("Failed to check auth status:", err)
-    );
-  }, [checkAuthStatus]);
+    // checkAuthStatus().catch((err) =>
+    //   console.error("Failed to check auth status:", err)
+    // );
+    console.log("isAuthenticated", isAuthenticated);
+  }, [isAuthenticated]);
 
   const handleGetStarted = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -38,11 +41,13 @@ export default function Home() {
 
     try {
       // Double-check authentication status before redirecting
-      await checkAuthStatus();
+      // await checkAuthStatus();
 
       if (isAuthenticated) {
+        console.log("User is authenticated");
         router.push("/dashboard");
       } else {
+        console.log("User is not authenticated");
         router.push("/login?redirect=/dashboard");
       }
     } catch (error) {

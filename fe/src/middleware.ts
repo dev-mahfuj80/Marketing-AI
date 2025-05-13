@@ -10,23 +10,37 @@ const publicPaths = [
   "/",
 ];
 
+// API routes that should be accessible without auth
+const publicApiPaths = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/refresh",
+  "/api/auth/logout",
+  "/api/auth/status",
+];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Skip middleware for API routes that need to be public
+  if (publicApiPaths.some((path) => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
 
   // Check if this is a public path
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path));
 
   // Get the token from the cookies
-  const token = request.cookies.get("auth_token")?.value;
+  // Check both possible cookie names your app might be using
+  const token =
+    request.cookies.get("accessToken")?.value ||
+    request.cookies.get("auth_token")?.value;
 
-  // If the path is for dashboard and there's no token, redirect to login
+  // ONLY redirect to login if trying to access protected routes without a token
+  // This is the most important protection - don't let unauthenticated users access dashboard
   if (!isPublicPath && !token) {
+    console.log(`Redirecting to login: ${pathname} (no token)`);
     return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  // If the user is on login/register but already has a token, redirect to dashboard
-  if (isPublicPath && token) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   // Continue with the request if everything is fine
