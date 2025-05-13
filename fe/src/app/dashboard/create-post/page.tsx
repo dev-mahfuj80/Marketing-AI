@@ -160,7 +160,9 @@ export default function CreatePostPage() {
                     type="file"
                     accept="image/*"
                     // Explicitly type the event for better lint/type safety
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.files)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onChange(e.target.files)
+                    }
                     {...restField}
                   />
                 </FormControl>
@@ -182,7 +184,7 @@ export default function CreatePostPage() {
                     <input
                       type="checkbox"
                       checked={field.value}
-                      onChange={e => field.onChange(e.target.checked)}
+                      onChange={(e) => field.onChange(e.target.checked)}
                       disabled={!user?.facebookConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       aria-checked={field.value}
@@ -210,7 +212,7 @@ export default function CreatePostPage() {
                     <input
                       type="checkbox"
                       checked={field.value}
-                      onChange={e => field.onChange(e.target.checked)}
+                      onChange={(e) => field.onChange(e.target.checked)}
                       disabled={!user?.linkedinConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       aria-checked={field.value}
