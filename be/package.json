@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "build": "prisma generate && tsc",
     "dev": "nodemon --exec bun index.ts",
     "prisma:generate": "prisma generate"
   },

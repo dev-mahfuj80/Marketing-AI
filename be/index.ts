@@ -16,12 +16,14 @@ const prisma = new PrismaClient();
 // Middleware
 app.use(express.json());
 app.use(cookieParser(env.COOKIE_SECRET));
-app.use(cors({
-  origin: env.FRONTEND_URL,
-  credentials: true, // Allow cookies
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: [env.FRONTEND_URL, "https://marketing-ai-ws7v.vercel.app"],
+    credentials: true, // Allow cookies
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -34,13 +36,20 @@ app.get("/health", (req, res) => {
 });
 
 // Global error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: "An unexpected error occurred",
-    error: env.isDevelopment() ? err.message : undefined
-  });
-});
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error(err.stack);
+    res.status(500).json({
+      message: "An unexpected error occurred",
+      error: env.isDevelopment() ? err.message : undefined,
+    });
+  }
+);
 
 // Start server
 const PORT = env.PORT;
