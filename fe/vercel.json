@@ -3,9 +3,6 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
-  "typescript": {
-    "ignoreBuildErrors": true
-  },
   "outputDirectory": ".next",
   "regions": ["iad1"],
   "headers": [
