@@ -24,10 +24,10 @@ export const env = {
     process.env.REDIRECT_URI || "http://localhost:3001/api/auth/callback",
 
   // Email
-  SMTP_HOST: process.env.SMTP_HOST || "smtp.example.com",
+  SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
   SMTP_PORT: process.env.SMTP_PORT || "587",
   SMTP_SECURE: process.env.SMTP_SECURE || "false",
-  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_USER: process.env.SMTP_USER || "mahfujurrahman06627@gmail.com",
   SMTP_PASSWORD: process.env.SMTP_PASSWORD || "",
   SMTP_FROM: process.env.SMTP_FROM || "noreply@example.com",
   CLIENT_URL: process.env.CLIENT_URL || "http://localhost:3000",

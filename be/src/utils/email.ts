@@ -4,33 +4,39 @@ import { env } from "../config/env";
 // Check if we're in development mode to use a test account
 const isDev = env.NODE_ENV === "development" || env.NODE_ENV === "test";
 
-// For development, use a test account or console output
+// Configure email transporter
 let transporter: nodemailer.Transporter;
 
-if (isDev && (!env.SMTP_USER || !env.SMTP_PASSWORD)) {
-  console.log(
-    "⚠️ Email service running in DEVELOPMENT MODE - emails will not be sent"
-  );
-  console.log(
-    "⚠️ To send actual emails, configure SMTP settings in your .env file"
-  );
+// Check if SMTP credentials are provided
+const hasSmtpCredentials = env.SMTP_USER && env.SMTP_PASSWORD && env.SMTP_HOST;
+
+if (!hasSmtpCredentials) {
+  console.log("⚠️ NO SMTP CREDENTIALS FOUND - emails will not be sent");
+  console.log("⚠️ To send actual emails, configure SMTP settings in your .env file");
 
   // Create a mock transporter that just logs emails
   transporter = {
     sendMail: async (mailOptions: any) => {
-      console.log("====== MOCK EMAIL SENT ======");
+      console.log("\n====== MOCK EMAIL SENT ======");
       console.log("To:", mailOptions.to);
       console.log("Subject:", mailOptions.subject);
       console.log(
         "Reset URL extracted from email:",
         mailOptions.html.match(/href="([^"]+)"/)?.[1] || "URL not found"
       );
-      console.log("==============================");
+      console.log("Email Content:", mailOptions.html);
+      console.log("==============================\n");
       return { messageId: "mock-email-id" };
     },
   } as any;
 } else {
-  // Use real email transporter for production or when credentials are provided
+  console.log("📧 Setting up real email transporter with:");
+  console.log(`- Host: ${env.SMTP_HOST}`);
+  console.log(`- Port: ${env.SMTP_PORT}`);
+  console.log(`- User: ${env.SMTP_USER}`);
+  console.log(`- Secure: ${env.SMTP_SECURE}`);
+
+  // Use real email transporter with provided credentials
   transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: parseInt(env.SMTP_PORT || "587"),
@@ -39,6 +45,10 @@ if (isDev && (!env.SMTP_USER || !env.SMTP_PASSWORD)) {
       user: env.SMTP_USER,
       pass: env.SMTP_PASSWORD,
     },
+    tls: {
+      // Do not fail on invalid certs
+      rejectUnauthorized: false
+    }
   });
 }
 
@@ -66,13 +76,17 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
         <p>If you didn't request this, please ignore this email.</p>
       </div>
     `,
+    // Add text version for better deliverability
+    text: `Reset Your Password\n\nYou requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    console.log(`🔄 Attempting to send password reset email to ${email}...`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully: ${info.messageId}`);
     return true;
   } catch (error) {
-    console.error("Error sending password reset email:", error);
+    console.error("❌ Error sending password reset email:", error);
     return false;
   }
 };

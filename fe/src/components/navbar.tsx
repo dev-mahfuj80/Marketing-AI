@@ -8,6 +8,7 @@ import { useAuthStore } from "@/lib/store/auth-store";
 import { AuthState } from "@/lib/store/auth-store";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -98,36 +99,47 @@ export function Navbar() {
           </ul>
 
           <div className="flex flex-col md:flex-row items-center mt-4 md:mt-0 md:ml-4 space-y-2 md:space-y-0 md:space-x-2">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage
-                    src="/avatar-placeholder.png"
-                    alt={user?.name || "User"}
-                  />
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.name?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{user?.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {user?.email}
-                  </span>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src="/avatar-placeholder.png"
+                      alt={user?.name || "User"}
+                    />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.name?.[0].toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden md:flex flex-col">
+                    <span className="text-sm font-medium">{user?.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {user?.email}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="flex items-center gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
-              </div>
-            ) : (
-              <></>
-            )}
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link href="/login">
+                    <Button variant="outline" size="sm">Login</Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button size="sm">Get Started</Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

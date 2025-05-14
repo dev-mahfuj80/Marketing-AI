@@ -28,11 +28,19 @@ export function Providers({
   storageKey = "theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage?.getItem(storageKey) as Theme) || defaultTheme
-  );
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+
+  // Initialize theme from localStorage on client-side only
+  useEffect(() => {
+    const storedTheme = localStorage?.getItem(storageKey) as Theme;
+    if (storedTheme) {
+      setTheme(storedTheme);
+    }
+  }, [storageKey]);
 
   useEffect(() => {
+    // Skip during SSR
+    if (typeof window === 'undefined') return;
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");

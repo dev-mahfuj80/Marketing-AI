@@ -5,10 +5,18 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import { useAuthStore, AuthState } from "@/lib/store/auth-store";
+import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export function EnhancedNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const user = useAuthStore((state: AuthState) => state.user);
+  const isAuthenticated = useAuthStore((state: AuthState) => state.isAuthenticated);
+  const logout = useAuthStore((state: AuthState) => state.logout);
+  const router = useRouter();
   
   // Handle scroll to change navbar appearance
   useEffect(() => {
@@ -24,6 +32,18 @@ export function EnhancedNavbar() {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMobileMenuOpen(false); // Close menu after clicking
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push("/");
+      router.refresh(); // Refresh the page to ensure clean state
+    } catch (error) {
+      console.error("Logout failed:", error);
     }
     setIsMobileMenuOpen(false); // Close menu after clicking
   };
@@ -72,12 +92,48 @@ export function EnhancedNavbar() {
 
           <div className="hidden md:flex items-center space-x-3">
             <ThemeToggle />
-            <Link href="/login">
-              <Button variant="outline" size="sm">Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm">Get Started</Button>
-            </Link>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-9 w-9">
+                  <AvatarImage
+                    src="/avatar-placeholder.png"
+                    alt={user?.name || "User"}
+                  />
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.name?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden lg:flex flex-col">
+                  <span className="text-sm font-medium">{user?.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user?.email}
+                  </span>
+                </div>
+                <div className="flex space-x-2">
+                  <Link href="/dashboard">
+                    <Button variant="ghost" size="sm">Dashboard</Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="flex items-center gap-1"
+                  >
+                    <LogOut className="h-3 w-3" />
+                    <span>Logout</span>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex space-x-2">
+                <Link href="/login">
+                  <Button variant="outline" size="sm">Login</Button>
+                </Link>
+                <Link href="/register">
+                  <Button size="sm">Get Started</Button>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
         
@@ -89,16 +145,55 @@ export function EnhancedNavbar() {
               <button onClick={() => scrollToSection('pricing')} className="text-muted-foreground hover:text-foreground transition-colors">Pricing</button>
               <button onClick={() => scrollToSection('testimonials')} className="text-muted-foreground hover:text-foreground transition-colors">Testimonials</button>
               <button onClick={() => scrollToSection('faq')} className="text-muted-foreground hover:text-foreground transition-colors">FAQ</button>
-              <div className="flex items-center justify-between pt-4 border-t">
-                <ThemeToggle />
-                <div className="flex space-x-3">
-                  <Link href="/login">
-                    <Button variant="outline" size="sm">Login</Button>
-                  </Link>
-                  <Link href="/register">
-                    <Button size="sm">Get Started</Button>
-                  </Link>
+              <div className="flex flex-col pt-4 border-t space-y-4">
+                <div className="flex items-center justify-between">
+                  <ThemeToggle />
+                  <span className="text-sm text-muted-foreground">Toggle dark mode</span>
                 </div>
+                
+                {isAuthenticated ? (
+                  <div className="flex flex-col space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src="/avatar-placeholder.png"
+                          alt={user?.name || "User"}
+                        />
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {user?.name?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{user?.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {user?.email}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link href="/dashboard" className="w-full">
+                        <Button variant="outline" className="w-full" size="sm">Dashboard</Button>
+                      </Link>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleLogout}
+                        className="w-full"
+                      >
+                        Logout
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href="/login" className="w-full">
+                      <Button variant="outline" className="w-full" size="sm">Login</Button>
+                    </Link>
+                    <Link href="/register" className="w-full">
+                      <Button className="w-full" size="sm">Sign Up</Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </nav>
           </div>
