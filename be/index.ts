@@ -3,35 +3,41 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 // Debug logs for Vercel troubleshooting
-console.log('Starting application...');
+console.log("Starting application...");
 
 try {
-  console.log('Importing env...');
-  var { env } = await import('./src/config/env.js');
-  console.log('Env imported successfully');
+  console.log("Importing env...");
+  var { env } = await import("./src/config/env.js");
+  console.log("Env imported successfully");
 } catch (err) {
-  console.error('Error importing env:', err);
+  console.error("Error importing env:", err);
   throw err;
 }
 
 try {
-  console.log('Importing prisma...');
-  var { prisma } = await import('./src/utils/prisma.js');
-  console.log('Prisma imported successfully');
+  console.log("Importing prisma...");
+  var { prisma } = await import("./src/utils/prisma.js");
+  console.log("Prisma imported successfully");
 } catch (err) {
-  console.error('Error importing prisma:', err);
+  console.error("Error importing prisma:", err);
   throw err;
 }
 
 // Import routes
 try {
-  console.log('Importing routes...');
-  var authRoutes = await import('./src/routes/auth.routes.js').then(m => m.default);
-  var socialAuthRoutes = await import('./src/routes/social-auth.routes.js').then(m => m.default);
-  var postsRoutes = await import('./src/routes/posts.routes.js').then(m => m.default);
-  console.log('Routes imported successfully');
+  console.log("Importing routes...");
+  var authRoutes = await import("./src/routes/auth.routes.js").then(
+    (m) => m.default
+  );
+  var socialAuthRoutes = await import(
+    "./src/routes/social-auth.routes.js"
+  ).then((m) => m.default);
+  var postsRoutes = await import("./src/routes/posts.routes.js").then(
+    (m) => m.default
+  );
+  console.log("Routes imported successfully");
 } catch (err) {
-  console.error('Error importing routes:', err);
+  console.error("Error importing routes:", err);
   throw err;
 }
 
@@ -43,7 +49,14 @@ app.use(express.json());
 app.use(cookieParser(env.COOKIE_SECRET));
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, "https://marketing-ai-ws7v.vercel.app"],
+    origin: [
+      env.FRONTEND_URL,
+      "https://marketing-ai-ws7v.vercel.app",
+      // Local development URLs
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5173", // Vite default
+    ],
     credentials: true, // Allow cookies
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],

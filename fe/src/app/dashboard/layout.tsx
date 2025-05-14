@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle, MobileThemeToggle } from "@/components/theme-toggle";
 import {
   LogOut,
   LayoutDashboard,
@@ -115,7 +116,14 @@ export default function DashboardLayout({
             ))}
           </nav>
 
-          <div className="mt-auto pt-4">
+          <div className="mt-auto pt-4 space-y-2">
+            {/* Dark mode toggle */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-md border border-input">
+              <span className="text-sm font-medium">Dark Mode</span>
+              <ThemeToggle />
+            </div>
+            
+            {/* Logout button */}
             <Button
               variant="outline"
               className="w-full justify-start gap-2"
@@ -158,6 +166,10 @@ export default function DashboardLayout({
                     isActive={getIsActive(item.path)}
                   />
                 ))}
+                {/* Mobile theme toggle */}
+                <div className="mt-2">
+                  <MobileThemeToggle />
+                </div>
                 <Button
                   variant="outline"
                   className="w-full justify-start gap-2"

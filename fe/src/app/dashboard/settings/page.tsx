@@ -77,14 +77,22 @@ export default function SettingsPage() {
     });
   };
 
+  // Get the API base URL based on environment
+  const getApiBaseUrl = () => {
+    // Use the deployed API URL in production, local in development
+    return process.env.NODE_ENV === "production" 
+      ? "https://marketing-ai-xb6l.vercel.app" 
+      : "http://localhost:3001";
+  };
+
   // Handle connect to Facebook
   const handleConnectFacebook = () => {
-    window.location.href = "http://localhost:3001/auth/facebook";
+    window.location.href = `${getApiBaseUrl()}/api/social/facebook`;
   };
 
   // Handle connect to LinkedIn
   const handleConnectLinkedin = () => {
-    window.location.href = "http://localhost:3001/auth/linkedin";
+    window.location.href = `${getApiBaseUrl()}/api/social/linkedin`;
   };
 
   return (

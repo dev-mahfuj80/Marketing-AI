@@ -101,7 +101,7 @@ npm run dev
 Make sure to set the API URL in your `.env.local`:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:3001
 OPENAI_API_KEY=your-api-key
 ```
 

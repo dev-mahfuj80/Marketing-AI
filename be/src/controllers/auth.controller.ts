@@ -83,6 +83,25 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
+    console.log('Login attempt for:', email);
+    
+    // Check if tables exist first
+    try {
+      // Test database connection
+      const tableCheck = await prisma.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'users'
+        );
+      `;
+      console.log('Table check result:', tableCheck);
+    } catch (dbError) {
+      console.error('Database check error:', dbError);
+      res.status(500).json({ message: 'Database connection error' });
+      return;
+    }
+
     // Find user
     const user = await prisma.user.findUnique({
       where: { email },
@@ -118,7 +137,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       sameSite: "lax",
       path: "/api/auth/refresh", // Only send cookie to refresh endpoint
     });
-
+    console.log(user);
     // Return user data (excluding sensitive information)
     const { password: _, ...userWithoutPassword } = user;
     res.status(200).json({

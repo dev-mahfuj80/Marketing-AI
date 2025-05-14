@@ -12,7 +12,7 @@ datasource db {
 }
 
 model User {
-  id                Int       @id @default(autoincrement())
+  id                Int       @id @default(autoincrement()) @map("id")
   name              String
   email             String    @unique
   password          String?
@@ -32,23 +32,26 @@ model User {
   posts             Post[]    // User's social media posts
   refreshTokens     RefreshToken[]
   
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @default(now()) @updatedAt
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+  
+  @@map("users")
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @map("id")
   token     String   @unique
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
   
   @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model Post {
-  id            Int       @id @default(autoincrement())
+  id            Int       @id @default(autoincrement()) @map("id")
   content       String
   mediaUrl      String?
   platformId    String?   // ID of the post on social platform
@@ -61,11 +64,12 @@ model Post {
   userId        Int
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @default(now()) @updatedAt
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
   
   @@index([userId])
   @@index([platform, publishedAt])
+  @@map("posts")
 }
 
 enum Role {
