@@ -5,8 +5,8 @@ import {
   initiateOAuthLinkedIn,
   linkedInCallback,
   disconnectSocialAccount,
-} from "../controllers/social-auth.controller";
-import { authenticate } from "../middlewares/auth.middleware";
+} from "../controllers/social-auth.controller.js";
+import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

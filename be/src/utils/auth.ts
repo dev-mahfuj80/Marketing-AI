@@ -3,7 +3,7 @@ import type { SignOptions } from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@prisma/client";
 import type { User } from "@prisma/client";
-import { env } from "../config/env";
+import { env } from "../config/env.js";
 
 const prisma = new PrismaClient();
 

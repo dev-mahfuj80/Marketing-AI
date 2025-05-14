@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
 import axios from "axios";
-import { env } from "../config/env";
+import { env } from "../config/env.js";
 
 const prisma = new PrismaClient();
 

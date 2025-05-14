@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { env } from "../config/env";
+import { env } from "../config/env.js";
 
 // Check if we're in development mode to use a test account
 const isDev = env.NODE_ENV === "development" || env.NODE_ENV === "test";

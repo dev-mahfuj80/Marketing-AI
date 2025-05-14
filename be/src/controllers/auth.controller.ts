@@ -1,15 +1,15 @@
 import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { sendPasswordResetEmail } from "../utils/email";
-import type { AuthenticatedRequest } from "../types/express";
+import { sendPasswordResetEmail } from "../utils/email.js";
+import type { AuthenticatedRequest } from "../types/express.js";
 import {
   hashPassword,
   verifyPassword,
   generateTokens,
   refreshAccessToken,
   revokeRefreshToken,
-} from "../utils/auth";
-import { env } from "../config/env";
+} from "../utils/auth.js";
+import { env } from "../config/env.js";
 import crypto from "crypto";
 
 const prisma = new PrismaClient();

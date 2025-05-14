@@ -3,13 +3,13 @@ import {
   getFacebookPosts,
   getLinkedInPosts,
   createPost,
-} from "../controllers/posts.controller";
+} from "../controllers/posts.controller.js";
 
 // Helper to wrap async route handlers
 const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
-import { authenticate } from "../middlewares/auth.middleware";
+import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
