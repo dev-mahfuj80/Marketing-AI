@@ -1,17 +1,16 @@
 import express from "express";
-import { PrismaClient } from "@prisma/client";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { env } from "./src/config/env.js";
+import { prisma } from "./src/utils/prisma.js";
 
 // Import routes
 import authRoutes from "./src/routes/auth.routes.js";
 import socialAuthRoutes from "./src/routes/social-auth.routes.js";
 import postsRoutes from "./src/routes/posts.routes.js";
 
-// Initialize Express app and Prisma client
+// Initialize Express app
 const app = express();
-const prisma = new PrismaClient();
 
 // Middleware
 app.use(express.json());
