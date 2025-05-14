@@ -1,13 +1,39 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { env } from "./src/config/env.js";
-import { prisma } from "./src/utils/prisma.js";
+
+// Debug logs for Vercel troubleshooting
+console.log('Starting application...');
+
+try {
+  console.log('Importing env...');
+  var { env } = await import('./src/config/env.js');
+  console.log('Env imported successfully');
+} catch (err) {
+  console.error('Error importing env:', err);
+  throw err;
+}
+
+try {
+  console.log('Importing prisma...');
+  var { prisma } = await import('./src/utils/prisma.js');
+  console.log('Prisma imported successfully');
+} catch (err) {
+  console.error('Error importing prisma:', err);
+  throw err;
+}
 
 // Import routes
-import authRoutes from "./src/routes/auth.routes.js";
-import socialAuthRoutes from "./src/routes/social-auth.routes.js";
-import postsRoutes from "./src/routes/posts.routes.js";
+try {
+  console.log('Importing routes...');
+  var authRoutes = await import('./src/routes/auth.routes.js').then(m => m.default);
+  var socialAuthRoutes = await import('./src/routes/social-auth.routes.js').then(m => m.default);
+  var postsRoutes = await import('./src/routes/posts.routes.js').then(m => m.default);
+  console.log('Routes imported successfully');
+} catch (err) {
+  console.error('Error importing routes:', err);
+  throw err;
+}
 
 // Initialize Express app
 const app = express();
