@@ -16,14 +16,10 @@ export const authApi = {
     console.log("Attempting login with:", { email });
 
     try {
-      // Based on your error message, try this endpoint directly
-      const response = await axios.post(
-        "http://localhost:3001/api/auth/login",
-        { email, password },
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        }
+      // Use the api instance which already has the correct baseURL from environment variables
+      const response = await api.post(
+        "/api/auth/login",
+        { email, password }
       );
 
       console.log("Login response:", response);

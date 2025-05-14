@@ -11,13 +11,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-// Remove unused useState import
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -27,11 +26,12 @@ const formSchema = z.object({
     .min(6, { message: "Password must be at least 6 characters" }),
 });
 
-export default function LoginPage() {
+// Content component that uses searchParams (needs to be wrapped in Suspense)
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectUrl = searchParams.get("redirect") || "/dashboard";
-
+  const redirectUrl = searchParams?.get("redirect") || "/dashboard";
+  
   // Type-safe state selectors
   const login = useAuthStore((state: AuthState) => state.login);
   const isAuthenticated = useAuthStore(
@@ -46,7 +46,7 @@ export default function LoginPage() {
     if (isAuthenticated) {
       router.push(redirectUrl);
     }
-  }, [isAuthenticated, redirectUrl, router]);
+  }, [isAuthenticated, router, redirectUrl]);
 
   // React Hook Form with Zod validation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -188,5 +188,14 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

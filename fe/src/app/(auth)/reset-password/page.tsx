@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { authApi } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle2, AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
@@ -42,12 +42,13 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
-export default function ResetPasswordPage() {
+// ResetPasswordContent component that uses searchParams (needs to be wrapped in Suspense)
+function ResetPasswordContent() {
   // We don't need the router here but might use it later for redirects
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const token = searchParams?.get("token");
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -244,5 +245,14 @@ export default function ResetPasswordPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }
