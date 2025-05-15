@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create an Axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001",
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true, // Important for handling cookies
   headers: {
     "Content-Type": "application/json",
@@ -17,10 +17,7 @@ export const authApi = {
 
     try {
       // Use the api instance which already has the correct baseURL from environment variables
-      const response = await api.post(
-        "/api/auth/login",
-        { email, password }
-      );
+      const response = await api.post("/api/auth/login", { email, password });
 
       console.log("Login response:", response);
 

@@ -51,7 +51,7 @@ app.use(
   cors({
     origin: [
       env.FRONTEND_URL,
-      "https://marketing-ai-ws7v.vercel.app",
+      "https://marketing-ai-omega.vercel.app",
       // Local development URLs
       "http://localhost:3000",
       "http://127.0.0.1:3000",
