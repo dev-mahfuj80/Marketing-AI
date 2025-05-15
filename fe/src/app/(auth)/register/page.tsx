@@ -17,6 +17,7 @@ import { z } from "zod";
 import Link from "next/link";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { authApi } from "@/lib/api";
 
 // Form schema using Zod
 const formSchema = z
@@ -61,10 +62,11 @@ export default function RegisterPage() {
     const { confirmPassword, ...registerData } = values;
 
     try {
-      // Call your backend API for registration
-      const response = await axios.post(
-        "http://localhost:3001/api/auth/register",
-        registerData
+      // Call your backend API for registration using the authApi utility
+      const response = await authApi.register(
+        registerData.name,
+        registerData.email,
+        registerData.password
       );
 
       if (response.data) {
