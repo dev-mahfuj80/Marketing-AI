@@ -80,8 +80,8 @@ export default function SettingsPage() {
   // Get the API base URL based on environment
   const getApiBaseUrl = () => {
     // Use the deployed API URL in production, local in development
-    return process.env.NODE_ENV === "production" 
-      ? "https://marketing-ai-xb6l.vercel.app" 
+    return process.env.NODE_ENV === "production"
+      ? "https://marketing-ai-xb6l.vercel.app"
       : "http://localhost:3001";
   };
 
