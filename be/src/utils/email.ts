@@ -12,7 +12,9 @@ const hasSmtpCredentials = env.SMTP_USER && env.SMTP_PASSWORD && env.SMTP_HOST;
 
 if (!hasSmtpCredentials) {
   console.log("⚠️ NO SMTP CREDENTIALS FOUND - emails will not be sent");
-  console.log("⚠️ To send actual emails, configure SMTP settings in your .env file");
+  console.log(
+    "⚠️ To send actual emails, configure SMTP settings in your .env file"
+  );
 
   // Create a mock transporter that just logs emails
   transporter = {
@@ -40,20 +42,27 @@ if (!hasSmtpCredentials) {
   transporter = nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: parseInt(env.SMTP_PORT || "587"),
-    secure: env.SMTP_SECURE === "true",
+    secure: false, // Use TLS - set to false for port 587 (STARTTLS)
     auth: {
       user: env.SMTP_USER,
       pass: env.SMTP_PASSWORD,
     },
     tls: {
       // Do not fail on invalid certs
-      rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+      ciphers: "SSLv3",
+    },
+    debug: true, // Enable debug output
+    logger: true, // Log information to the console
   });
 }
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
   const resetUrl = `${env.CLIENT_URL}/reset-password?token=${token}`;
+
+  // Log the reset URL for debugging
+  console.log(`🔗 Password reset link being sent: ${resetUrl}`);
+  console.log(`🔑 Token used: ${token}`);
 
   const mailOptions = {
     from: `"Marketing AI" <${env.SMTP_FROM || env.SMTP_USER}>`,
@@ -77,16 +86,34 @@ export const sendPasswordResetEmail = async (email: string, token: string) => {
       </div>
     `,
     // Add text version for better deliverability
-    text: `Reset Your Password\n\nYou requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`
+    text: `Reset Your Password\n\nYou requested a password reset. Click the link below to set a new password:\n\n${resetUrl}\n\nThis link will expire in 1 hour.\n\nIf you didn't request this, please ignore this email.`,
   };
 
   try {
     console.log(`🔄 Attempting to send password reset email to ${email}...`);
+    console.log(
+      `Using SMTP: ${env.SMTP_HOST}:${env.SMTP_PORT} with user ${env.SMTP_USER}`
+    );
+
+    // Test SMTP connection before sending
+    try {
+      await transporter.verify();
+      console.log("✅ SMTP connection verified successfully");
+    } catch (verifyError) {
+      console.error("❌ SMTP connection verification failed:", verifyError);
+      // Continue anyway to see the specific sending error
+    }
+
     const info = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent successfully: ${info.messageId}`);
+    console.log(`✅ Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error sending password reset email:", error);
+    // Log detailed error information
+    if (error.code) console.error(`Error code: ${error.code}`);
+    if (error.command) console.error(`Failed command: ${error.command}`);
+    if (error.response) console.error(`Server response: ${error.response}`);
     return false;
   }
 };

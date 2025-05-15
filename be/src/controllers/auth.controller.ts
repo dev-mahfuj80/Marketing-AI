@@ -83,8 +83,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    console.log('Login attempt for:', email);
-    
+    console.log("Login attempt for:", email);
+
     // Check if tables exist first
     try {
       // Test database connection
@@ -95,10 +95,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           AND table_name = 'users'
         );
       `;
-      console.log('Table check result:', tableCheck);
+      console.log("Table check result:", tableCheck);
     } catch (dbError) {
-      console.error('Database check error:', dbError);
-      res.status(500).json({ message: 'Database connection error' });
+      console.error("Database check error:", dbError);
+      res.status(500).json({ message: "Database connection error" });
       return;
     }
 
@@ -107,8 +107,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       where: { email },
     });
 
-    if (!user || !user.password) {
-      res.status(401).json({ message: "Invalid credentials" });
+    // Check if user exists and provide a more helpful message
+    if (!user) {
+      console.log(`User with email ${email} not found`);
+      res.status(404).json({ 
+        message: "Account not found. Please sign up first.",
+        code: "USER_NOT_FOUND"
+      });
+      return;
+    }
+    
+    // Check if user has a password (might be a social login only user)
+    if (!user.password) {
+      res.status(401).json({ message: "Invalid login method. Try using social login." });
       return;
     }
 
@@ -225,22 +236,38 @@ export const requestPasswordReset = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  console.log("📧 PASSWORD RESET REQUEST RECEIVED");
+  console.log("📧 Request body:", req.body);
+  
   try {
     const { email } = req.body;
+    console.log("📧 Email to reset password for:", email);
 
     // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    // Always return success to prevent email enumeration
-    if (!user) {
-      res.json({
-        success: true,
-        message:
-          "If an account with that email exists, a password reset link has been sent.",
+    console.log("📧 Searching for user with email:", email);
+    
+    let user;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email },
       });
-      return;
+      
+      console.log("📧 User search result:", user ? "FOUND" : "NOT FOUND");
+      
+      // Return error if user doesn't exist (Note: This is not recommended for security reasons, but implementing as requested)
+      if (!user) {
+        console.log("📧 No user found with email:", email);
+        res.status(404).json({
+          success: false,
+          message: "No account found with this email address. Please check your email or register.",
+        });
+        return;
+      }
+      
+      console.log("📧 Found user. User ID:", user.id);
+    } catch (dbError) {
+      console.error("📧 ERROR SEARCHING FOR USER:", dbError);
+      throw dbError;
     }
 
     // Generate reset token
@@ -257,7 +284,15 @@ export const requestPasswordReset = async (
     });
 
     // Send email
-    await sendPasswordResetEmail(user.email, resetToken);
+    console.log("📧 ABOUT TO SEND PASSWORD RESET EMAIL TO:", user.email);
+    console.log("📧 WITH TOKEN:", resetToken);
+    
+    try {
+      const emailSent = await sendPasswordResetEmail(user.email, resetToken);
+      console.log("📧 Email sending result:", emailSent ? "SUCCESS" : "FAILED");
+    } catch (emailError) {
+      console.error("📧 ERROR SENDING RESET EMAIL:", emailError);
+    }
 
     res.json({
       success: true,

@@ -82,7 +82,7 @@ export default function SettingsPage() {
     // Use the deployed API URL in production, local in development
     return process.env.NODE_ENV === "production"
       ? "https://marketing-ai-xb6l.vercel.app"
-      : "http://localhost:3001";
+      : "http://localhost:5000";
   };
 
   // Handle connect to Facebook

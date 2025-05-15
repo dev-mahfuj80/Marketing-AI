@@ -81,10 +81,9 @@ export const getFacebookPosts = async (
       if (post.insights?.data?.[1]?.values?.[0]?.value) {
         const reactions = post.insights.data[1].values[0].value;
         // Type assertion to fix the reduce function
-        engagement.reactions = Object.values(reactions as Record<string, number>).reduce(
-          (a: number, b: number) => a + b,
-          0
-        );
+        engagement.reactions = Object.values(
+          reactions as Record<string, number>
+        ).reduce((a: number, b: number) => a + b, 0);
       }
 
       return {
@@ -415,7 +414,9 @@ export const createPost = async (
           // Add media if provided
           if (mediaUrl && mediaUrl.startsWith("http")) {
             // Type assertion to safely access ShareContent
-            ((postPayload.specificContent as any)["com.linkedin.ugc.ShareContent"]).shareMediaCategory = "ARTICLE";
+            (postPayload.specificContent as any)[
+              "com.linkedin.ugc.ShareContent"
+            ].shareMediaCategory = "ARTICLE";
             // Type assertion for ShareContent
             (postPayload.specificContent as any)[
               "com.linkedin.ugc.ShareContent"

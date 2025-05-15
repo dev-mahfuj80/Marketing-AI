@@ -70,7 +70,15 @@ app.use("/api/posts", postsRoutes);
 
 // Simple health check route
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: "Server is running...",
+    timestamp: new Date().toISOString(),
+  });
+});
+app.get("/", (req, res) => {
+  res
+    .status(200)
+    .json({ status: "Health is good", timestamp: new Date().toISOString() });
 });
 
 // Global error handler

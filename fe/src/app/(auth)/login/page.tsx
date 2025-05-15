@@ -31,7 +31,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams?.get("redirect") || "/dashboard";
-  
+
   // Type-safe state selectors
   const login = useAuthStore((state: AuthState) => state.login);
   const isAuthenticated = useAuthStore(
@@ -170,7 +170,7 @@ function LoginContent() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  (window.location.href = "http://localhost:3001/auth/facebook")
+                  (window.location.href = "http://localhost:5000/auth/facebook")
                 }
               >
                 Facebook
@@ -178,7 +178,7 @@ function LoginContent() {
               <Button
                 variant="outline"
                 onClick={() =>
-                  (window.location.href = "http://localhost:3001/auth/linkedin")
+                  (window.location.href = "http://localhost:5000/auth/linkedin")
                 }
               >
                 LinkedIn
