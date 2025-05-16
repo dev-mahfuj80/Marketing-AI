@@ -108,7 +108,9 @@ export const disconnectSocialAccount = async (req: Request, res: Response) => {
     }
 
     if (platform !== "linkedin") {
-      return res.status(400).json({ message: "Invalid platform - only LinkedIn is supported" });
+      return res
+        .status(400)
+        .json({ message: "Invalid platform - only LinkedIn is supported" });
     }
 
     // Update user record to remove LinkedIn token

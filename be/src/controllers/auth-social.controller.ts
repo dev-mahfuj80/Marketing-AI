@@ -40,17 +40,26 @@ export const facebookAuthCallback = async (req: Request, res: Response) => {
 
     // Debug logs to help diagnose the OAuth flow
     console.log("Facebook Auth Debug - Query params:", req.query);
-    console.log("Facebook Auth Debug - REDIRECT_URI env var:", env.REDIRECT_URI);
-    
+    console.log(
+      "Facebook Auth Debug - REDIRECT_URI env var:",
+      env.REDIRECT_URI
+    );
+
     // Use a simplified redirect URI approach - try different formats
     // IMPORTANT: Make sure this EXACT URI is registered in Facebook Developer Console
     const redirectUri = "http://localhost:5000/api/auth/callback/facebook";
-    console.log("Facebook Auth Debug - Using hardcoded redirect URI:", redirectUri);
-    
+    console.log(
+      "Facebook Auth Debug - Using hardcoded redirect URI:",
+      redirectUri
+    );
+
     // Also log additional debug info
     console.log("Facebook Auth Debug - App ID:", env.FACEBOOK_APP_ID);
     // Don't log the full app secret for security, just the first few chars
-    console.log("Facebook Auth Debug - App Secret (first 4 chars):", env.FACEBOOK_APP_SECRET.substring(0, 4));
+    console.log(
+      "Facebook Auth Debug - App Secret (first 4 chars):",
+      env.FACEBOOK_APP_SECRET.substring(0, 4)
+    );
 
     // Exchange code for access token
     const tokenResponse = await axios.get(

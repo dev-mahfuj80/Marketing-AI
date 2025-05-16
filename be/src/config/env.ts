@@ -15,14 +15,21 @@ export const env = {
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || "7d",
   COOKIE_SECRET: process.env.COOKIE_SECRET || "development-cookie-secret",
 
-  // OAuth
+  // OAuth - Facebook
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
   FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
   FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID || "me",
+  
+  // LinkedIn OAuth
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
-  REDIRECT_URI:
-    process.env.REDIRECT_URI || "http://localhost:5000/api/auth/callback",
+  LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "",
+  LINKEDIN_ORGANIZATION_URN: process.env.LINKEDIN_ORGANIZATION_URN || "",
+  LINKEDIN_ORGANIZATION_ID: process.env.LINKEDIN_ORGANIZATION_ID || "",
+  
+  // Redirect URIs
+  REDIRECT_URI: process.env.REDIRECT_URI || "http://localhost:5000/api/auth/callback",
 
   // Email
   SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",

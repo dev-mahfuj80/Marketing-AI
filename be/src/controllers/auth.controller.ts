@@ -110,16 +110,18 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     // Check if user exists and provide a more helpful message
     if (!user) {
       console.log(`User with email ${email} not found`);
-      res.status(404).json({ 
+      res.status(404).json({
         message: "Account not found. Please sign up first.",
-        code: "USER_NOT_FOUND"
+        code: "USER_NOT_FOUND",
       });
       return;
     }
-    
+
     // Check if user has a password (might be a social login only user)
     if (!user.password) {
-      res.status(401).json({ message: "Invalid login method. Try using social login." });
+      res
+        .status(401)
+        .json({ message: "Invalid login method. Try using social login." });
       return;
     }
 
@@ -238,32 +240,33 @@ export const requestPasswordReset = async (
 ): Promise<void> => {
   console.log("📧 PASSWORD RESET REQUEST RECEIVED");
   console.log("📧 Request body:", req.body);
-  
+
   try {
     const { email } = req.body;
     console.log("📧 Email to reset password for:", email);
 
     // Find user by email
     console.log("📧 Searching for user with email:", email);
-    
+
     let user;
     try {
       user = await prisma.user.findUnique({
         where: { email },
       });
-      
+
       console.log("📧 User search result:", user ? "FOUND" : "NOT FOUND");
-      
+
       // Return error if user doesn't exist (Note: This is not recommended for security reasons, but implementing as requested)
       if (!user) {
         console.log("📧 No user found with email:", email);
         res.status(404).json({
           success: false,
-          message: "No account found with this email address. Please check your email or register.",
+          message:
+            "No account found with this email address. Please check your email or register.",
         });
         return;
       }
-      
+
       console.log("📧 Found user. User ID:", user.id);
     } catch (dbError) {
       console.error("📧 ERROR SEARCHING FOR USER:", dbError);
@@ -286,7 +289,7 @@ export const requestPasswordReset = async (
     // Send email
     console.log("📧 ABOUT TO SEND PASSWORD RESET EMAIL TO:", user.email);
     console.log("📧 WITH TOKEN:", resetToken);
-    
+
     try {
       const emailSent = await sendPasswordResetEmail(user.email, resetToken);
       console.log("📧 Email sending result:", emailSent ? "SUCCESS" : "FAILED");
