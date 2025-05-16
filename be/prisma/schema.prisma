@@ -23,10 +23,14 @@ model User {
   resetPasswordExpires DateTime?
   
   // Social media tokens
-  facebookToken     String?   // Facebook access token
-  facebookTokenExpiry DateTime?
-  linkedInToken     String?   // LinkedIn access token
-  linkedInTokenExpiry DateTime?
+  facebookToken        String?   // Facebook access token
+  facebookTokenExpiry  DateTime?
+  linkedInToken        String?   // LinkedIn access token (legacy)
+  linkedInTokenExpiry  DateTime? // LinkedIn token expiry (legacy)
+  linkedInAccessToken  String?   // LinkedIn OAuth access token
+  linkedInRefreshToken String?   // LinkedIn OAuth refresh token
+  linkedInId           String?   // LinkedIn user ID
+  linkedInExpiresAt    DateTime? // When the LinkedIn token expires
   
   // Relationships
   posts             Post[]    // User's social media posts

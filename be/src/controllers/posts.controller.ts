@@ -3,15 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import { env } from "../config/env.js";
 
-// Extend the env type to include LinkedIn properties
-declare module "../config/env.js" {
-  interface Env {
-    LINKEDIN_ACCESS_TOKEN?: string;
-    LINKEDIN_ORGANIZATION_URN?: string;
-    LINKEDIN_ORGANIZATION_ID?: string;
-  }
-}
-
 const prisma = new PrismaClient();
 
 /**
@@ -128,29 +119,48 @@ export const getLinkedInPosts = async (
   res: Response
 ): Promise<Response<any, Record<string, any>>> => {
   try {
-    // Check if LinkedIn access token is configured
-    if (!env.LINKEDIN_ACCESS_TOKEN) {
-      return res.status(400).json({
-        message:
-          "LinkedIn access token not configured in environment variables",
+    if (!req.user?.id) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Get user with LinkedIn token
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!user?.linkedInToken) {
+      return res
+        .status(400)
+        .json({ message: "LinkedIn account not connected" });
+    }
+
+    // Check if token has expired
+    if (user.linkedInTokenExpiry && user.linkedInTokenExpiry < new Date()) {
+      return res.status(401).json({
+        message: "LinkedIn token expired, please reconnect your account",
       });
     }
 
-    // Get user's organization URN (assuming it's stored in environment or user record)
-    const organizationUrn =
-      env.LINKEDIN_ORGANIZATION_URN ||
-      `urn:li:organization:${env.LINKEDIN_ORGANIZATION_ID}`;
+    // Get user profile to get URN
+    const profileResponse = await axios.get("https://api.linkedin.com/v2/me", {
+      headers: {
+        Authorization: `Bearer ${user.linkedInToken}`,
+      },
+    });
+
+    const personId = profileResponse.data.id;
+    const personUrn = `urn:li:person:${personId}`;
 
     // Get posts from LinkedIn
     const postsResponse = await axios.get(
-      `https://api.linkedin.com/v2/ugcPosts?q=authors&authors=List(${encodeURIComponent(
-        organizationUrn
-      )})`,
+      "https://api.linkedin.com/v2/ugcPosts",
       {
+        params: {
+          q: "authors",
+          authors: `List(${personUrn})`,
+        },
         headers: {
-          Authorization: `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
-          "X-Restli-Protocol-Version": "2.0.0",
-          "LinkedIn-Version": "202305",
+          Authorization: `Bearer ${user.linkedInToken}`,
         },
       }
     );
@@ -161,13 +171,7 @@ export const getLinkedInPosts = async (
     const formattedPosts = posts.map((post: any) => {
       let content = "";
       let mediaUrl = null;
-      let engagement = {
-        impressions: 0,
-        reactions: 0,
-        comments: 0,
-      };
 
-      // Extract content
       if (
         post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary
           ?.text
@@ -177,23 +181,13 @@ export const getLinkedInPosts = async (
             .text;
       }
 
-      // Extract media URL if available
       if (
         post.specificContent?.["com.linkedin.ugc.ShareContent"]?.media?.[0]
-          ?.thumbnails?.[0]?.url
+          ?.originalUrl
       ) {
         mediaUrl =
           post.specificContent["com.linkedin.ugc.ShareContent"].media[0]
-            .thumbnails[0].url;
-      }
-
-      // Extract engagement metrics if available
-      if (post.analytics) {
-        engagement = {
-          impressions: post.analytics.impressionCount || 0,
-          reactions: post.analytics.likeCount || 0,
-          comments: post.analytics.commentCount || 0,
-        };
+            .originalUrl;
       }
 
       return {
@@ -202,14 +196,14 @@ export const getLinkedInPosts = async (
         platform: "LINKEDIN",
         content,
         mediaUrl,
-        publishedAt: post.created?.time
-          ? new Date(post.created.time)
-          : new Date(),
-        url: post.shareUrl || null,
+        publishedAt:
+          post.created && post.created.time
+            ? new Date(post.created.time)
+            : new Date(),
+        url: null, // LinkedIn API doesn't easily provide permalinks
         engagement: {
-          impressions: post.analytics?.impressionCount || 0,
-          reactions: post.analytics?.likeCount || 0,
-          comments: post.analytics?.commentCount || 0,
+          impressions: 0, // LinkedIn requires a separate Social Engagement API call
+          reactions: 0,
         },
       };
     });

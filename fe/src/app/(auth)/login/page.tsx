@@ -18,6 +18,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
 import { useEffect, Suspense } from "react";
 import { authApi } from "@/lib/api";
+import { AlertCircle } from "lucide-react";
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -42,12 +43,43 @@ function LoginContent() {
   const error = useAuthStore((state: AuthState) => state.error);
   const resetError = useAuthStore((state: AuthState) => state.resetError);
 
-  // Redirect to dashboard if already authenticated
+  // Handle OAuth errors and redirects
   useEffect(() => {
+    // Redirect to dashboard if already authenticated
     if (isAuthenticated) {
       router.push(redirectUrl);
+      return;
     }
-  }, [isAuthenticated, router, redirectUrl]);
+
+    // Check for OAuth errors in URL parameters
+    const error = searchParams?.get('error');
+    const errorMessage = searchParams?.get('message');
+    
+    if (error) {
+      // Map specific LinkedIn OAuth errors to user-friendly messages
+      const errorMessages: Record<string, string> = {
+        'access_denied': 'Login was cancelled. Please try again.',
+        'invalid_request': 'Invalid authentication request. Please try again.',
+        'unauthorized_client': 'Authentication not authorized. Please contact support.',
+        'unsupported_response_type': 'Unsupported response type. Please contact support.',
+        'invalid_scope': 'Invalid permissions requested. Please contact support.',
+        'server_error': 'Server error during authentication. Please try again later.',
+        'temporarily_unavailable': 'Authentication service is temporarily unavailable. Please try again later.',
+        'linkedin_scope_error': 'LinkedIn permissions issue. Please ensure all requested permissions are approved in the LinkedIn Developer Portal.',
+        'linkedin_auth_failed': 'LinkedIn authentication failed. Please try again.'
+      };
+      
+      // Use the specific error message if available, otherwise use the generic one
+      const errorMsg = errorMessages[error] || errorMessage || 'An error occurred during login. Please try again.';
+      
+      // Set the error in the auth store to display it
+      useAuthStore.setState({ error: errorMsg });
+      
+      // Clean up the URL to prevent showing the error again on refresh
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, [isAuthenticated, router, redirectUrl, searchParams]);
 
   // React Hook Form with Zod validation
   const form = useForm<z.infer<typeof formSchema>>({
@@ -86,8 +118,22 @@ function LoginContent() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Authentication Error</p>
+              <p className="text-sm">{error}</p>
+              {error.includes('LinkedIn') && (
+                <div className="mt-2 text-sm bg-white/50 dark:bg-gray-800/50 p-2 rounded border border-red-100 dark:border-red-900">
+                  <p className="font-medium">Need help?</p>
+                  <ul className="list-disc pl-5 mt-1 space-y-1">
+                    <li>Ensure you&apos;re using the correct LinkedIn account</li>
+                    <li>Check if you&apos;ve granted all required permissions</li>
+                    <li>Try again in a few minutes if the issue persists</li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -167,33 +213,15 @@ function LoginContent() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6 flex justify-center">
               <Button
                 variant="outline"
                 type="button"
-                className="bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center"
-                onClick={() => authApi.loginWithFacebook()}
-                disabled={isLoading}
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="#1877F2"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z" />
-                </svg>
-                Facebook
-              </Button>
-              
-              <Button
-                variant="outline"
-                type="button"
-                className="bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+                className="bg-white text-gray-700 hover:bg-gray-50 flex items-center justify-center w-full"
                 onClick={() => authApi.loginWithLinkedIn()}
                 disabled={isLoading}
               >
-                <svg 
+                <svg
                   className="w-5 h-5 mr-2"
                   fill="#0077B5"
                   viewBox="0 0 24 24"

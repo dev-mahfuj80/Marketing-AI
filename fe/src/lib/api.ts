@@ -91,16 +91,7 @@ export const authApi = {
     }
   },
 
-  // Social login functions
-  initiateOAuthFacebook: async () => {
-    try {
-      const response = await api.get("/api/auth/facebook");
-      return response.data;
-    } catch (error) {
-      console.error("Failed to initiate Facebook OAuth:", error);
-      throw error;
-    }
-  },
+  // Social login functions (Facebook removed - using API key directly)
 
   initiateOAuthLinkedIn: async () => {
     try {
@@ -112,7 +103,7 @@ export const authApi = {
     }
   },
 
-  disconnectSocialAccount: async (platform: 'facebook' | 'linkedin') => {
+  disconnectSocialAccount: async (platform: "linkedin") => {
     try {
       const response = await api.delete(`/api/social/${platform}/disconnect`);
       return response.data;
@@ -122,19 +113,19 @@ export const authApi = {
     }
   },
 
-  // Social login for sign-in page (these don't require authentication)
-  loginWithFacebook: async () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/facebook`;
-  },
+  // Social login for sign-in page
 
   loginWithLinkedIn: async () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin`;
+    // Use the root URL as the callback as required by LinkedIn
+    const callbackUrl = `${window.location.origin}/`;
+    console.log('Initiating LinkedIn login with callback URL:', callbackUrl);
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin?redirect_uri=${encodeURIComponent(callbackUrl)}`;
   },
 };
 
 // Social Media Posts API calls
 export const postsApi = {
-  getFacebookPosts: async (pageId: string = 'me') => {
+  getFacebookPosts: async (pageId: string = "me") => {
     // Using the new endpoint format that works with FACEBOOK_PAGE_ACCESS_TOKEN from .env
     console.log(`Fetching Facebook posts for page ID: ${pageId}`);
     return api.get(`/api/facebook/pages/${pageId}/posts`);

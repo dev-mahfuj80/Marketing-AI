@@ -11,7 +11,7 @@ import {
   Star,
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
 import { useEffect, useState } from "react";
 import { EnhancedNavbar } from "@/components/enhanced-navbar";
@@ -28,14 +28,75 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Set isClient to true after component mounts and check auth status
+  // LinkedIn OAuth callback parameters
+  const searchParams = useSearchParams();
+  const code = searchParams?.get('code');
+  const state = searchParams?.get('state');
+  const error = searchParams?.get('error');
+  const errorDescription = searchParams?.get('error_description');
+  
+  // Handle LinkedIn OAuth callback
   useEffect(() => {
+    // Check for OAuth errors first
+    if (error) {
+      console.error('LinkedIn OAuth error:', { error, errorDescription });
+      
+      // Handle specific LinkedIn OAuth errors
+      if (error === 'unauthorized_scope_error') {
+        router.push('/login?error=linkedin_scope_error&message=' + 
+          encodeURIComponent('Required LinkedIn permissions not granted. Please ensure all requested permissions are approved in the LinkedIn Developer Portal.'));
+      } else {
+        router.push(`/login?error=linkedin_auth_failed&message=${encodeURIComponent(errorDescription || error)}`);
+      }
+      return;
+    }
+    
+    // Handle successful OAuth callback with code
+    if (code && (state === 'login' || state === 'linkedin')) {
+      console.log('LinkedIn OAuth callback detected:', { code, state });
+      setIsRedirecting(true);
+      
+      // Forward the auth code to our backend
+      const handleLinkedInCallback = async () => {
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/callback/linkedin?code=${code}&state=${state}`,
+            { credentials: 'include' } // Important for cookies
+          );
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // If successful login/connection, redirect accordingly
+            if (state === 'login') {
+              router.push('/dashboard');
+            } else {
+              router.push('/dashboard/settings?platform=linkedin&status=success');
+            }
+          } else {
+            // If error, redirect to login with error message
+            router.push(`/login?error=${encodeURIComponent(data.message || 'LinkedIn authentication failed')}`);
+          }
+        } catch (error) {
+          console.error('LinkedIn callback handling error:', error);
+          router.push('/login?error=linkedin_auth_failed&message=' + 
+            encodeURIComponent('Failed to process LinkedIn authentication. Please try again.'));
+        } finally {
+          setIsRedirecting(false);
+        }
+      };
+      
+      handleLinkedInCallback();
+    }
+    
+    // Set isClient to true after component mounts
     setIsClient(true);
-    // checkAuthStatus().catch((err) =>
-    //   console.error("Failed to check auth status:", err)
-    // );
     console.log("isAuthenticated", isAuthenticated);
-  }, [isAuthenticated]);
+  }, [code, state, isAuthenticated, router, error, errorDescription]);
 
   const handleGetStarted = async (e: React.MouseEvent) => {
     e.preventDefault();
