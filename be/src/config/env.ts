@@ -17,7 +17,8 @@ export const env = {
 
   // OAuth
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
-  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
+  FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
+  FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID || "me",
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
   REDIRECT_URI:

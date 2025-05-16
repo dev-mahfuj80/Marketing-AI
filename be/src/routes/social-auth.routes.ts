@@ -1,8 +1,6 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import {
-  initiateOAuthFacebook,
-  facebookCallback,
   initiateOAuthLinkedIn,
   linkedInCallback,
   disconnectSocialAccount,
@@ -21,20 +19,6 @@ const asyncHandler = (fn: Function): RequestHandler => (
 };
 
 /**
- * @route   GET /api/social/facebook
- * @desc    Initiate Facebook OAuth flow
- * @access  Private
- */
-router.get("/facebook", authenticate, asyncHandler(initiateOAuthFacebook));
-
-/**
- * @route   GET /api/social/facebook/callback
- * @desc    Facebook OAuth callback handler
- * @access  Private
- */
-router.get("/facebook/callback", authenticate, asyncHandler(facebookCallback));
-
-/**
  * @route   GET /api/social/linkedin
  * @desc    Initiate LinkedIn OAuth flow
  * @access  Private
@@ -49,10 +33,10 @@ router.get("/linkedin", authenticate, asyncHandler(initiateOAuthLinkedIn));
 router.get("/linkedin/callback", authenticate, asyncHandler(linkedInCallback));
 
 /**
- * @route   DELETE /api/social/:platform/disconnect
- * @desc    Disconnect social media account
+ * @route   DELETE /api/social/linkedin/disconnect
+ * @desc    Disconnect LinkedIn account
  * @access  Private
  */
-router.delete("/:platform/disconnect", authenticate, asyncHandler(disconnectSocialAccount));
+router.delete("/linkedin/disconnect", authenticate, asyncHandler(disconnectSocialAccount));
 
 export default router;

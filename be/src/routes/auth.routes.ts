@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { Router } from "express";
 import { body } from "express-validator";
 import { validationResult } from "express-validator";
+import { env } from "../config/env.js";
+import { facebookAuthCallback, linkedinAuthCallback } from "../controllers/auth-social.controller.js";
 import {
   register,
   login,
@@ -124,5 +126,68 @@ router.post(
     resetPassword(req, res).catch(next);
   }) as RequestHandler
 );
+
+/**
+ * @route   GET /api/auth/facebook
+ * @desc    Redirect to Facebook OAuth login
+ * @access  Public
+ */
+router.get("/facebook", ((req: Request, res: Response, next: NextFunction) => {
+  const { FACEBOOK_APP_ID, REDIRECT_URI, FRONTEND_URL } = env;
+  
+  if (!FACEBOOK_APP_ID) {
+    return res.status(500).json({ message: "Facebook App ID not configured" });
+  }
+
+  const redirectUri = `${REDIRECT_URI}/facebook`;
+  const scopes = [
+    "email",
+    "public_profile"
+  ];
+
+  // Redirect to Facebook OAuth dialog
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${FACEBOOK_APP_ID}&redirect_uri=${redirectUri}&scope=${scopes.join(",")}&response_type=code&state=login`;
+  
+  return res.redirect(authUrl);
+}) as RequestHandler);
+
+/**
+ * @route   GET /api/auth/callback/facebook
+ * @desc    Facebook OAuth callback for login
+ * @access  Public
+ */
+router.get("/callback/facebook", ((req: Request, res: Response, next: NextFunction) => {
+  facebookAuthCallback(req, res).catch(next);
+}) as RequestHandler);
+
+/**
+ * @route   GET /api/auth/linkedin
+ * @desc    Redirect to LinkedIn OAuth login
+ * @access  Public
+ */
+router.get("/linkedin", ((req: Request, res: Response, next: NextFunction) => {
+  const { LINKEDIN_CLIENT_ID, REDIRECT_URI, FRONTEND_URL } = env;
+  
+  if (!LINKEDIN_CLIENT_ID) {
+    return res.status(500).json({ message: "LinkedIn Client ID not configured" });
+  }
+
+  const redirectUri = `${REDIRECT_URI}/linkedin`;
+  const scopes = ["r_liteprofile", "r_emailaddress"];
+
+  // Redirect to LinkedIn authorization page
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${redirectUri}&scope=${scopes.join("%20")}&state=login`;
+  
+  return res.redirect(authUrl);
+}) as RequestHandler);
+
+/**
+ * @route   GET /api/auth/callback/linkedin
+ * @desc    LinkedIn OAuth callback for login
+ * @access  Public
+ */
+router.get("/callback/linkedin", ((req: Request, res: Response, next: NextFunction) => {
+  linkedinAuthCallback(req, res).catch(next);
+}) as RequestHandler);
 
 export default router;

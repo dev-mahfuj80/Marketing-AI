@@ -77,22 +77,72 @@ export default function SettingsPage() {
     });
   };
 
-  // Get the API base URL based on environment
-  const getApiBaseUrl = () => {
-    // Use the deployed API URL in production, local in development
-    return process.env.NODE_ENV === "production"
-      ? "https://marketing-ai-xb6l.vercel.app"
-      : "http://localhost:5000";
-  };
+  // We no longer need getApiBaseUrl as we're using the authApi functions directly
 
   // Handle connect to Facebook
-  const handleConnectFacebook = () => {
-    window.location.href = `${getApiBaseUrl()}/api/social/facebook`;
+  const handleConnectFacebook = async () => {
+    try {
+      setIsLoading(true);
+      const response = await authApi.initiateOAuthFacebook();
+      if (response.authUrl) {
+        window.location.href = response.authUrl;
+      }
+    } catch (error) {
+      console.error("Error connecting to Facebook:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle connect to LinkedIn
-  const handleConnectLinkedin = () => {
-    window.location.href = `${getApiBaseUrl()}/api/social/linkedin`;
+  const handleConnectLinkedin = async () => {
+    try {
+      setIsLoading(true);
+      const response = await authApi.initiateOAuthLinkedIn();
+      if (response.authUrl) {
+        window.location.href = response.authUrl;
+      }
+    } catch (error) {
+      console.error("Error connecting to LinkedIn:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Handle disconnect from Facebook
+  const handleDisconnectFacebook = async () => {
+    try {
+      setIsLoading(true);
+      await authApi.disconnectSocialAccount('facebook');
+      // Update the connection status
+      setConnectionStatus(prev => ({
+        ...prev,
+        facebook: false,
+        lastSyncFacebook: null
+      }));
+    } catch (error) {
+      console.error("Error disconnecting from Facebook:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle disconnect from LinkedIn
+  const handleDisconnectLinkedin = async () => {
+    try {
+      setIsLoading(true);
+      await authApi.disconnectSocialAccount('linkedin');
+      // Update the connection status
+      setConnectionStatus(prev => ({
+        ...prev,
+        linkedin: false,
+        lastSyncLinkedin: null
+      }));
+    } catch (error) {
+      console.error("Error disconnecting from LinkedIn:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -143,13 +193,34 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Button
-                variant={connectionStatus.facebook ? "outline" : "default"}
-                size="sm"
-                onClick={handleConnectFacebook}
-              >
-                {connectionStatus.facebook ? "Reconnect" : "Connect"}
-              </Button>
+              <div className="flex gap-2">
+                {connectionStatus.facebook ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleConnectFacebook}
+                    >
+                      Reconnect
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDisconnectFacebook}
+                    >
+                      Disconnect
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleConnectFacebook}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </div>
             </div>
 
             {/* LinkedIn Connection */}
@@ -182,13 +253,34 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <Button
-                variant={connectionStatus.linkedin ? "outline" : "default"}
-                size="sm"
-                onClick={handleConnectLinkedin}
-              >
-                {connectionStatus.linkedin ? "Reconnect" : "Connect"}
-              </Button>
+              <div className="flex gap-2">
+                {connectionStatus.linkedin ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleConnectLinkedin}
+                    >
+                      Reconnect
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDisconnectLinkedin}
+                    >
+                      Disconnect
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleConnectLinkedin}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}

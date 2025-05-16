@@ -5,109 +5,8 @@ import { env } from "../config/env.js";
 
 const prisma = new PrismaClient();
 
-/**
- * Initiate Facebook OAuth flow
- */
-export const initiateOAuthFacebook = async (req: Request, res: Response) => {
-  if (!env.FACEBOOK_APP_ID) {
-    return res.status(500).json({ message: "Facebook App ID not configured" });
-  }
-
-  const redirectUri = `${env.REDIRECT_URI}/facebook`;
-  const scopes = [
-    "pages_show_list",
-    "pages_read_engagement",
-    "pages_manage_posts",
-    "public_profile",
-  ];
-
-  const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-    env.FACEBOOK_APP_ID
-  }&redirect_uri=${redirectUri}&scope=${scopes.join(
-    ","
-  )}&response_type=code&state=facebook`;
-
-  return res.status(200).json({ authUrl });
-};
-
-/**
- * Facebook OAuth callback handler
- */
-export const facebookCallback = async (req: Request, res: Response) => {
-  try {
-    const { code, state } = req.query;
-
-    if (!code || state !== "facebook") {
-      return res.status(400).json({ message: "Invalid callback parameters" });
-    }
-
-    if (!req.user?.id) {
-      return res.status(401).json({ message: "User not authenticated" });
-    }
-
-    const redirectUri = `${env.REDIRECT_URI}/facebook`;
-
-    // Exchange code for access token
-    const tokenResponse = await axios.get(
-      `https://graph.facebook.com/v18.0/oauth/access_token`,
-      {
-        params: {
-          client_id: env.FACEBOOK_APP_ID,
-          client_secret: env.FACEBOOK_APP_SECRET,
-          redirect_uri: redirectUri,
-          code,
-        },
-      }
-    );
-
-    const { access_token, expires_in } = tokenResponse.data;
-
-    // Get long-lived access token
-    const longLivedTokenResponse = await axios.get(
-      `https://graph.facebook.com/v18.0/oauth/access_token`,
-      {
-        params: {
-          grant_type: "fb_exchange_token",
-          client_id: env.FACEBOOK_APP_ID,
-          client_secret: env.FACEBOOK_APP_SECRET,
-          fb_exchange_token: access_token,
-        },
-      }
-    );
-
-    const { access_token: longLivedToken, expires_in: longLivedExpiry } =
-      longLivedTokenResponse.data;
-
-    // Calculate token expiry date
-    const expiryDate = new Date();
-    expiryDate.setSeconds(expiryDate.getSeconds() + longLivedExpiry);
-
-    // Store token in user record
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: {
-        // @ts-ignore - These fields exist in our schema but TypeScript doesn't recognize them
-        facebookToken: longLivedToken,
-        facebookTokenExpiry: expiryDate,
-      } as Prisma.UserUpdateInput,
-    });
-
-    // Redirect to frontend
-    return res.redirect(
-      `${env.FRONTEND_URL}/dashboard/settings?platform=facebook&status=success`
-    );
-  } catch (error) {
-    const err = error as Error & { response?: { data?: any; status?: number } };
-    console.error("Facebook OAuth error:", err.response?.data || err.message);
-    return res.redirect(
-      `${
-        env.FRONTEND_URL
-      }/dashboard/settings?platform=facebook&status=error&message=${encodeURIComponent(
-        err.message || "An error occurred"
-      )}`
-    );
-  }
-};
+// Note: Facebook OAuth functionality has been removed since we're now using the page access token directly
+// This file now only contains LinkedIn OAuth functionality
 
 /**
  * Initiate LinkedIn OAuth flow
@@ -198,7 +97,7 @@ export const linkedInCallback = async (req: Request, res: Response) => {
 };
 
 /**
- * Disconnect social media account
+ * Disconnect LinkedIn account
  */
 export const disconnectSocialAccount = async (req: Request, res: Response) => {
   try {
@@ -208,35 +107,24 @@ export const disconnectSocialAccount = async (req: Request, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    if (platform !== "facebook" && platform !== "linkedin") {
-      return res.status(400).json({ message: "Invalid platform" });
+    if (platform !== "linkedin") {
+      return res.status(400).json({ message: "Invalid platform - only LinkedIn is supported" });
     }
 
-    // Update user record
-    if (platform === "facebook") {
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          // @ts-ignore - These fields exist in our schema but TypeScript doesn't recognize them
-          facebookToken: null,
-          facebookTokenExpiry: null,
-        } as Prisma.UserUpdateInput,
-      });
-    } else {
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          // @ts-ignore - These fields exist in our schema but TypeScript doesn't recognize them
-          linkedInToken: null,
-          linkedInTokenExpiry: null,
-        } as Prisma.UserUpdateInput,
-      });
-    }
+    // Update user record to remove LinkedIn token
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        // Use Prisma.UserUpdateInput type casting for custom fields
+        linkedInToken: null,
+        linkedInTokenExpiry: null,
+      } as Prisma.UserUpdateInput,
+    });
 
-    return res.status(200).json({ message: `Disconnected from ${platform}` });
+    return res.status(200).json({ message: `Disconnected from LinkedIn` });
   } catch (error) {
     const err = error as Error;
-    console.error("Disconnect social account error:", err.message);
+    console.error("Disconnect LinkedIn account error:", err.message);
     return res
       .status(500)
       .json({ message: "Server error disconnecting account" });

@@ -35,6 +35,9 @@ try {
   var postsRoutes = await import("./src/routes/posts.routes.js").then(
     (m) => m.default
   );
+  var facebookRoutes = await import("./src/routes/facebook.routes.js").then(
+    (m) => m.default
+  );
   console.log("Routes imported successfully");
 } catch (err) {
   console.error("Error importing routes:", err);
@@ -67,6 +70,7 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/social", socialAuthRoutes);
 app.use("/api/posts", postsRoutes);
+app.use("/api/facebook", facebookRoutes);
 
 // Simple health check route
 app.get("/health", (req, res) => {

@@ -90,12 +90,54 @@ export const authApi = {
       throw error;
     }
   },
+
+  // Social login functions
+  initiateOAuthFacebook: async () => {
+    try {
+      const response = await api.get("/api/auth/facebook");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to initiate Facebook OAuth:", error);
+      throw error;
+    }
+  },
+
+  initiateOAuthLinkedIn: async () => {
+    try {
+      const response = await api.get("/api/auth/linkedin");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to initiate LinkedIn OAuth:", error);
+      throw error;
+    }
+  },
+
+  disconnectSocialAccount: async (platform: 'facebook' | 'linkedin') => {
+    try {
+      const response = await api.delete(`/api/social/${platform}/disconnect`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to disconnect ${platform} account:`, error);
+      throw error;
+    }
+  },
+
+  // Social login for sign-in page (these don't require authentication)
+  loginWithFacebook: async () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/facebook`;
+  },
+
+  loginWithLinkedIn: async () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin`;
+  },
 };
 
 // Social Media Posts API calls
 export const postsApi = {
-  getFacebookPosts: async () => {
-    return api.get("/api/posts/facebook");
+  getFacebookPosts: async (pageId: string = 'me') => {
+    // Using the new endpoint format that works with FACEBOOK_PAGE_ACCESS_TOKEN from .env
+    console.log(`Fetching Facebook posts for page ID: ${pageId}`);
+    return api.get(`/api/facebook/pages/${pageId}/posts`);
   },
 
   getLinkedinPosts: async () => {
