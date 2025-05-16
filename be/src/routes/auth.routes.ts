@@ -171,57 +171,29 @@ router.get("/linkedin", ((req: Request, res: Response, next: NextFunction) => {
   const { LINKEDIN_CLIENT_ID, FRONTEND_URL } = env;
   
   if (!LINKEDIN_CLIENT_ID) {
-    return res.status(500).json({ message: "LinkedIn Client ID not configured" });
+    return res.status(500).json({ success: false, message: "LinkedIn Client ID not configured" });
   }
 
-  // Use the provided redirect_uri or fallback to the default one
-  let redirectUri = `${FRONTEND_URL}/`;
+  // IMPORTANT: Use a fixed redirect URI that exactly matches what's registered in LinkedIn Developer Portal
+  // This must match the authorized redirect URI in LinkedIn Developer Portal
+  const redirectUri = 'http://localhost:3000/api/auth/callback';
   
-  // If no redirect_uri is provided, use the default one from the frontend
-  if (req.query.redirect_uri) {
-    try {
-      const customUri = new URL(req.query.redirect_uri as string);
-      const frontendUrl = new URL(FRONTEND_URL);
-      
-      // Only allow redirects to the same origin as our frontend
-      if (customUri.origin === frontendUrl.origin) {
-        redirectUri = customUri.href;
-      } else {
-        console.warn('Invalid redirect_uri domain, using default');
-      }
-    } catch (e) {
-      console.warn('Invalid redirect_uri, using default:', e);
-    }
-  }
-  
+  console.log('Using redirect URI for LinkedIn OAuth:', redirectUri);
   console.log('Original redirect_uri from request:', req.query.redirect_uri);
-  
-  if (req.query.redirect_uri) {
-    try {
-      // Ensure the redirect_uri is a valid URL and belongs to our frontend
-      const customUri = new URL(req.query.redirect_uri as string);
-      const frontendUrl = new URL(FRONTEND_URL);
-      
-      if (customUri.origin === frontendUrl.origin) {
-        redirectUri = customUri.href;
-      } else {
-        console.warn('Invalid redirect_uri domain, using default');
-      }
-    } catch (e) {
-      console.warn('Invalid redirect_uri, using default:', e);
-    }
-  }
   
   const encodedRedirectUri = encodeURIComponent(redirectUri);
   console.log('Final redirect URI being used:', redirectUri);
   
   // Only include scopes that are approved in the LinkedIn Developer Portal
-  // Note: r_liteprofile is deprecated, using 'profile' instead
+  // Make sure these scopes are enabled in your LinkedIn Developer Portal
   const scopes = ["profile", "w_member_social"];
   console.log('Requesting scopes:', scopes);
 
+  // State parameter can be used to track the user's intended destination after auth
+  const state = req.query.state || 'login';
+
   // Redirect to LinkedIn authorization page
-  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${scopes.join("%20")}&state=login`;
+  const authUrl = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${LINKEDIN_CLIENT_ID}&redirect_uri=${encodedRedirectUri}&scope=${scopes.join("%20")}&state=${state}`;
   
   console.log('Generated LinkedIn auth URL (partial):', 
     authUrl.substring(0, 100) + (authUrl.length > 100 ? '...' : '')
@@ -233,39 +205,54 @@ router.get("/linkedin", ((req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @route   GET /api/auth/callback/linkedin
- * @desc    LinkedIn OAuth callback for login
- * @access  Public
+ * @desc    LinkedIn callback route that the LinkedIn OAuth flow redirects to
  */
 router.get("/callback/linkedin", ((req: Request, res: Response, next: NextFunction) => {
-  console.log('LinkedIn callback received:', req.query);
-  
-  const { code, state } = req.query;
-  
-  if (!code) {
-    console.error('LinkedIn callback missing code parameter');
-    return res.status(400).json({
-      success: false,
-      message: 'Missing required parameter: code'
-    });
-  }
-  
-  // Handle the callback - this should create a JWT and set cookies
+  // Always set the response type to JSON to prevent HTML responses
+  res.setHeader('Content-Type', 'application/json');
+
   try {
-    // This will need to authenticate or link the LinkedIn account
+    console.log("LinkedIn callback received");
+    console.log("Query parameters:", req.query);
+    
+    // Extract code and state from query parameters
+    const { code, state } = req.query;
+    
+    if (!code) {
+      console.error("No code provided in callback");
+      const errorResponse = { success: false, message: "No code provided in callback" };
+      console.log('Sending error response:', errorResponse);
+      return res.status(400).json(errorResponse);
+    }
+    
+    // Call the LinkedIn controller to handle the callback
+    // We need to be careful with the promise handling here because 'res' might be used after the response is sent
     linkedinAuthCallback(req, res).catch((error) => {
-      console.error('LinkedIn auth callback error:', error);
-      // Return JSON response for the frontend to handle
-      res.status(500).json({
+      // Only send a response if headers have not been sent already
+      if (!res.headersSent) {
+        console.error("Error in LinkedIn callback:", error);
+        const errorResponse = { 
+          success: false, 
+          message: "Failed to process LinkedIn authentication. Please try again.",
+          error: error.message
+        };
+        console.log('Sending error response:', errorResponse);
+        return res.status(500).json(errorResponse);
+      } else {
+        console.error("Cannot send error response as headers already sent:", error);
+      }
+    });
+  } catch (error: any) {
+    // Only send a response if headers have not been sent already
+    if (!res.headersSent) {
+      console.error('LinkedIn auth callback outer error:', error);
+      return res.status(500).json({
         success: false,
         message: error.message || 'LinkedIn authentication failed'
       });
-    });
-  } catch (error: any) {
-    console.error('LinkedIn auth callback outer error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'LinkedIn authentication failed'
-    });
+    } else {
+      console.error("Cannot send error response as headers already sent:", error);
+    }
   }
 }) as RequestHandler);
 

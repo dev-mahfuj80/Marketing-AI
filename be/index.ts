@@ -50,19 +50,38 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cookieParser(env.COOKIE_SECRET));
+// Configure CORS with more detailed options for better debugging
+app.use((req, res, next) => {
+  // Log CORS debug info
+  console.log(`CORS Request from origin: ${req.headers.origin}`);
+  console.log(`CORS Request method: ${req.method}`);
+  next();
+});
+
 app.use(
   cors({
-    origin: [
-      env.FRONTEND_URL,
-      "https://marketing-ai-omega.vercel.app",
-      // Local development URLs
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "http://localhost:5173", // Vite default
-    ],
+    origin: function(origin, callback) {
+      const allowedOrigins = [
+        env.FRONTEND_URL,
+        "https://marketing-ai-omega.vercel.app",
+        // Local development URLs
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5173", // Vite default
+      ];
+      
+      // Allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.error(`CORS blocked origin: ${origin}`);
+        callback(null, false);
+      }
+    },
     credentials: true, // Allow cookies
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+    exposedHeaders: ["Set-Cookie"],
   })
 );
 

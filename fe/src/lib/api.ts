@@ -116,10 +116,16 @@ export const authApi = {
   // Social login for sign-in page
 
   loginWithLinkedIn: async () => {
-    // Use the root URL as the callback as required by LinkedIn
-    const callbackUrl = `${window.location.origin}/`;
+    // Use the API route as the callback URL for LinkedIn
+    const callbackUrl = `${window.location.origin}/api/auth/callback`;
     console.log('Initiating LinkedIn login with callback URL:', callbackUrl);
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin?redirect_uri=${encodeURIComponent(callbackUrl)}`;
+    
+    // Encode the final destination URL where LinkedIn should redirect after auth
+    const finalRedirect = encodeURIComponent(window.location.origin + '/dashboard');
+    
+    const linkedInAuthUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin?redirect_uri=${encodeURIComponent(callbackUrl)}&state=${finalRedirect}`;
+    console.log('Redirecting to LinkedIn auth URL:', linkedInAuthUrl);
+    window.location.href = linkedInAuthUrl;
   },
 };
 

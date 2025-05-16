@@ -35,10 +35,12 @@ export const initiateOAuthLinkedIn = async (req: Request, res: Response) => {
  * LinkedIn OAuth callback handler
  */
 export const linkedInCallback = async (req: Request, res: Response) => {
-  console.log('=== LinkedIn Callback ===');
-  console.log('Request query:', req.query);
-  
+  // Set content type header right at the beginning to ensure JSON response
+  res.setHeader('Content-Type', 'application/json');
   try {
+    console.log('=== LinkedIn Callback ===');
+    console.log('Request query:', req.query);
+  
     const { code, state, error, error_description } = req.query;
 
     // Log all query parameters for debugging
@@ -61,91 +63,130 @@ export const linkedInCallback = async (req: Request, res: Response) => {
     }
 
     if (!req.user?.id) {
-      return res.status(401).json({ message: "User not authenticated" });
+      return res.status(401).json({ 
+        success: false,
+        message: "User not authenticated" 
+      });
     }
 
-    // Use the same redirect URI that was used in the initial OAuth request
-    // This must match exactly what's registered in the LinkedIn Developer Portal
-    const redirectUri = `${env.FRONTEND_URL}/api/auth/callback`;
+    // IMPORTANT: This must EXACTLY match what's registered in the LinkedIn Developer Portal
+    // Hardcode this to ensure consistency with what's registered in LinkedIn
+    const redirectUri = 'http://localhost:3000/api/auth/callback';
     console.log('Using redirect URI for token exchange:', redirectUri);
     
-    console.log('Using LinkedIn token exchange redirect URI:', `http://localhost:3000/`);
-
-    // Exchange authorization code for access token
-    console.log('Exchanging authorization code for access token...');
-    const tokenResponse = await axios.post(
-      "https://www.linkedin.com/oauth/v2/accessToken",
-      new URLSearchParams({
-        grant_type: "authorization_code",
+    try {
+      // Exchange authorization code for access token
+      console.log('Exchanging authorization code for access token...');
+      
+      // Log the full authorization code for debugging
+      console.log('Authorization code:', typeof code === 'string' ? code.substring(0, 15) + '...' : 'not a string');
+      
+      const tokenParams = new URLSearchParams({
+        grant_type: 'authorization_code',
         code: code as string,
         redirect_uri: redirectUri,
         client_id: env.LINKEDIN_CLIENT_ID!,
         client_secret: env.LINKEDIN_CLIENT_SECRET!,
-      }),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      }
-    );
-
-    const { access_token, expires_in, refresh_token, scope } = tokenResponse.data;
-    
-    console.log('Token exchange successful');
-    console.log('Access token received, expires in:', expires_in, 'seconds');
-    console.log('Scopes granted:', scope);
-    
-    if (!access_token) {
-      console.error('No access token in response:', tokenResponse.data);
-      throw new Error('No access token received from LinkedIn');
-    }
-
-    // Retrieve LinkedIn profile data
-    const profileResponse = await axios.get(
-      "https://api.linkedin.com/v2/me",
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      }
-    );
-
-    const profileData = profileResponse.data;
-    console.log('LinkedIn profile data:', JSON.stringify(profileData, null, 2));
-    
-    // Store LinkedIn access token in the database
-    console.log('Storing LinkedIn access token in database...');
-    try {
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: {
-          linkedInAccessToken: access_token,
-          linkedInRefreshToken: refresh_token || null,
-          linkedInId: profileData.id,
-          linkedInExpiresAt: new Date(Date.now() + (expires_in * 1000)),
-          updatedAt: new Date(),
-        },
       });
-      console.log('Successfully stored LinkedIn access token');
-    } catch (dbError) {
-      console.error('Error storing LinkedIn token in database:', dbError);
-      throw new Error('Failed to store LinkedIn authentication data');
-    }
 
-    // Redirect to frontend
-    return res.redirect(
-      `${env.FRONTEND_URL}/dashboard/settings?platform=linkedin&status=success`
-    );
+      console.log('Token exchange request params:', {
+        grant_type: 'authorization_code',
+        code: code ? 'present' : 'missing',
+        redirect_uri: redirectUri,
+        client_id: env.LINKEDIN_CLIENT_ID ? 'present' : 'missing',
+        client_secret: env.LINKEDIN_CLIENT_SECRET ? 'present' : 'missing',
+      });
+      
+      // Log the URL we're sending the request to
+      console.log('Sending token request to: https://www.linkedin.com/oauth/v2/accessToken');
+
+      const tokenResponse = await axios.post(
+        'https://www.linkedin.com/oauth/v2/accessToken',
+        tokenParams.toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+          },
+        }
+      );
+      
+      console.log('Token exchange response status:', tokenResponse.status);
+      console.log('Token exchange response data:', JSON.stringify(tokenResponse.data, null, 2));
+
+      if (!tokenResponse.data.access_token) {
+        throw new Error('No access token received from LinkedIn');
+      }
+
+      const { access_token, expires_in, refresh_token, scope } = tokenResponse.data;
+      
+      console.log('Token exchange successful');
+      console.log('Access token received, expires in:', expires_in, 'seconds');
+      console.log('Scopes granted:', scope);
+
+      // Retrieve LinkedIn profile data
+      const profileResponse = await axios.get(
+        "https://api.linkedin.com/v2/me",
+        {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        }
+      );
+
+      const profileData = profileResponse.data;
+      console.log('LinkedIn profile data:', JSON.stringify(profileData, null, 2));
+      
+      // Store LinkedIn access token in the database
+      console.log('Storing LinkedIn access token in database...');
+      try {
+        // Update user record
+        await prisma.user.update({
+          where: { id: req.user.id },
+          data: {
+            linkedinConnected: true,
+            linkedinAccessToken: access_token,
+            linkedinProfileData: JSON.stringify(profileData),
+            linkedinUserId: profileData.id,
+          } as Prisma.UserUpdateInput,
+        });
+        
+        console.log('LinkedIn connection successful! User ID:', req.user.id);
+        
+        const responseData = {
+          success: true,
+          message: 'LinkedIn authentication successful',
+          user: {
+            id: req.user.id,
+            email: req.user.email
+          },
+          redirectTo: state || '/dashboard'
+        };
+        
+        return res.status(200).json(responseData);
+      } catch (dbError) {
+        console.error('Error updating user with LinkedIn data:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error saving LinkedIn credentials',
+          error: dbError instanceof Error ? dbError.message : 'Unknown error'
+        });
+      }
+    } catch (tokenExchangeError) {
+      console.error('LinkedIn token exchange error:', tokenExchangeError);
+      return res.status(500).json({
+        success: false,
+        message: 'Something went wrong with LinkedIn authentication. Please try again later.',
+        error: tokenExchangeError instanceof Error ? tokenExchangeError.message : 'Unknown error'
+      });
+    }
   } catch (error) {
-    const err = error as Error & { response?: { data?: any; status?: number } };
-    console.error("LinkedIn OAuth error:", err.response?.data || err.message);
-    return res.redirect(
-      `${
-        env.FRONTEND_URL
-      }/dashboard/settings?platform=linkedin&status=error&message=${encodeURIComponent(
-        err.message || "An error occurred"
-      )}`
-    );
+    console.error('LinkedIn callback error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Something went wrong with LinkedIn authentication. Please try again later.',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
@@ -170,11 +211,11 @@ export const disconnectSocialAccount = async (req: Request, res: Response) => {
     await prisma.user.update({
       where: { id: req.user.id },
       data: {
-        // Use Prisma.UserUpdateInput type casting for custom fields
-        linkedInAccessToken: null,
-        linkedInRefreshToken: null,
-        linkedInId: null,
-        linkedInExpiresAt: null,
+        linkedinConnected: false,
+        linkedinAccessToken: null,
+        linkedinRefreshToken: null,
+        linkedinId: null,
+        linkedinExpiresAt: null,
       } as Prisma.UserUpdateInput,
     });
 
