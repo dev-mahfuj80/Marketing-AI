@@ -38,6 +38,9 @@ try {
   var facebookRoutes = await import("./src/routes/facebook.routes.js").then(
     (m) => m.default
   );
+  var linkedinRoutes = await import("./src/routes/linkedin.routes.js").then(
+    (m) => m.default
+  );
   console.log("Routes imported successfully");
 } catch (err) {
   console.error("Error importing routes:", err);

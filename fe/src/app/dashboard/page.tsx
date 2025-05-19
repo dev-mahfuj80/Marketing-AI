@@ -2,16 +2,9 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
-import { useAuthStore } from "@/lib/store/auth-store";
 import { postsApi } from "@/lib/api";
 
-// Define type for user store
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  linkedinConnected?: boolean;
-}
+// Define post interfaces
 
 // Define post interfaces
 interface Post {
@@ -36,7 +29,6 @@ export default function DashboardPage() {
   const [linkedinPosts, setLinkedinPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("facebook");
-  const user = useAuthStore((state) => state.user);
 
   // Fetch posts from backend
   useEffect(() => {
@@ -44,15 +36,17 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         // Get Facebook posts using the direct page token from backend
-        // No need to check for user connection since we're using the page token directly
         const fbResponse = await postsApi.getFacebookPosts();
         console.log('Facebook posts response:', fbResponse.data);
         setFacebookPosts(fbResponse.data.data || []);
         
-        // Get LinkedIn posts
-        if (user?.linkedinConnected) {
+        // Get LinkedIn posts using direct client credentials from backend
+        try {
           const liResponse = await postsApi.getLinkedinPosts();
-          setLinkedinPosts(liResponse.data);
+          console.log('LinkedIn posts response:', liResponse.data);
+          setLinkedinPosts(liResponse.data.elements || []);
+        } catch (liError) {
+          console.error("Error fetching LinkedIn posts:", liError);
         }
       } catch (error) {
         console.error("Error fetching posts:", error);
@@ -62,7 +56,7 @@ export default function DashboardPage() {
     };
 
     fetchPosts();
-  }, [user]);
+  }, []);  // Removed user dependency as we no longer need to check user connection status
 
   // Function to format date
   const formatDate = (dateString?: string) => {
@@ -101,7 +95,6 @@ export default function DashboardPage() {
           </TabsTrigger>
           <TabsTrigger 
             value="linkedin" 
-            disabled={!user?.linkedinConnected}
             className="flex-1"
           >
             LinkedIn
@@ -180,15 +173,9 @@ export default function DashboardPage() {
           ) : linkedinPosts.length === 0 ? (
             <div className="text-center py-16">
               <h3 className="text-lg font-medium">No LinkedIn posts found</h3>
-              {!user?.linkedinConnected ? (
-                <p className="text-muted-foreground mt-1">
-                  Please connect your LinkedIn account in Settings
-                </p>
-              ) : (
-                <p className="text-muted-foreground mt-1">
-                  Create your first post by clicking &quot;Create Post&quot; in the sidebar
-                </p>
-              )}
+              <p className="text-muted-foreground mt-1">
+                Create your first post by clicking &quot;Create Post&quot; in the sidebar
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

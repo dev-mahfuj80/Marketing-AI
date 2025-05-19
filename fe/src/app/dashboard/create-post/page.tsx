@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { useAuthStore } from "@/lib/store/auth-store";
+// Removed useAuthStore import as we're now using direct API credentials
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -38,7 +38,6 @@ export default function CreatePostPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
-  const user = useAuthStore((state) => state.user);
 
   // Initialize react-hook-form
   const form = useForm<FormValues>({
@@ -69,29 +68,63 @@ export default function CreatePostPage() {
     }
 
     try {
-      // Prepare form data for image upload
-      const formData = new FormData();
-      formData.append("content", values.content);
-      formData.append("publishToFacebook", String(values.publishToFacebook));
-      formData.append("publishToLinkedin", String(values.publishToLinkedin));
-
-      // Append image file if provided
-      if (values.image && values.image.length > 0) {
-        formData.append("image", values.image[0]);
+      const promises = [];
+      let successCount = 0;
+      
+      // Handle post creation for each selected platform
+      if (values.publishToFacebook) {
+        try {
+          // Prepare form data for Facebook
+          const formData = new FormData();
+          formData.append("content", values.content);
+          formData.append("platform", "facebook");
+          
+          // Append image file if provided
+          if (values.image && values.image.length > 0) {
+            formData.append("image", values.image[0]);
+          }
+          
+          // Send to Facebook API
+          const fbPromise = postsApi.createPost(formData);
+          promises.push(fbPromise);
+          await fbPromise;
+          successCount++;
+        } catch (fbError) {
+          console.error("Error publishing to Facebook:", fbError);
+        }
       }
-
-      // Send to API
-      const response = await postsApi.createPost(formData);
-
-      setSuccess("Post created successfully!");
-
-      // Reset form
-      form.reset();
-
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 2000);
+      
+      if (values.publishToLinkedin) {
+        try {
+          // Prepare data for LinkedIn
+          const imageUrl = values.image && values.image.length > 0 ? URL.createObjectURL(values.image[0]) : undefined;
+          
+          // Send to LinkedIn API
+          const liPromise = postsApi.createLinkedinPost(values.content, imageUrl);
+          promises.push(liPromise);
+          await liPromise;
+          successCount++;
+        } catch (liError) {
+          console.error("Error publishing to LinkedIn:", liError);
+        }
+      }
+      
+      // Wait for all promises to complete
+      await Promise.allSettled(promises);
+      
+      if (successCount > 0) {
+        setSuccess(`Post created successfully on ${successCount} platform${successCount > 1 ? 's' : ''}!`);
+        
+        // Reset form
+        form.reset();
+        
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          router.push("/dashboard");
+        }, 2000);
+      } else {
+        setError("Failed to publish to any selected platforms.");
+      }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         setError(error.response.data.message || "Failed to create post");
@@ -152,18 +185,22 @@ export default function CreatePostPage() {
           <FormField
             control={form.control}
             name="image"
-            render={({ field: { value, onChange, ...restField } }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Image (Optional)</FormLabel>
                 <FormControl>
                   <Input
                     type="file"
                     accept="image/*"
-                    // Explicitly type the event for better lint/type safety
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      onChange(e.target.files)
-                    }
-                    {...restField}
+                    // We don't spread the field props because FileList can't be used as a value
+                    // Instead we handle the onChange manually
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      field.onChange(e.target.files);
+                    }}
+                    // Don't include value prop for file inputs
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
                   />
                 </FormControl>
                 <FormDescription>
@@ -185,7 +222,6 @@ export default function CreatePostPage() {
                       type="checkbox"
                       checked={field.value}
                       onChange={(e) => field.onChange(e.target.checked)}
-                      disabled={!user?.facebookConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       aria-checked={field.value}
                       aria-label="Publish to Facebook"
@@ -194,11 +230,6 @@ export default function CreatePostPage() {
                   <FormLabel className="text-base font-normal">
                     Publish to Facebook
                   </FormLabel>
-                  {!user?.facebookConnected && (
-                    <span className="text-xs text-red-500">
-                      (Connect in Settings)
-                    </span>
-                  )}
                 </FormItem>
               )}
             />
@@ -213,7 +244,6 @@ export default function CreatePostPage() {
                       type="checkbox"
                       checked={field.value}
                       onChange={(e) => field.onChange(e.target.checked)}
-                      disabled={!user?.linkedinConnected}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       aria-checked={field.value}
                       aria-label="Publish to LinkedIn"
@@ -222,11 +252,6 @@ export default function CreatePostPage() {
                   <FormLabel className="text-base font-normal">
                     Publish to LinkedIn
                   </FormLabel>
-                  {!user?.linkedinConnected && (
-                    <span className="text-xs text-red-500">
-                      (Connect in Settings)
-                    </span>
-                  )}
                 </FormItem>
               )}
             />

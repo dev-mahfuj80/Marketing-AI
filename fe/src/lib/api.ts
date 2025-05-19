@@ -105,7 +105,11 @@ export const postsApi = {
   },
 
   getLinkedinPosts: async () => {
-    return api.get("/api/posts/linkedin");
+    return api.get("/api/linkedin/posts");
+  },
+  
+  createLinkedinPost: async (content: string, imageUrl?: string) => {
+    return api.post("/api/linkedin/posts", { content, imageUrl });
   },
 
   createPost: async (formData: FormData) => {
