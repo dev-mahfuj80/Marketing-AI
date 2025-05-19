@@ -91,42 +91,9 @@ export const authApi = {
     }
   },
 
-  // Social login functions (Facebook removed - using API key directly)
-
-  initiateOAuthLinkedIn: async () => {
-    try {
-      const response = await api.get("/api/auth/linkedin");
-      return response.data;
-    } catch (error) {
-      console.error("Failed to initiate LinkedIn OAuth:", error);
-      throw error;
-    }
-  },
-
-  disconnectSocialAccount: async (platform: "linkedin") => {
-    try {
-      const response = await api.delete(`/api/social/${platform}/disconnect`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to disconnect ${platform} account:`, error);
-      throw error;
-    }
-  },
-
-  // Social login for sign-in page
-
-  loginWithLinkedIn: async () => {
-    // Use the API route as the callback URL for LinkedIn
-    const callbackUrl = `${window.location.origin}/api/auth/callback`;
-    console.log('Initiating LinkedIn login with callback URL:', callbackUrl);
-    
-    // Encode the final destination URL where LinkedIn should redirect after auth
-    const finalRedirect = encodeURIComponent(window.location.origin + '/dashboard');
-    
-    const linkedInAuthUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/linkedin?redirect_uri=${encodeURIComponent(callbackUrl)}&state=${finalRedirect}`;
-    console.log('Redirecting to LinkedIn auth URL:', linkedInAuthUrl);
-    window.location.href = linkedInAuthUrl;
-  },
+  // Social media API functionality
+  // Note: OAuth login functionality has been removed
+  // Now using direct API keys from environment variables
 };
 
 // Social Media Posts API calls

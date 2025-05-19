@@ -4,9 +4,6 @@
  * @property {string} id - User ID
  * @property {string} email - User email
  * @property {string} name - User name
- * @property {Object} connections - Social connections
- * @property {boolean} connections.facebook - Facebook connection status
- * @property {boolean} connections.linkedin - LinkedIn connection status
  */
 
 /**
@@ -27,10 +24,6 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  connections: {
-    facebook: boolean;
-    linkedin: boolean;
-  };
 }
 
 export interface AuthState {
@@ -42,8 +35,6 @@ export interface AuthState {
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<boolean>;
   checkAuthStatus: () => Promise<void>;
-  connectFacebook: () => Promise<void>;
-  connectLinkedin: () => Promise<void>;
   resetError: () => void;
 }
 
@@ -161,69 +152,8 @@ export const useAuthStore = create(
         }
       },
 
-      // Connect Facebook
-      connectFacebook: async () => {
-        try {
-          set({ isLoading: true, error: null });
-          // In a real implementation, call the API to connect Facebook
-          await authApi.getConnections();
-
-          // For now, mock a successful connection
-          set((state: AuthState) => ({
-            user: state.user
-              ? {
-                  ...state.user,
-                  connections: {
-                    ...state.user.connections,
-                    facebook: true,
-                  },
-                }
-              : null,
-            isLoading: false,
-          }));
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "Facebook connection failed";
-          set({
-            error: errorMessage,
-            isLoading: false,
-          });
-        }
-      },
-
-      // Connect LinkedIn
-      connectLinkedin: async () => {
-        try {
-          set({ isLoading: true, error: null });
-          // In a real implementation, call the API to connect LinkedIn
-          await authApi.getConnections();
-
-          // For now, mock a successful connection
-          set((state: AuthState) => ({
-            user: state.user
-              ? {
-                  ...state.user,
-                  connections: {
-                    ...state.user.connections,
-                    linkedin: true,
-                  },
-                }
-              : null,
-            isLoading: false,
-          }));
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "LinkedIn connection failed";
-          set({
-            error: errorMessage,
-            isLoading: false,
-          });
-        }
-      },
+      // Social connections have been removed
+      // Now using direct API key approach for social media interactions
 
       // Reset error
       resetError: () => set({ error: null }),
