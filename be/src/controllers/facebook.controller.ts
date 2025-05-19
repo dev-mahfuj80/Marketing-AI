@@ -1,6 +1,24 @@
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { FacebookService } from "../services/facebook.service.js";
 import { env } from "../config/env.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import util from "util";
+
+// Extend Request type to include file from multer
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage, 
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+const uploadMiddleware = upload.single('image');
+const uploadAsync = util.promisify(uploadMiddleware);
 
 /**
  * Simplified Facebook controller for page management using direct page access token
@@ -41,11 +59,29 @@ export const facebookController = {
   /**
    * Publish a post to a Facebook page using the PAGE_ACCESS_TOKEN in .env
    */
-  publishPagePost: async (req: Request, res: Response) => {
+  publishPagePost: async (req: MulterRequest, res: Response) => {
     try {
       // Default to the page ID in the environment or use the one from the request
       const pageId = req.params.pageId || env.FACEBOOK_PAGE_ID;
-      const { message, link } = req.body;
+      
+      // Process file upload if present - do this BEFORE we try to access body
+      try {
+        await uploadAsync(req, res);
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(400).json({ message: 'File upload failed' });
+      }
+
+      // Now we can safely access the body
+      // Initialize message and link in case req.body is undefined
+      let message = '';
+      let link = undefined;
+
+      // Safely access req.body properties
+      if (req.body) {
+        message = req.body.message || '';
+        link = req.body.link;
+      }
 
       if (!pageId || !message) {
         return res
@@ -59,13 +95,33 @@ export const facebookController = {
           .json({ message: "Facebook page access token not configured" });
       }
 
+      // File upload has already been processed above
+
       const facebookService = new FacebookService();
-      const result = await facebookService.publishPagePost(
-        pageId,
-        env.FACEBOOK_PAGE_ACCESS_TOKEN,
-        message,
-        link
-      );
+      let result;
+
+      // Check if we have an image file
+      if (req.file) {
+        console.log('Image file detected, uploading to Facebook');
+        // Get image buffer from multer
+        const imageBuffer = req.file.buffer;
+        
+        result = await facebookService.publishPagePost(
+          pageId,
+          env.FACEBOOK_PAGE_ACCESS_TOKEN,
+          message,
+          link,
+          imageBuffer
+        );
+      } else {
+        // No image, just publish the text post
+        result = await facebookService.publishPagePost(
+          pageId,
+          env.FACEBOOK_PAGE_ACCESS_TOKEN,
+          message,
+          link
+        );
+      }
 
       return res.status(200).json({
         message: "Post published successfully",

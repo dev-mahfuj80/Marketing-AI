@@ -104,6 +104,26 @@ export const postsApi = {
     return api.get(`/api/facebook/pages/${pageId}/posts`);
   },
 
+  createFacebookPost: async (content: string, image?: File, pageId: string = "me") => {
+    console.log(`Creating Facebook post for page ID: ${pageId}`);
+    
+    // If we have an image, we need to use FormData
+    if (image) {
+      const formData = new FormData();
+      formData.append('message', content);
+      formData.append('image', image);
+      
+      return api.post(`/api/facebook/pages/${pageId}/publish`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    } else {
+      // No image, just send a regular JSON request
+      return api.post(`/api/facebook/pages/${pageId}/publish`, { message: content });
+    }
+  },
+
   getLinkedinPosts: async () => {
     return api.get("/api/linkedin/posts");
   },
@@ -112,7 +132,26 @@ export const postsApi = {
     return api.post("/api/linkedin/posts", { content, imageUrl });
   },
 
+  // Generic post creation function
   createPost: async (formData: FormData) => {
+    // Extract data from formData to determine which platform to post to
+    const content = formData.get('content') as string;
+    const platform = formData.get('platform') as string;
+    const image = formData.get('image') as File | null;
+    
+    console.log('Creating post with platform:', platform, 'has image:', !!image);
+    
+    // If a specific platform is specified, use the dedicated endpoint
+    if (platform === 'facebook') {
+      // For Facebook, pass the actual File object, not a URL
+      return postsApi.createFacebookPost(content, image || undefined);
+    } else if (platform === 'linkedin') {
+      // For LinkedIn, pass the actual content and image
+      return postsApi.createLinkedinPost(content, image ? URL.createObjectURL(image) : undefined);
+    }
+    
+    // If no platform specified or other platform, use the generic endpoint
+    console.warn('Using generic post endpoint');
     return api.post("/api/posts/publish", formData, {
       headers: {
         "Content-Type": "multipart/form-data",

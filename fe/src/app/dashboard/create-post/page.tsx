@@ -74,18 +74,11 @@ export default function CreatePostPage() {
       // Handle post creation for each selected platform
       if (values.publishToFacebook) {
         try {
-          // Prepare form data for Facebook
-          const formData = new FormData();
-          formData.append("content", values.content);
-          formData.append("platform", "facebook");
+          // Get the actual image file if provided
+          const imageFile = values.image && values.image.length > 0 ? values.image[0] : undefined;
           
-          // Append image file if provided
-          if (values.image && values.image.length > 0) {
-            formData.append("image", values.image[0]);
-          }
-          
-          // Send to Facebook API
-          const fbPromise = postsApi.createPost(formData);
+          // Send directly to Facebook API using the dedicated function with the image file
+          const fbPromise = postsApi.createFacebookPost(values.content, imageFile);
           promises.push(fbPromise);
           await fbPromise;
           successCount++;
@@ -96,10 +89,10 @@ export default function CreatePostPage() {
       
       if (values.publishToLinkedin) {
         try {
-          // Prepare data for LinkedIn
+          // Prepare image URL for LinkedIn if provided
           const imageUrl = values.image && values.image.length > 0 ? URL.createObjectURL(values.image[0]) : undefined;
           
-          // Send to LinkedIn API
+          // Send directly to LinkedIn API using the dedicated function
           const liPromise = postsApi.createLinkedinPost(values.content, imageUrl);
           promises.push(liPromise);
           await liPromise;
