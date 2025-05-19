@@ -13,27 +13,37 @@ import {
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore, AuthState } from "@/lib/store/auth-store";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { EnhancedNavbar } from "@/components/enhanced-navbar";
 import { SiteFooter } from "@/components/site-footer";
 
+// The main exported component that wraps the content in Suspense
 export default function Home() {
-  const router = useRouter();
-  // Use individual selectors to avoid recreating objects on every render
-  const isAuthenticated = useAuthStore(
-    (state: AuthState) => state.isAuthenticated
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>}>
+      <HomeContent />
+    </Suspense>
   );
-  const isLoading = useAuthStore((state: AuthState) => state.isLoading);
-  // const checkAuthStatus = useAuthStore((state: AuthState) => state.checkAuthStatus);
-  const [isClient, setIsClient] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+}
 
-  // LinkedIn OAuth callback parameters
+// Component that uses search params wrapped in Suspense
+function HomeContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const code = searchParams?.get('code');
   const state = searchParams?.get('state');
   const error = searchParams?.get('error');
   const errorDescription = searchParams?.get('error_description');
+  
+  // Use individual selectors to avoid recreating objects on every render
+  const isAuthenticated = useAuthStore(
+    (state: AuthState) => state.isAuthenticated
+  );
+  const isLoading = useAuthStore((state: AuthState) => state.isLoading);
+  const [isClient, setIsClient] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
   // Handle LinkedIn OAuth callback
   useEffect(() => {
