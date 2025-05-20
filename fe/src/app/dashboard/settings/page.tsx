@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Facebook,
   Linkedin,
@@ -10,22 +13,35 @@ import {
   XCircle,
   Key,
   HelpCircle,
+  User,
+  Mail,
+  Edit2,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { postsApi } from "@/lib/api";
+import { LinkedInPermissions } from "@/components/linkedin/LinkedInPermissions";
+import { FacebookPermissions } from "@/components/facebook/FacebookPermissions";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface ConnectionStatus {
   facebook: boolean;
   linkedin: boolean;
   lastSyncFacebook: string | null;
   lastSyncLinkedin: string | null;
-  // These will be false if the credentials are missing or invalid
   facebookCredentialsValid: boolean;
   linkedinCredentialsValid: boolean;
 }
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('accounts');
+  const [notification, setNotification] = useState<{
+    show: boolean;
+    type: 'success' | 'error';
+    message: string;
+  }>({ show: false, type: 'success', message: '' });
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
     facebook: false,
     linkedin: false,
@@ -39,6 +55,72 @@ export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
   const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
 
+  // Check URL query parameters for notifications
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const params = new URLSearchParams(window.location.search);
+    
+    // Check for LinkedIn connection status
+    if (params.has('status')) {
+      const status = params.get('status');
+      if (status === 'success') {
+        setNotification({
+          show: true,
+          type: 'success',
+          message: 'Your social media account has been connected successfully.'
+        });
+      }
+    }
+    
+    // Check for errors
+    if (params.has('error')) {
+      const error = params.get('error');
+      const message = params.get('message');
+      
+      let errorMessage = 'There was an error connecting your account.';
+      
+      if (error === 'linkedin_oauth_error') {
+        errorMessage = message || 'There was an error connecting your LinkedIn account. Please try again.';
+      } else if (error === 'missing_code') {
+        errorMessage = 'The authorization code was missing from the response. Please try again or contact support.';
+      } else if (message) {
+        errorMessage = message;
+      }
+      
+      setNotification({
+        show: true,
+        type: 'error',
+        message: errorMessage
+      });
+    }
+    
+    // Clean up URL if it has status or error parameters
+    if (params.has('status') || params.has('error')) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    
+    // Auto-hide notification after 5 seconds
+    const notificationTimeout = setTimeout(() => {
+      setNotification(prev => ({ ...prev, show: false }));
+    }, 5000);
+    
+    return () => clearTimeout(notificationTimeout);
+  }, []);
+
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+  
   // Fetch connection status from API
   useEffect(() => {
     const fetchConnectionStatus = async () => {
@@ -54,18 +136,17 @@ export default function SettingsPage() {
         };
         
         try {
-          // Try to get Facebook status
           const fbResponse = await fetch('/api/facebook/status');
           if (fbResponse.ok) {
             const fbData = await fbResponse.json();
             facebookStatus = {
-              connected: fbData.connected,
-              lastSync: fbData.lastSync,
-              credentialsValid: fbData.credentialsValid || fbData.connected
+              connected: fbData.connected || false,
+              lastSync: fbData.lastChecked || null,
+              credentialsValid: fbData.credentialsValid || false
             };
           }
-        } catch (fbError) {
-          console.error("Error checking Facebook status:", fbError);
+        } catch (error) {
+          console.error('Error checking Facebook status:', error);
         }
         
         // Check LinkedIn connection status
@@ -76,20 +157,19 @@ export default function SettingsPage() {
         };
         
         try {
-          // Try to get LinkedIn status
           const liResponse = await fetch('/api/linkedin/status');
           if (liResponse.ok) {
             const liData = await liResponse.json();
             linkedinStatus = {
-              connected: liData.connected,
-              lastSync: liData.lastSync,
-              credentialsValid: liData.credentialsValid || liData.connected
+              connected: liData.connected || false,
+              lastSync: liData.lastChecked || null,
+              credentialsValid: liData.credentialsValid || false
             };
           }
-        } catch (liError) {
-          console.error("Error checking LinkedIn status:", liError);
+        } catch (error) {
+          console.error('Error checking LinkedIn status:', error);
         }
-
+        
         setConnectionStatus({
           facebook: facebookStatus.connected,
           linkedin: linkedinStatus.connected,
@@ -98,8 +178,9 @@ export default function SettingsPage() {
           facebookCredentialsValid: facebookStatus.credentialsValid,
           linkedinCredentialsValid: linkedinStatus.credentialsValid
         });
+        
       } catch (error) {
-        console.error("Error fetching connection status:", error);
+        console.error('Error fetching connection status:', error);
       } finally {
         setIsLoading(false);
       }
@@ -114,246 +195,219 @@ export default function SettingsPage() {
     }
   }, [user, checkAuthStatus]);
 
-  // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never";
-
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-    });
-  };
-
-  // We no longer need getApiBaseUrl as we're using the authApi functions directly
-
-  // These functions are no longer needed since we're using direct API credentials
-  // We'll replace them with functions to check API status
-  
+  // Check connection status manually
   const checkConnectionStatus = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
+      // Make API calls to check connection status for each platform
+      const [fbResponse, liResponse] = await Promise.all([
+        fetch('/api/facebook/status'),
+        fetch('/api/linkedin/status')
+      ]);
       
-      // Check Facebook connection status
-      try {
-        // Test Facebook credentials by trying to fetch posts
-        await postsApi.getFacebookPosts();
-        
-        // If we get here, credentials are valid
-        setConnectionStatus(prev => ({
-          ...prev,
-          facebook: true,
-          facebookCredentialsValid: true,
-          lastSyncFacebook: new Date().toISOString()
-        }));
-      } catch (fbError) {
-        console.error("Error checking Facebook connection:", fbError);
-        setConnectionStatus(prev => ({
-          ...prev,
-          facebook: false,
-          facebookCredentialsValid: false
-        }));
+      let facebookStatus = {
+        connected: false,
+        lastSync: new Date().toISOString(),
+        credentialsValid: false
+      };
+      
+      if (fbResponse.ok) {
+        const fbData = await fbResponse.json();
+        facebookStatus = {
+          connected: fbData.connected || false,
+          lastSync: new Date().toISOString(),
+          credentialsValid: fbData.credentialsValid || false
+        };
       }
       
-      // Check LinkedIn connection status
-      try {
-        // Test LinkedIn credentials by trying to fetch posts
-        await postsApi.getLinkedinPosts();
-        
-        // If we get here, credentials are valid
-        setConnectionStatus(prev => ({
-          ...prev,
-          linkedin: true,
-          linkedinCredentialsValid: true,
-          lastSyncLinkedin: new Date().toISOString()
-        }));
-      } catch (liError) {
-        console.error("Error checking LinkedIn connection:", liError);
-        setConnectionStatus(prev => ({
-          ...prev,
-          linkedin: false,
-          linkedinCredentialsValid: false
-        }));
+      let linkedinStatus = {
+        connected: false,
+        lastSync: new Date().toISOString(),
+        credentialsValid: false
+      };
+      
+      if (liResponse.ok) {
+        const liData = await liResponse.json();
+        linkedinStatus = {
+          connected: liData.connected || false,
+          lastSync: new Date().toISOString(),
+          credentialsValid: liData.credentialsValid || false
+        };
       }
+      
+      setConnectionStatus({
+        facebook: facebookStatus.connected,
+        linkedin: linkedinStatus.connected,
+        lastSyncFacebook: facebookStatus.lastSync,
+        lastSyncLinkedin: linkedinStatus.lastSync,
+        facebookCredentialsValid: facebookStatus.credentialsValid,
+        linkedinCredentialsValid: linkedinStatus.credentialsValid
+      });
+      
+      setNotification({
+        show: true,
+        type: 'success',
+        message: 'Connection status updated successfully.'
+      });
     } catch (error) {
-      console.error("Error checking connection status:", error);
+      console.error('Error checking connection status:', error);
+      setNotification({
+        show: true,
+        type: 'error',
+        message: 'Error checking connection status. Please try again.'
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your social media connections
+    <div className="space-y-6">
+      <div className="space-y-0.5">
+        <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+        <p className="text-muted-foreground">
+          Manage your account settings and social media connections.
         </p>
       </div>
 
-      <div className="bg-card rounded-lg border p-6 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h2 className="text-xl font-semibold">Social Media Connections</h2>
-            <p className="text-muted-foreground">
-              API connection status for direct posting to social platforms
-            </p>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={checkConnectionStatus}
-            disabled={isLoading}
-          >
-            <RefreshCw
-              className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-            />
-            Check Status
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Facebook Connection */}
-            <div className="flex items-start justify-between flex-col md:flex-row gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600 text-white p-2 rounded-full">
-                  <Facebook size={24} />
-                </div>
-                <div>
-                  <h3 className="font-medium">Facebook</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {connectionStatus.facebookCredentialsValid ? (
-                      <span className="flex items-center gap-1 text-green-600">
-                        <CheckCircle size={14} />
-                        API Credentials Valid
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-red-600">
-                        <XCircle size={14} />
-                        API Credentials Invalid
-                      </span>
-                    )}
-                  </p>
-                  {connectionStatus.lastSyncFacebook && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Last checked: {formatDate(connectionStatus.lastSyncFacebook)}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1">
-                      <Key size={12} />
-                      Using Page Access Token from server environment
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant={connectionStatus.facebookCredentialsValid ? "outline" : "default"}
-                  size="sm"
-                  onClick={checkConnectionStatus}
+      {notification.show && (
+        <div
+          className={`p-4 mb-4 rounded-md ${notification.type === 'success'
+            ? 'bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-900'
+            : 'bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900'
+            }`}
+        >
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              {notification.type === 'success' ? (
+                <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500 dark:text-red-400" />
+              )}
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-medium">{notification.message}</p>
+            </div>
+            <div className="ml-auto pl-3">
+              <div className="-mx-1.5 -my-1.5">
+                <button
+                  onClick={() => setNotification(prev => ({ ...prev, show: false }))}
+                  className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600"
                 >
-                  {connectionStatus.facebookCredentialsValid ? "Verify" : "Check Status"}
-                </Button>
+                  <span className="sr-only">Dismiss</span>
+                  <XCircle className="h-4 w-4 text-muted-foreground" />
+                </button>
               </div>
             </div>
-
-            {/* LinkedIn Connection */}
-            <div className="flex items-start justify-between flex-col md:flex-row gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-800 text-white p-2 rounded-full">
-                  <Linkedin size={24} />
-                </div>
-                <div>
-                  <h3 className="font-medium">LinkedIn</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {connectionStatus.linkedinCredentialsValid ? (
-                      <span className="flex items-center gap-1 text-green-600">
-                        <CheckCircle size={14} />
-                        API Credentials Valid
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-red-600">
-                        <XCircle size={14} />
-                        API Credentials Invalid
-                      </span>
-                    )}
-                  </p>
-                  {connectionStatus.lastSyncLinkedin && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Last checked: {formatDate(connectionStatus.lastSyncLinkedin)}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="flex items-center gap-1">
-                      <Key size={12} />
-                      Using Client ID and Secret from server environment
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant={connectionStatus.linkedinCredentialsValid ? "outline" : "default"}
-                  size="sm"
-                  onClick={checkConnectionStatus}
-                >
-                  {connectionStatus.linkedinCredentialsValid ? "Verify" : "Check Status"}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="mt-4 p-4 bg-muted rounded-md border border-muted">
-              <div className="flex items-start gap-3">
-                <HelpCircle className="text-muted-foreground mt-0.5" size={18} />
-                <div>
-                  <h4 className="text-sm font-medium">About API Credentials</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    This application uses direct API access to post to social media platforms. The credentials are configured in the server environment variables and are not managed through this interface.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Contact your system administrator if you need to update or change the API credentials.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-card rounded-lg border p-6">
-        <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
-        <p className="text-muted-foreground mb-4">
-          Manage your account preferences and personal information
-        </p>
-
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-medium mb-1">Email Address</h3>
-            <p className="text-muted-foreground">
-              {user?.email || "Loading..."}
-            </p>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-1">Name</h3>
-            <p className="text-muted-foreground">
-              {user?.name || "Loading..."}
-            </p>
           </div>
         </div>
-      </div>
+      )}
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="accounts">Account</TabsTrigger>
+          <TabsTrigger value="linkedin">LinkedIn</TabsTrigger>
+          <TabsTrigger value="facebook">Facebook</TabsTrigger>
+        </TabsList>
+        
+        {/* Account Tab */}
+        <TabsContent value="accounts" className="space-y-4">
+          <Card>
+            <div className="p-6 space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold">Profile Information</h2>
+                <p className="text-muted-foreground text-sm mt-1 mb-4">
+                  Update your account information and preferences
+                </p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium text-sm">Email Address</h3>
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {user?.email || "Loading..."}
+                      </p>
+                    </div>
+                    <div className="text-sm text-muted-foreground italic">
+                      (Cannot be changed)
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <h3 className="font-medium text-sm">Full Name</h3>
+                      </div>
+                      <p className="text-foreground text-sm">
+                        {user?.name || "Loading..."}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" className="h-7">
+                      <Edit2 className="h-3.5 w-3.5 mr-1" />Edit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              {isLoading ? (
+                <div className="flex justify-center py-4">
+                  <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="mt-8 pt-6 border-t">
+                  <h3 className="text-lg font-medium mb-3">Account Status</h3>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between py-2 border-b border-muted/40">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-600 text-white p-1.5 rounded-full">
+                          <Linkedin size={16} />
+                        </div>
+                        <span>LinkedIn Connection</span>
+                      </div>
+                      <Badge variant={connectionStatus.linkedinCredentialsValid ? "default" : "destructive"}>
+                        {connectionStatus.linkedinCredentialsValid ? "Connected" : "Not Connected"}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between py-2 border-b border-muted/40">
+                      <div className="flex items-center gap-2">
+                        <div className="bg-blue-800 text-white p-1.5 rounded-full">
+                          <Facebook size={16} />
+                        </div>
+                        <span>Facebook Connection</span>
+                      </div>
+                      <Badge variant={connectionStatus.facebookCredentialsValid ? "default" : "destructive"}>
+                        {connectionStatus.facebookCredentialsValid ? "Connected" : "Not Connected"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button className="mt-4" size="sm" onClick={checkConnectionStatus} variant="outline">
+                    <RefreshCw className="mr-2 h-3.5 w-3.5" />
+                    Refresh Connection Status
+                  </Button>
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+        
+        {/* LinkedIn Tab */}
+        <TabsContent value="linkedin" className="space-y-4">
+          <LinkedInPermissions />
+        </TabsContent>
+        
+        {/* Facebook Tab */}
+        <TabsContent value="facebook" className="space-y-4">
+          <FacebookPermissions />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

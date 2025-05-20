@@ -21,6 +21,10 @@ export const env = {
   FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID || "me",
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
+  LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "", // Direct access token for LinkedIn API
+  LINKEDIN_REDIRECT_URI:
+    process.env.LINKEDIN_REDIRECT_URI ||
+    "http://localhost:5000/api/auth/linkedin/callback",
   REDIRECT_URI:
     process.env.REDIRECT_URI || "http://localhost:5000/api/auth/callback",
 
@@ -40,7 +44,13 @@ export const env = {
 
 // Validate required environment variables in production
 if (env.isProduction()) {
-  const requiredEnvVars = ["JWT_SECRET", "COOKIE_SECRET", "DATABASE_URL"];
+  const requiredEnvVars = [
+    "JWT_SECRET",
+    "COOKIE_SECRET",
+    "DATABASE_URL",
+    "LINKEDIN_CLIENT_ID",
+    "LINKEDIN_CLIENT_SECRET",
+  ];
 
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {

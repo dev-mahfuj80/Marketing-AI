@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { linkedinController } from "../controllers/linkedin.controller.js";
+import { linkedInStatusController } from "../controllers/linkedin-status.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
@@ -27,10 +28,33 @@ router.get("/posts", authenticate, asyncHandler(linkedinController.getPosts));
 router.post("/posts", authenticate, asyncHandler(linkedinController.publishPost));
 
 /**
+ * @route   GET /api/linkedin/auth
+ * @desc    Get LinkedIn authorization URL
+ * @access  Private - User must be logged in to connect their LinkedIn account
+ */
+router.get("/auth", authenticate, asyncHandler(linkedinController.getAuthUrl));
+
+/**
+ * @route   GET /api/linkedin/callback
+ * @desc    Handle LinkedIn OAuth callback
+ * @access  Public - No authentication, but validates state parameter
+ */
+router.get("/callback", asyncHandler(linkedinController.handleCallback));
+
+// Export the router for use in the auth routes
+
+/**
+ * @route   POST /api/linkedin/disconnect
+ * @desc    Disconnect LinkedIn account
+ * @access  Private - User must be logged in
+ */
+router.post("/disconnect", authenticate, asyncHandler(linkedinController.disconnect));
+
+/**
  * @route   GET /api/linkedin/status
  * @desc    Check LinkedIn connection status
- * @access  Private
+ * @access  Public - No authentication required to check API credential status
  */
-router.get("/status", authenticate, asyncHandler(linkedinController.getConnectionStatus));
+router.get("/status", asyncHandler(linkedInStatusController.checkStatus));
 
 export default router;

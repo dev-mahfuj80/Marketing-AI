@@ -41,6 +41,13 @@ try {
   var linkedinRoutes = await import("./src/routes/linkedin.routes.js").then(
     (m) => m.default
   );
+  var linkedinAdminRoutes = await import("./src/routes/linkedin-admin.routes.js").then(
+    (m) => m.default
+  );
+  
+  var linkedinAuthCallbackRoutes = await import("./src/routes/linkedin-auth-callback.routes.js").then(
+    (m) => m.default
+  );
   console.log("Routes imported successfully");
 } catch (err) {
   console.error("Error importing routes:", err);
@@ -93,6 +100,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/social", socialAuthRoutes);
 app.use("/api/posts", postsRoutes);
 app.use("/api/facebook", facebookRoutes);
+app.use("/api/linkedin", linkedinRoutes);
+app.use("/api/linkedin-admin", linkedinAdminRoutes);
+app.use("/api/auth", linkedinAuthCallbackRoutes); // Add the new LinkedIn auth callback routes
 
 // Simple health check route
 app.get("/health", (req, res) => {

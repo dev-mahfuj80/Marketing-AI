@@ -96,31 +96,148 @@ export const authApi = {
   // Now using direct API keys from environment variables
 };
 
+// LinkedIn API specific calls
+export const linkedinApi = {
+  // Get LinkedIn auth URL for OAuth flow
+  getAuthUrl: async () => {
+    try {
+      console.log('Frontend: Getting LinkedIn auth URL');
+      const response = await api.get('/api/linkedin/auth');
+      console.log('LinkedIn auth URL response:', response.status);
+      return response.data;
+    } catch (error) {
+      console.error('Error getting LinkedIn auth URL:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to get LinkedIn authorization URL');
+    }
+  },
+  
+  // Check LinkedIn connection status
+  checkStatus: async () => {
+    console.log('Checking LinkedIn connection status...');
+    return api.get("/api/linkedin/status");
+  },
+  
+  // Disconnect LinkedIn account
+  disconnect: async () => {
+    console.log('Disconnecting LinkedIn account...');
+    try {
+      return await api.post("/api/linkedin/disconnect");
+    } catch (error) {
+      console.error('Error disconnecting LinkedIn account:', error);
+      throw error;
+    }
+  },
+
+  // Get LinkedIn posts with better error handling
+  getPosts: async (limit = 10) => {
+    console.log(`Fetching LinkedIn posts with limit: ${limit}`);
+    try {
+      return await api.get(`/api/linkedin/posts?limit=${limit}`);
+    } catch (error) {
+      console.error('Error fetching LinkedIn posts:', error);
+      throw error;
+    }
+  },
+  
+  // Publish a post to LinkedIn
+  publishPost: async (content: string, imageUrl?: string, link?: string) => {
+    console.log('Publishing LinkedIn post:', { content, hasImage: !!imageUrl, hasLink: !!link });
+    try {
+      return await api.post("/api/linkedin/posts", { content, imageUrl, link });
+    } catch (error) {
+      console.error('Error publishing LinkedIn post:', error);
+      throw error;
+    }
+  }
+};
+
+// Facebook API specific calls
+export const facebookApi = {
+  // Check Facebook connection status and permissions
+  checkStatus: async () => {
+    console.log('Checking Facebook connection status...');
+    try {
+      return await api.get("/api/facebook/status");
+    } catch (error) {
+      console.error('Error checking Facebook status:', error);
+      throw error;
+    }
+  },
+  
+  // Get auth URL for Facebook (if we ever implement OAuth flow)
+  getAuthUrl: async () => {
+    try {
+      console.log('Getting Facebook auth URL');
+      const response = await api.get('/api/social/facebook/auth');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting Facebook auth URL:', error);
+      throw error;
+    }
+  },
+  
+  // Disconnect Facebook account
+  disconnect: async () => {
+    console.log('Disconnecting Facebook account...');
+    try {
+      return await api.post("/api/social/facebook/disconnect");
+    } catch (error) {
+      console.error('Error disconnecting Facebook account:', error);
+      throw error;
+    }
+  },
+  
+  // Get Facebook page details
+  getPageDetails: async (pageId = 'me') => {
+    console.log(`Fetching Facebook page details for page ID: ${pageId}`);
+    try {
+      return await api.get(`/api/facebook/pages/${pageId}`);
+    } catch (error) {
+      console.error('Error fetching Facebook page details:', error);
+      throw error;
+    }
+  }
+};
+
 // Social Media Posts API calls
 export const postsApi = {
   getFacebookPosts: async (pageId: string = "me") => {
     // Using the new endpoint format that works with FACEBOOK_PAGE_ACCESS_TOKEN from .env
     console.log(`Fetching Facebook posts for page ID: ${pageId}`);
-    return api.get(`/api/facebook/pages/${pageId}/posts`);
+    try {
+      return await api.get(`/api/facebook/pages/${pageId}/posts`);
+    } catch (error) {
+      console.error('Error fetching Facebook posts:', error);
+      throw error;
+    }
   },
 
   createFacebookPost: async (content: string, image?: File, pageId: string = "me") => {
     console.log(`Creating Facebook post for page ID: ${pageId}`);
     
-    // If we have an image, we need to use FormData
-    if (image) {
-      const formData = new FormData();
-      formData.append('message', content);
-      formData.append('image', image);
-      
-      return api.post(`/api/facebook/pages/${pageId}/publish`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-    } else {
-      // No image, just send a regular JSON request
-      return api.post(`/api/facebook/pages/${pageId}/publish`, { message: content });
+    try {
+      // If we have an image, we need to use FormData
+      if (image) {
+        const formData = new FormData();
+        formData.append('message', content);
+        formData.append('image', image);
+        
+        return await api.post(`/api/facebook/pages/${pageId}/publish`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // No image, just send a regular JSON request
+        return await api.post(`/api/facebook/pages/${pageId}/publish`, { message: content });
+      }
+    } catch (error) {
+      console.error('Error creating Facebook post:', error);
+      // Check for common permission errors
+      if (axios.isAxiosError(error) && error.response?.data?.error?.includes('permission')) {
+        throw new Error('Permission denied: Make sure your Facebook access token has posting permissions');
+      }
+      throw error;
     }
   },
 

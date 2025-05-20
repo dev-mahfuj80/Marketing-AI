@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import { facebookController } from '../controllers/facebook.controller.js';
+import { facebookStatusController } from '../controllers/facebook-status.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -27,5 +28,12 @@ router.get('/pages/:pageId/posts', authenticate, asyncHandler(facebookController
  * @access  Private
  */
 router.post('/pages/:pageId/publish', authenticate, asyncHandler(facebookController.publishPagePost));
+
+/**
+ * @route   GET /api/facebook/status
+ * @desc    Check Facebook connection status and permissions
+ * @access  Public - No authentication required to check API credential status
+ */
+router.get('/status', asyncHandler(facebookStatusController.checkStatus));
 
 export default router;

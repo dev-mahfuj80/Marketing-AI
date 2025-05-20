@@ -1,4 +1,2 @@
 - use bun instead of npm
-- if possible install and use shadcn ui component
-- use sooner for toast notification
 - always keep different if needed between .env.production and .env file
