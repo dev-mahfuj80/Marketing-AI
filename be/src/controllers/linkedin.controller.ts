@@ -498,4 +498,133 @@ export const linkedinController = {
         });
     }
   },
+  
+  /**
+   * Get LinkedIn user profile information
+   * This method uses basic permissions that are typically available even when post permissions are missing
+   */
+  getProfileInfo: async (req: Request, res: Response) => {
+    try {
+      console.log('Fetching LinkedIn user profile information...');
+      
+      // First check if we have a user token from OAuth
+      const userId = (req as any).user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ 
+          message: "Authentication required",
+          error: "User not authenticated" 
+        });
+      }
+      
+      // Get user from database
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          linkedInAccessToken: true,
+          name: true,
+          email: true,
+          avatar: true
+        }
+      });
+      
+      if (!user || !user.linkedInAccessToken) {
+        return res.status(400).json({ 
+          message: "LinkedIn connection required",
+          error: "User is not connected to LinkedIn"
+        });
+      }
+      
+      try {
+        // First try to get the profile information directly from our database
+        // if the user authenticated with LinkedIn, we should have their basic info
+        if (user.name && user.email) {
+          return res.status(200).json({
+            name: user.name,
+            email: user.email,
+            profileImage: user.avatar || null,
+            source: 'database',
+            complete: true
+          });
+        }
+          
+        // If user info isn't complete in our database, try fetching from LinkedIn API
+        // First get the basic profile info (this typically works with basic permissions)
+        const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+          headers: {
+            'Authorization': `Bearer ${user.linkedInAccessToken}`,
+            'cache-control': 'no-cache',
+            'X-Restli-Protocol-Version': '2.0.0'
+          }
+        });
+          
+        // Then try to get email (requires email permission)
+        let emailResponse;
+        try {
+          emailResponse = await axios.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', {
+            headers: {
+              'Authorization': `Bearer ${user.linkedInAccessToken}`,
+              'cache-control': 'no-cache',
+              'X-Restli-Protocol-Version': '2.0.0'
+            }
+          });
+        } catch (emailError: any) {
+          console.warn('Could not retrieve LinkedIn email - permission may be missing:', emailError.message);
+          // Continue with profileResponse only
+        }
+          
+        // Extract and format the profile data
+        const profileData = profileResponse.data;
+        const name = `${profileData.localizedFirstName || ''} ${profileData.localizedLastName || ''}`.trim();
+          
+        // Extract email if available
+        let email = null;
+        if (emailResponse && emailResponse.data && 
+            emailResponse.data.elements && 
+            emailResponse.data.elements.length > 0) {
+          email = emailResponse.data.elements[0]['handle~']?.emailAddress || null;
+        }
+          
+        // Store the retrieved data in our database for future use
+        if (name || email) {
+          const updateData: any = {};
+          if (name) updateData.name = name;
+          if (email) updateData.email = email;
+            
+          await prisma.user.update({
+            where: { id: userId },
+            data: updateData
+          });
+        }
+          
+        return res.status(200).json({
+          name: name || null,
+          email: email || null,
+          profileImage: null, // LinkedIn profile picture requires additional permission
+          source: 'linkedin_api',
+          complete: !!(name && email)
+        });
+          
+      } catch (apiError) {
+        console.error('Error fetching LinkedIn profile data:', apiError);
+          
+        // Return whatever profile data we may have stored in our database
+        return res.status(200).json({
+          name: user.name || null,
+          email: user.email || null,
+          profileImage: user.avatar || null,
+          source: 'database_fallback',
+          error: apiError instanceof Error ? apiError.message : 'LinkedIn API error',
+          complete: false
+        });
+      }
+        
+    } catch (error) {
+      console.error("Error fetching LinkedIn profile:", error);
+      return res.status(500).json({ 
+        message: "Failed to retrieve LinkedIn profile information",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  },
 };

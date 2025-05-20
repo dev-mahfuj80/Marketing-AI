@@ -117,6 +117,17 @@ export const linkedinApi = {
     return api.get("/api/linkedin/status");
   },
   
+  // Get LinkedIn user profile information - available even with limited permissions
+  getProfileInfo: async () => {
+    console.log('Fetching LinkedIn profile information...');
+    try {
+      return await api.get("/api/linkedin/profile");
+    } catch (error) {
+      console.error('Error fetching LinkedIn profile:', error);
+      throw error;
+    }
+  },
+  
   // Disconnect LinkedIn account
   disconnect: async () => {
     console.log('Disconnecting LinkedIn account...');

@@ -36,13 +36,22 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFacebookLoading, setIsFacebookLoading] = useState(true);
   const [isLinkedInLoading, setIsLinkedInLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("facebook");
   const [connectionStatus, setConnectionStatus] = useState({
     facebook: false,
     linkedin: false,
     facebookPermissionsError: false,
-    linkedinPermissionsError: false
+    linkedinPermissionsError: false,
+    linkedinLimitedPermissions: false
   });
+  
+  // Store LinkedIn profile info if posts can't be accessed
+  const [linkedinProfile, setLinkedinProfile] = useState<{
+    name?: string;
+    email?: string;
+    profileImage?: string;
+  }>({});
 
   // Facebook posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchFacebookPosts = useCallback(async () => {
@@ -66,6 +75,33 @@ export default function DashboardPage() {
   }, []);
 
   // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
+  // Function to fetch LinkedIn profile information when posts can't be accessed
+  const fetchLinkedInProfile = useCallback(async () => {
+    setIsProfileLoading(true);
+    try {
+      const profileResponse = await linkedinApi.getProfileInfo();
+      console.log('LinkedIn profile response:', profileResponse.data);
+      
+      setLinkedinProfile({
+        name: profileResponse.data.name,
+        email: profileResponse.data.email,
+        profileImage: profileResponse.data.profileImage
+      });
+      
+    } catch (error) {
+      console.error('Error fetching LinkedIn profile:', error);
+      // Even if profile fetch fails, we still want to show limited permissions UI
+      setConnectionStatus(prev => ({
+        ...prev,
+        linkedin: true,
+        linkedinLimitedPermissions: true
+      }));
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, []);
+
+  // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchLinkedInPosts = useCallback(async () => {
     setIsLinkedInLoading(true);
     try {
@@ -76,12 +112,17 @@ export default function DashboardPage() {
       // Check if the response has an error property indicating permissions issues
       if (liResponse.data.error && typeof liResponse.data.error === 'string' && 
           liResponse.data.error.includes('permission')) {
+        console.log('LinkedIn permission error detected, trying to fetch profile info instead');
         setConnectionStatus(prev => ({ 
           ...prev, 
-          linkedin: false,
-          linkedinPermissionsError: true 
+          linkedin: true,
+          linkedinPermissionsError: false,
+          linkedinLimitedPermissions: true
         }));
         setLinkedinPosts([]);
+        
+        // If posts can't be accessed due to permissions, fetch the profile info instead
+        fetchLinkedInProfile();
       } else {
         // Check the structure of the response and handle accordingly
         if (Array.isArray(liResponse.data)) {
@@ -93,22 +134,49 @@ export default function DashboardPage() {
           const posts = liResponse.data.data || liResponse.data;
           if (Array.isArray(posts)) {
             setLinkedinPosts(posts);
+          } else {
+            setLinkedinPosts([]);
           }
         }
-        setConnectionStatus(prev => ({ ...prev, linkedin: true, linkedinPermissionsError: false }));
+        setConnectionStatus(prev => ({ 
+          ...prev, 
+          linkedin: true, 
+          linkedinPermissionsError: false,
+          linkedinLimitedPermissions: false 
+        }));
       }
     } catch (liError) {
       console.error("Error fetching LinkedIn posts:", liError);
-      setConnectionStatus(prev => ({ 
-        ...prev, 
-        linkedin: false,
-        linkedinPermissionsError: liError instanceof Error && 
-          (liError.message.includes('permission') || liError.message.includes('403')) 
-      }));
+      // Check if the error is specifically about permissions
+      const errorMessage = liError instanceof Error ? liError.message : String(liError);
+      if (errorMessage.includes('permission') || 
+          errorMessage.includes('403') || 
+          errorMessage.includes('scope')) {
+        console.log('LinkedIn posts access error, trying to fetch profile instead');
+        setConnectionStatus(prev => ({ 
+          ...prev, 
+          linkedin: true,
+          linkedinPermissionsError: false,
+          linkedinLimitedPermissions: true
+        }));
+        
+        // Try to get the profile info instead
+        fetchLinkedInProfile();
+      } else {
+        // General connection error
+        setConnectionStatus(prev => ({ 
+          ...prev, 
+          linkedin: false,
+          linkedinPermissionsError: true,
+          linkedinLimitedPermissions: false
+        }));
+      }
     } finally {
       setIsLinkedInLoading(false);
     }
-  }, []);
+  }, [fetchLinkedInProfile]);
+
+  // This block was moved up
 
   // Combined function to fetch all posts
   const fetchPosts = useCallback(() => {
@@ -252,8 +320,8 @@ export default function DashboardPage() {
             </TabsContent>
           )}
           
-          {/* LinkedIn Content Tab */}
-          {connectionStatus.linkedin && !connectionStatus.linkedinPermissionsError && (
+          {/* LinkedIn Content Tab - Regular posts access */}
+          {connectionStatus.linkedin && !connectionStatus.linkedinPermissionsError && !connectionStatus.linkedinLimitedPermissions && (
             <TabsContent value="linkedin">
               <PostsContainer
                 platform="linkedin"
@@ -261,6 +329,21 @@ export default function DashboardPage() {
                 isLoading={isLinkedInLoading}
                 onRefresh={fetchLinkedInPosts}
                 emptyMessage="No LinkedIn posts found"
+              />
+            </TabsContent>
+          )}
+          
+          {/* LinkedIn Content Tab - Limited permissions (profile info only) */}
+          {connectionStatus.linkedin && connectionStatus.linkedinLimitedPermissions && (
+            <TabsContent value="linkedin">
+              <PostsContainer
+                platform="linkedin"
+                posts={[]}
+                isLoading={isProfileLoading}
+                onRefresh={fetchLinkedInProfile}
+                emptyMessage="LinkedIn profile information"
+                limitedPermissions={true}
+                profileInfo={linkedinProfile}
               />
             </TabsContent>
           )}

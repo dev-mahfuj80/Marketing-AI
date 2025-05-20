@@ -57,4 +57,11 @@ router.post("/disconnect", authenticate, asyncHandler(linkedinController.disconn
  */
 router.get("/status", asyncHandler(linkedInStatusController.checkStatus));
 
+/**
+ * @route   GET /api/linkedin/profile
+ * @desc    Get LinkedIn user profile information (available with basic permissions)
+ * @access  Private - User must be logged in
+ */
+router.get("/profile", authenticate, asyncHandler(linkedinController.getProfileInfo));
+
 export default router;

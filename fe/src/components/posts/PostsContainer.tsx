@@ -30,6 +30,12 @@ interface PostsContainerProps {
   onRefresh: () => void;
   className?: string;
   emptyMessage?: string;
+  limitedPermissions?: boolean;
+  profileInfo?: {
+    name?: string;
+    email?: string;
+    profileImage?: string;
+  };
 }
 
 export function PostsContainer({
@@ -38,7 +44,9 @@ export function PostsContainer({
   isLoading,
   onRefresh,
   className,
-  emptyMessage = "No posts found"
+  emptyMessage = "No posts found",
+  limitedPermissions = false,
+  profileInfo
 }: PostsContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -77,6 +85,47 @@ export function PostsContainer({
             className="h-40 bg-muted animate-pulse rounded-md"
           />
         ))}
+      </div>
+    );
+  }
+
+  // LinkedIn with limited permissions (no posts access but profile info available)
+  if (platform === "linkedin" && limitedPermissions && profileInfo) {
+    return (
+      <div className={cn("p-6", className)}>
+        <Card className="p-6 border-2 border-blue-100 dark:border-blue-900/30">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-medium text-blue-700 dark:text-blue-400 mb-3">
+              Limited LinkedIn Access
+            </h3>
+            <p className="text-muted-foreground">
+              You do not have access to fetch posts from LinkedIn.
+            </p>
+            <p className="text-muted-foreground text-sm mt-1">
+              Your current LinkedIn API permissions are limited to basic profile information.
+            </p>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg mb-6">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <span className="font-medium w-40">LinkedIn Username:</span>
+                <span>{profileInfo.name || 'Not available'}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="font-medium w-40">Email:</span>
+                <span>{profileInfo.email || 'Not available'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-muted-foreground mt-4">
+            <p>
+              To view and publish posts through LinkedIn, you need to grant additional permissions.
+              Please contact your administrator to update the LinkedIn API configuration.
+            </p>
+          </div>
+        </Card>
       </div>
     );
   }

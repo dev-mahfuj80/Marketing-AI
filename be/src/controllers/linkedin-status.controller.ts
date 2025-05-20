@@ -11,6 +11,8 @@ export class LinkedInStatusController {
 
   constructor() {
     this.linkedinService = new LinkedInService();
+    // Bind 'this' context to methods to prevent 'this' from being lost
+    this.checkStatus = this.checkStatus.bind(this);
   }
 
   /**
@@ -47,6 +49,10 @@ export class LinkedInStatusController {
 
       if (env.LINKEDIN_ACCESS_TOKEN) {
         try {
+          // Create LinkedIn service instance if it doesn't exist
+          if (!this.linkedinService) {
+            this.linkedinService = new LinkedInService();
+          }
           // Validate the token and check for permissions
           tokenStatus.valid = await this.linkedinService.validateAccessToken(env.LINKEDIN_ACCESS_TOKEN);
           
