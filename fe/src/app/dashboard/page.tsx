@@ -239,18 +239,7 @@ export default function DashboardPage() {
     checkConnectionStatus();
   }, [fetchPosts, checkConnectionStatus]);
 
-  // Reset tab when changing between LinkedIn and Facebook if current platform is not connected
-  useEffect(() => {
-    if (activeTab === 'facebook' && !connectionStatus.facebook) {
-      if (connectionStatus.linkedin) {
-        setActiveTab('linkedin');
-      }
-    } else if (activeTab === 'linkedin' && !connectionStatus.linkedin) {
-      if (connectionStatus.facebook) {
-        setActiveTab('facebook');
-      }
-    }
-  }, [activeTab, connectionStatus]);
+  // Removed auto-tab switching logic to always show both tabs regardless of connection status
 
   // Check if there are error messages from redirects
   useEffect(() => {
@@ -276,79 +265,95 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* LinkedIn Permission Information - Only shown if connection error or permissions issue */}
-      {connectionStatus.linkedinPermissionsError && (
-        <LinkedInPermissions showCompact={true} />
-      )}
-      
-      {/* Facebook Permission Information - Only shown if connection has permission issues */}
-      {connectionStatus.facebook && connectionStatus.facebookPermissionsError && (
-        <FacebookPermissions showCompact={true} />
-      )}
-      
-      {((connectionStatus.facebook && !connectionStatus.facebookPermissionsError) || 
-         (connectionStatus.linkedin && !connectionStatus.linkedinPermissionsError)) && (
-        <Tabs defaultValue="facebook" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full md:w-[400px] grid-cols-2 mb-8">
-            {/* Only show Facebook tab if we have a connection */}
-            {connectionStatus.facebook && !connectionStatus.facebookPermissionsError && (
-              <TabsTrigger value="facebook" className="flex items-center gap-2">
-                <Facebook className="h-4 w-4" />
-                Facebook
-              </TabsTrigger>
-            )}
-            
-            {/* Only show LinkedIn tab if we have a connection */}
-            {connectionStatus.linkedin && !connectionStatus.linkedinPermissionsError && (
-              <TabsTrigger value="linkedin" className="flex items-center gap-2">
-                <Linkedin className="h-4 w-4" />
-                LinkedIn
-              </TabsTrigger>
-            )}
-          </TabsList>
+      <Tabs defaultValue="facebook" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full md:w-[400px] grid-cols-2 mb-8">
+          {/* Always show Facebook tab */}
+          <TabsTrigger value="facebook" className="flex items-center gap-2">
+            <Facebook className="h-4 w-4" />
+            Facebook
+          </TabsTrigger>
           
-          {/* Facebook Content Tab */}
-          {connectionStatus.facebook && !connectionStatus.facebookPermissionsError && (
-            <TabsContent value="facebook">
-              <PostsContainer
-                platform="facebook"
-                posts={facebookPosts}
-                isLoading={isFacebookLoading}
-                onRefresh={fetchFacebookPosts}
-                emptyMessage="No Facebook posts found"
-              />
-            </TabsContent>
+          {/* Always show LinkedIn tab */}
+          <TabsTrigger value="linkedin" className="flex items-center gap-2">
+            <Linkedin className="h-4 w-4" />
+            LinkedIn
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Facebook Content Tab */}
+        <TabsContent value="facebook">
+          {/* Show Facebook permissions error message inside the tab if needed */}
+          {connectionStatus.facebookPermissionsError && (
+            <div className="mb-4">
+              <FacebookPermissions showCompact={true} />
+            </div>
           )}
           
-          {/* LinkedIn Content Tab - Regular posts access */}
-          {connectionStatus.linkedin && !connectionStatus.linkedinPermissionsError && !connectionStatus.linkedinLimitedPermissions && (
-            <TabsContent value="linkedin">
-              <PostsContainer
-                platform="linkedin"
-                posts={linkedinPosts}
-                isLoading={isLinkedInLoading}
-                onRefresh={fetchLinkedInPosts}
-                emptyMessage="No LinkedIn posts found"
-              />
-            </TabsContent>
+          {/* Show loading/error state if Facebook isn't connected */}
+          {!connectionStatus.facebook ? (
+            <Card className="p-6 text-center">
+              <h3 className="text-lg font-medium mb-4">Facebook is not connected</h3>
+              <p className="text-muted-foreground mb-6">Connect your Facebook account to view and manage your posts.</p>
+              <Button asChild variant="outline">
+                <a href="/api/facebook/auth" className="flex items-center gap-2">
+                  <Facebook className="h-4 w-4" />
+                  Connect Facebook
+                </a>
+              </Button>
+            </Card>
+          ) : (!connectionStatus.facebookPermissionsError ? (
+            <PostsContainer
+              platform="facebook"
+              posts={facebookPosts}
+              isLoading={isFacebookLoading}
+              onRefresh={fetchFacebookPosts}
+              emptyMessage="No Facebook posts found"
+            />
+          ) : null)}
+        </TabsContent>
+        
+        {/* LinkedIn Content Tab */}
+        <TabsContent value="linkedin">
+          {/* Show LinkedIn permissions error message inside the tab if needed */}
+          {connectionStatus.linkedinPermissionsError && (
+            <div className="mb-4">
+              <LinkedInPermissions showCompact={true} />
+            </div>
           )}
           
-          {/* LinkedIn Content Tab - Limited permissions (profile info only) */}
-          {connectionStatus.linkedin && connectionStatus.linkedinLimitedPermissions && (
-            <TabsContent value="linkedin">
-              <PostsContainer
-                platform="linkedin"
-                posts={[]}
-                isLoading={isProfileLoading}
-                onRefresh={fetchLinkedInProfile}
-                emptyMessage="LinkedIn profile information"
-                limitedPermissions={true}
-                profileInfo={linkedinProfile}
-              />
-            </TabsContent>
-          )}
-        </Tabs>
-      )}
+          {/* Show different states based on LinkedIn connection status */}
+          {!connectionStatus.linkedin ? (
+            <Card className="p-6 text-center">
+              <h3 className="text-lg font-medium mb-4">LinkedIn is not connected</h3>
+              <p className="text-muted-foreground mb-6">Connect your LinkedIn account to view and manage your posts.</p>
+              <Button asChild variant="outline">
+                <a href="/api/linkedin/auth" className="flex items-center gap-2">
+                  <Linkedin className="h-4 w-4" />
+                  Connect LinkedIn
+                </a>
+              </Button>
+            </Card>
+          ) : connectionStatus.linkedinLimitedPermissions ? (
+            <PostsContainer
+              platform="linkedin"
+              posts={[]}
+              isLoading={isProfileLoading}
+              onRefresh={fetchLinkedInProfile}
+              emptyMessage="LinkedIn profile information"
+              limitedPermissions={true}
+              profileInfo={linkedinProfile}
+            />
+          ) : (!connectionStatus.linkedinPermissionsError ? (
+            <PostsContainer
+              platform="linkedin"
+              posts={linkedinPosts}
+              isLoading={isLinkedInLoading}
+              onRefresh={fetchLinkedInPosts}
+              emptyMessage="No LinkedIn posts found"
+            />
+          ) : null)}
+        </TabsContent>
+      </Tabs>
       
       {/* Show a message if no social media connections are available */}
       {!connectionStatus.facebook && !connectionStatus.linkedin && !isLoading && (
