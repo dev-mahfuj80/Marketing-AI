@@ -12,6 +12,18 @@ import { useSearchParams } from "next/navigation";
 import { Linkedin, Facebook, Loader2 } from "lucide-react";
 
 // Define post interfaces
+// Define API error interface for better type safety
+interface ApiError {
+  response?: {
+    status?: number;
+    data?: {
+      error?: string;
+      message?: string;
+    };
+  };
+  message?: string;
+}
+
 interface Post {
   id: string;
   content?: string;
@@ -62,35 +74,55 @@ export default function DashboardPage() {
       console.log("Facebook posts response:", fbResponse.data);
       setFacebookPosts(fbResponse.data.data || []);
       setConnectionStatus((prev) => ({ ...prev, facebook: true }));
-    } catch (fbError) {
+    } catch (error) {
+      const fbError = error as ApiError;
       console.error("Error fetching Facebook posts:", fbError);
+      setFacebookPosts([]);
       setConnectionStatus((prev) => ({
         ...prev,
         facebook: false,
         facebookPermissionsError:
-          fbError instanceof Error && fbError.message.includes("permission"),
+          fbError.message?.includes("permission") || 
+          fbError.response?.data?.error?.includes("permission") || 
+          false,
       }));
     } finally {
       setIsFacebookLoading(false);
     }
-  }, []);
+  }, [])
 
   // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   // Function to fetch LinkedIn profile information when posts can't be accessed
   const fetchLinkedInProfile = useCallback(async () => {
-    setIsProfileLoading(true);
     try {
-      const profileResponse = await linkedinApi.getProfileInfo();
-      console.log("LinkedIn profile response:", profileResponse.data);
-
-      setLinkedinProfile({
-        name: profileResponse.data.name,
-        email: profileResponse.data.email,
-        profileImage: profileResponse.data.profileImage,
-      });
+      setIsProfileLoading(true);
+      const response = await linkedinApi.getProfileInfo();
+      setLinkedinProfile(response.data);
     } catch (error) {
-      console.error("Error fetching LinkedIn profile:", error);
-      // Even if profile fetch fails, we still want to show limited permissions UI
+      const apiError = error as ApiError;
+      console.error("Error fetching LinkedIn profile:", apiError);
+
+      // Check if error is due to expired token
+      if (apiError?.response?.status === 401 ||
+          (apiError?.response?.data?.error && apiError.response.data.error.includes('token'))) {
+        console.log('Token may be expired, attempting to refresh...');
+        try {
+          // Try to refresh the token
+          await linkedinApi.refreshToken();
+          // Try fetching profile again with renewed token
+          const newResponse = await linkedinApi.getProfileInfo();
+          setLinkedinProfile(newResponse.data);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          // Update connection status to show reconnection needed
+          setConnectionStatus(prev => ({
+            ...prev,
+            linkedin: false,
+            linkedinLimitedPermissions: false,
+            linkedinPermissionsError: true
+          }));
+        }
+      }
       setConnectionStatus((prev) => ({
         ...prev,
         linkedin: true,
@@ -99,7 +131,7 @@ export default function DashboardPage() {
     } finally {
       setIsProfileLoading(false);
     }
-  }, []);
+  }, [])
 
   // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchLinkedInPosts = useCallback(async () => {
@@ -153,11 +185,14 @@ export default function DashboardPage() {
           linkedinLimitedPermissions: false,
         }));
       }
-    } catch (liError) {
+    } catch (error) {
+      const liError = error as ApiError;
       console.error("Error fetching LinkedIn posts:", liError);
       // Check if the error is specifically about permissions
-      const errorMessage =
-        liError instanceof Error ? liError.message : String(liError);
+      const errorMessage = liError.message || 
+        (liError.response?.data?.error || 
+        liError.response?.data?.message || 
+        'Unknown error');
       if (
         errorMessage.includes("permission") ||
         errorMessage.includes("403") ||
@@ -255,7 +290,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     fetchPosts();
@@ -370,9 +405,37 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground mb-6">
                   Connect your LinkedIn account to view and manage your posts.
                 </p>
-                <Button onClick={() => fetchLinkedInPosts()} variant="outline">
-                  <Linkedin className="h-4 w-4" />
-                  Retry
+                <Button 
+                  onClick={async () => {
+                    try {
+                      setIsLinkedInLoading(true);
+                      // Request a fresh auth URL and redirect to LinkedIn
+                      const response = await linkedinApi.getAuthUrl();
+                      if (response?.data?.authUrl) {
+                        window.location.href = response.data.authUrl;
+                      } else {
+                        console.error("Failed to get LinkedIn auth URL");
+                        setIsLinkedInLoading(false);
+                      }
+                    } catch (error) {
+                      console.error("Error starting LinkedIn auth flow:", error);
+                      setIsLinkedInLoading(false);
+                    }
+                  }} 
+                  variant="outline"
+                  disabled={isLinkedInLoading}
+                >
+                  {isLinkedInLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <Linkedin className="h-4 w-4 mr-2" />
+                      Connect LinkedIn
+                    </>
+                  )}
                 </Button>
               </Card>
             ) : connectionStatus.linkedinLimitedPermissions ? (

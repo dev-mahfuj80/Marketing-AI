@@ -47,7 +47,8 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
     oauthUrl: '',
     message: '',
     permissionNote: '',
-    nextSteps: ''
+    nextSteps: '',
+    limitedPermissions: false
   });
   const [permissions, setPermissions] = useState<LinkedInPermission[]>([]);
   const [profileInfo, setProfileInfo] = useState<LinkedInProfile | null>(null);
@@ -71,7 +72,8 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
         oauthUrl: data.oauthUrl || data.authUrl || '',
         message: data.message || '',
         permissionNote: data.permissionNote || '',
-        nextSteps: data.nextSteps || ''
+        nextSteps: data.nextSteps || '',
+        limitedPermissions: !!data.limitedPermissions
       });
 
       // Check if we have permissions info
@@ -116,7 +118,31 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
 
   // For compact mode shown in dashboard
   if (showCompact && !isLoading) {
-    if (!connectionStatus.connected) {
+    if (connectionStatus.connected && connectionStatus.limitedPermissions) {
+      return (
+        <Card className={cn("border-amber-200 dark:border-amber-800", className)}>
+          <CardContent className="p-4">
+            <div className="flex items-start space-x-3">
+              <ShieldAlert className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-medium text-sm">LinkedIn Connected with Limited Permissions</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your LinkedIn account is connected, but with limited permissions. You may not be able to post or retrieve content.
+                </p>
+                <div className="flex items-center mt-3">
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                    <CheckCircle2 className="h-3 w-3 mr-1" /> Account Connected
+                  </Badge>
+                  <Badge variant="outline" className="text-xs ml-2 bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800">
+                    <XCircle className="h-3 w-3 mr-1" /> Limited Permissions
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    } else if (!connectionStatus.connected) {
       return (
         <Card className={cn("border-amber-200 dark:border-amber-800", className)}>
           <CardContent className="p-4">
@@ -134,15 +160,35 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
                   <Button 
                     size="sm" 
                     className="h-8"
-                    onClick={() => {
-                      if (connectionStatus.oauthUrl) {
-                        window.location.href = connectionStatus.oauthUrl;
-                      } else {
+                    onClick={async () => {
+                      try {
+                        setIsLoading(true);
+                        // Get fresh auth URL from backend
+                        const authResponse = await linkedinApi.getAuthUrl();
+                        if (authResponse.data?.authUrl) {
+                          // Redirect to LinkedIn OAuth page
+                          window.location.href = authResponse.data.authUrl;
+                        } else {
+                          console.error("Failed to get LinkedIn auth URL");
+                          // Fallback to settings page
+                          window.location.href = '/dashboard/settings';
+                        }
+                      } catch (error) {
+                        console.error("Error initiating LinkedIn OAuth:", error);
                         window.location.href = '/dashboard/settings';
+                      } finally {
+                        setIsLoading(false);
                       }
                     }}
                   >
-                    Connect LinkedIn
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      <>Connect LinkedIn</>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -178,15 +224,34 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
                   <Button 
                     size="sm" 
                     className="h-8"
-                    onClick={() => {
-                      if (connectionStatus.oauthUrl) {
-                        window.location.href = connectionStatus.oauthUrl;
-                      } else {
+                    onClick={async () => {
+                      try {
+                        setIsLoading(true);
+                        // Get fresh auth URL from backend
+                        const authResponse = await linkedinApi.getAuthUrl();
+                        if (authResponse.data?.authUrl) {
+                          // Redirect to LinkedIn OAuth page
+                          window.location.href = authResponse.data.authUrl;
+                        } else {
+                          console.error("Failed to get LinkedIn auth URL");
+                          // Fallback to settings page
+                          window.location.href = '/dashboard/settings';
+                        }
+                      } catch (error) {
+                        console.error("Error initiating LinkedIn OAuth:", error);
                         window.location.href = '/dashboard/settings';
+                      } finally {
+                        setIsLoading(false);
                       }
                     }}
                   >
-                    Reconnect with Full Permissions
+                    {isLoading ? (
+                      <div className="flex justify-center p-12">
+                        <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+                      </div>
+                    ) : (
+                      <>Reconnect with Full Permissions</>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -351,6 +416,26 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
 
             {/* API Permissions Section */}
             <div className="border rounded-md p-3">
+              <h2 className="text-xl font-semibold mb-1 flex items-center">
+                <Linkedin className="h-5 w-5 mr-2 text-blue-600" />
+                LinkedIn Integration
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Connect your LinkedIn account to post and manage content.
+              </p>
+              {connectionStatus.connected && connectionStatus.limitedPermissions && (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/50 rounded-md">
+                  <div className="flex items-start">
+                    <ShieldAlert className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="ml-2">
+                      <h3 className="font-medium text-sm">Limited LinkedIn Permissions</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your LinkedIn account is connected, but the application has limited permissions. You may not be able to post content or retrieve posts.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <h3 className="font-medium text-sm flex items-center">
                 <Key className="h-4 w-4 mr-1.5 text-blue-600" />
                 <span>API Permissions</span>
@@ -396,10 +481,36 @@ export function LinkedInPermissions({ className, showCompact = false }: LinkedIn
                 </Button>
               ) : connectionStatus.oauthUrl ? (
                 <Button
-                  onClick={() => window.location.href = connectionStatus.oauthUrl}
+                  onClick={async () => {
+                    try {
+                      setIsLoading(true);
+                      // Get fresh auth URL from backend
+                      const authResponse = await linkedinApi.getAuthUrl();
+                      if (authResponse.data?.authUrl) {
+                        // Redirect to LinkedIn OAuth page
+                        window.location.href = authResponse.data.authUrl;
+                      } else {
+                        console.error("Failed to get LinkedIn auth URL");
+                      }
+                    } catch (error) {
+                      console.error("Error initiating LinkedIn OAuth:", error);
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
                 >
-                  <ExternalLink className="mr-1.5 h-4 w-4" />
-                  Connect LinkedIn
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="mr-1.5 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    <>
+                      <ExternalLink className="mr-1.5 h-4 w-4" />
+                      Connect LinkedIn
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button disabled>

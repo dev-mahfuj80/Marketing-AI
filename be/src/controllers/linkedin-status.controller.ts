@@ -34,13 +34,25 @@ export class LinkedInStatusController {
 
       // Test the credentials by attempting to get a token
       let credentialsValid = false;
+      let limitedPermissions = false; // Track if we have limited permissions
+      let accessToken = "";
+      
       try {
         // Make sure linkedinService is initialized
         if (!this.linkedinService) {
           this.linkedinService = new LinkedInService();
         }
-        await this.linkedinService.testCredentials();
-        credentialsValid = true;
+        
+        // Try to get a token, might return with limited_permissions flag
+        const result = await this.linkedinService.testCredentials();
+        accessToken = result.access_token;
+        
+        // If we get a token back, credentials are valid
+        credentialsValid = !!result.access_token;
+        
+        // Check if we have limited permissions mode
+        limitedPermissions = !!result.limited_permissions;
+        
       } catch (error) {
         console.error("LinkedIn credentials test failed:", error);
       }
@@ -48,17 +60,23 @@ export class LinkedInStatusController {
       // Check if we have a direct access token
       let tokenStatus = {
         valid: false,
-        scopes: [] as string[]
+        scopes: [] as string[],
+        limitations: [] as string[]
       };
 
-      if (env.LINKEDIN_ACCESS_TOKEN) {
+      // Use the token we just obtained or from env if available
+      const tokenToUse = accessToken || env.LINKEDIN_ACCESS_TOKEN;
+      
+      if (tokenToUse) {
         try {
           // Create LinkedIn service instance if it doesn't exist
           if (!this.linkedinService) {
             this.linkedinService = new LinkedInService();
           }
           // Validate the token and check for permissions
-          tokenStatus.valid = await this.linkedinService.validateAccessToken(env.LINKEDIN_ACCESS_TOKEN);
+          const validationResult = await this.linkedinService.validateAccessToken(tokenToUse);
+          tokenStatus.valid = validationResult.valid;
+          tokenStatus.limitations = validationResult.limitations || [];
           
           // If we have a valid token, attempt to get org info to check permissions directly
           if (tokenStatus.valid) {
@@ -131,8 +149,15 @@ export class LinkedInStatusController {
       }
 
       // If we couldn't validate a specific token or get org info, let's check for specific permissions
-      let availablePermissions = [];
-      let permissionDetails = {};
+      const availablePermissions: string[] = [];
+      interface PermissionDetail {
+        name: string;
+        description: string;
+        status: "granted" | "missing" | "unknown";
+      }
+      
+      // Initialize with proper typing
+      const permissionDetails: Record<string, PermissionDetail> = {};
       
       // Check for specific permissions if we have a valid token
       if (tokenStatus.valid && env.LINKEDIN_ACCESS_TOKEN) {
@@ -246,9 +271,9 @@ export class LinkedInStatusController {
               status: "granted"
             };
           }
-        } catch (orgWriteError) {
+        } catch (orgWriteError: unknown) {
           // If it fails with a 403, it's a permissions issue
-          const isPermissionIssue = orgWriteError.response?.status === 403;
+          const isPermissionIssue = axios.isAxiosError(orgWriteError) && orgWriteError.response?.status === 403;
           
           permissionDetails['w_organization_social'] = {
             name: "w_organization_social",
@@ -287,20 +312,39 @@ export class LinkedInStatusController {
       // Determine if we have enough permissions for posts
       const hasPostPermissions = availablePermissions.includes('r_organization_social');
       
+      // Check if we are in the limited permissions mode
+      const hasLimitedPermissions = limitedPermissions || 
+        (tokenStatus.valid && tokenStatus.limitations && tokenStatus.limitations.length > 0);
+      
+      // If we're in limited permissions mode but still connected, we want to show a special message
+      let message = "LinkedIn connection inactive";
+      let permissionNote = "LinkedIn integration requires valid credentials and an access token with the proper permissions";
+      let nextSteps = "Update your LinkedIn API credentials in the environment settings";
+      
+      if (tokenStatus.valid) {
+        if (hasLimitedPermissions) {
+          message = "LinkedIn connected with limited permissions";
+          permissionNote = "Your LinkedIn account is connected, but with limited permissions. You may not be able to post or retrieve content.";
+          nextSteps = "Consider updating your LinkedIn developer account permissions or using different credentials.";
+        } else {
+          message = "LinkedIn connection active";
+          permissionNote = "Your LinkedIn account is fully connected with all required permissions.";
+          nextSteps = "";
+        }
+      } else if (credentialsValid && !tokenStatus.valid) {
+        permissionNote = "Your LinkedIn API credentials are valid, but the access token is missing or invalid";
+        nextSteps = "Generate a new access token with proper permissions";
+      }
+      
       return res.status(200).json({
         connected: tokenStatus.valid,
         credentialsValid,
         hasPostPermissions,
+        limitedPermissions: hasLimitedPermissions,
         lastChecked: new Date().toISOString(),
-        message: tokenStatus.valid 
-          ? "LinkedIn connection active" 
-          : "LinkedIn connection inactive",
-        permissionNote: credentialsValid && !tokenStatus.valid
-          ? "Your LinkedIn API credentials are valid, but the access token is missing or invalid"
-          : "LinkedIn integration requires valid credentials and an access token with the proper permissions",
-        nextSteps: credentialsValid && !tokenStatus.valid
-          ? "Generate a new access token with proper permissions"
-          : "Update your LinkedIn API credentials in the environment settings",
+        message,
+        permissionNote,
+        nextSteps,
         authUrl: credentialsValid 
           ? `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(env.LINKEDIN_REDIRECT_URI)}&scope=r_liteprofile%20r_emailaddress%20r_organization_social%20w_organization_social%20rw_organization_admin` 
           : null,

@@ -166,27 +166,89 @@ export const linkedinController = {
       const expiresAt = new Date();
       expiresAt.setSeconds(expiresAt.getSeconds() + expires_in);
       
-      // Get LinkedIn profile info to confirm identity
-      const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
-        headers: { Authorization: `Bearer ${access_token}` }
-      });
+      // Get detailed LinkedIn profile info
+      const linkedinService = new LinkedInService();
+      let profileData, emailData, pictureUrl;
       
-      const linkedInId = profileResponse.data.id;
-      // Store profile info for reference, but don't try to save fields that don't exist in the schema
-      const profileName = `${profileResponse.data.localizedFirstName} ${profileResponse.data.localizedLastName}`;
-      
-      // Store tokens in user record if authenticated
-      if (userId) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            linkedInAccessToken: access_token,
-            linkedInRefreshToken: refresh_token,
-            linkedInExpiresAt: expiresAt,
-            linkedInId
-            // Note: linkedInName field doesn't exist in the User schema
+      try {
+        // Get basic profile information
+        const profileResponse = await axios.get(
+          "https://api.linkedin.com/v2/me",
+          {
+            headers: { Authorization: `Bearer ${access_token}` },
           }
-        });
+        );
+        profileData = profileResponse.data;
+        const linkedInId = profileData.id;
+        
+        // Try to get email address if permission was granted
+        try {
+          const emailResponse = await axios.get(
+            'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+            }
+          );
+          
+          if (emailResponse.data?.elements?.length > 0) {
+            emailData = emailResponse.data.elements[0]['handle~']?.emailAddress || null;
+          }
+        } catch (emailError) {
+          console.warn("Could not fetch LinkedIn email - permission may be missing");
+        }
+        
+        // Try to get profile picture if permission was granted
+        try {
+          const pictureResponse = await axios.get(
+            'https://api.linkedin.com/v2/me?projection=(id,profilePicture(displayImage~:playableStreams))',
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+            }
+          );
+          
+          if (pictureResponse.data?.profilePicture?.['displayImage~']?.elements?.length > 0) {
+            // Get the highest quality image available
+            const pictures = pictureResponse.data.profilePicture['displayImage~'].elements;
+            const highestQualityPic = pictures.reduce((best: any, current: any) => {
+              const currentWidth = current.data?.['com.linkedin.digitalmedia.mediaartifact.StillImage']?.storageSize?.width || 0;
+              const bestWidth = best?.data?.['com.linkedin.digitalmedia.mediaartifact.StillImage']?.storageSize?.width || 0;
+              return currentWidth > bestWidth ? current : best;
+            }, null);
+            
+            if (highestQualityPic?.identifiers?.length > 0) {
+              pictureUrl = highestQualityPic.identifiers[0].identifier;
+            }
+          }
+        } catch (pictureError) {
+          console.warn("Could not fetch LinkedIn profile picture - permission may be missing");
+        }
+        
+        // Create formatted profile information
+        const profileName = `${profileData.localizedFirstName} ${profileData.localizedLastName}`;
+        
+        // Store tokens and profile data in user record if authenticated
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              linkedInAccessToken: access_token,
+              linkedInRefreshToken: refresh_token,
+              linkedInExpiresAt: expiresAt,
+              linkedInId,
+              // Update user profile with LinkedIn data if fields exist
+              name: profileName,
+              email: emailData || undefined,
+              avatar: pictureUrl || undefined,
+              updatedAt: new Date()
+            },
+          });
+          
+          // Just log success message - we've already updated the user record above
+          console.log('Successfully stored LinkedIn tokens for user:', userId);
+        }
+      } catch (profileError) {
+        console.error("Error fetching LinkedIn profile info:", profileError);
+        // Continue the flow even if profile info fetch failed - we still have the tokens
       }
       
       // Clear state from session
@@ -579,22 +641,12 @@ export const linkedinController = {
           
         // Extract email if available
         let email = null;
-        if (emailResponse && emailResponse.data && 
-            emailResponse.data.elements && 
-            emailResponse.data.elements.length > 0) {
-          email = emailResponse.data.elements[0]['handle~']?.emailAddress || null;
-        }
-          
-        // Store the retrieved data in our database for future use
-        if (name || email) {
-          const updateData: any = {};
-          if (name) updateData.name = name;
-          if (email) updateData.email = email;
-            
-          await prisma.user.update({
-            where: { id: userId },
-            data: updateData
-          });
+        if (emailResponse && emailResponse.data && emailResponse.data.elements) {
+          const emailElement = emailResponse.data.elements.find((element: any) => 
+            element && element.handle && element.handle['emailAddress']);
+          if (emailElement && emailElement.handle) {
+            email = emailElement.handle['emailAddress'];
+          }
         }
           
         return res.status(200).json({
@@ -623,6 +675,73 @@ export const linkedinController = {
       console.error("Error fetching LinkedIn profile:", error);
       return res.status(500).json({ 
         message: "Failed to retrieve LinkedIn profile information",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  },
+  /**
+   * Refresh the LinkedIn access token
+   */
+  refreshToken: async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Get current refresh token from user record
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          linkedInAccessToken: true,
+          linkedInRefreshToken: true,
+          linkedInExpiresAt: true,
+        }
+      });
+      
+      if (!user?.linkedInRefreshToken) {
+        return res.status(400).json({ 
+          message: "No LinkedIn refresh token found",
+          error: "missing_refresh_token" 
+        });
+      }
+      
+      // Use the service to refresh the token
+      const linkedinService = new LinkedInService();
+      const refreshResult = await linkedinService.refreshAccessToken(user.linkedInRefreshToken);
+      
+      if (!refreshResult) {
+        return res.status(400).json({ 
+          message: "Failed to refresh LinkedIn token", 
+          error: "refresh_failed" 
+        });
+      }
+      
+      // Calculate new expiry date
+      const expiresAt = new Date();
+      expiresAt.setSeconds(expiresAt.getSeconds() + refreshResult.expires_in);
+      
+      // Update the user record with new tokens
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          linkedInAccessToken: refreshResult.access_token,
+          // Only update refresh token if a new one was provided
+          ...(refreshResult.refresh_token ? { linkedInRefreshToken: refreshResult.refresh_token } : {}),
+          linkedInExpiresAt: expiresAt,
+        }
+      });
+      
+      return res.status(200).json({
+        message: "LinkedIn token refreshed successfully",
+        expiresAt,
+      });
+      
+    } catch (error) {
+      console.error("Error refreshing LinkedIn token:", error);
+      return res.status(500).json({
+        message: "Failed to refresh LinkedIn token",
         error: error instanceof Error ? error.message : "Unknown error"
       });
     }

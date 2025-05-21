@@ -104,10 +104,21 @@ export const linkedinApi = {
       console.log('Frontend: Getting LinkedIn auth URL');
       const response = await api.get('/api/linkedin/auth');
       console.log('LinkedIn auth URL response:', response.status);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Error getting LinkedIn auth URL:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to get LinkedIn authorization URL');
+    }
+  },
+  
+  // Handle OAuth callback - typically called by the callback page
+  handleCallback: async (code: string, state: string) => {
+    try {
+      console.log('Processing LinkedIn OAuth callback...');
+      return await api.get(`/api/linkedin/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+    } catch (error) {
+      console.error('Error processing LinkedIn OAuth callback:', error);
+      throw error;
     }
   },
   
@@ -135,6 +146,17 @@ export const linkedinApi = {
       return await api.post("/api/linkedin/disconnect");
     } catch (error) {
       console.error('Error disconnecting LinkedIn account:', error);
+      throw error;
+    }
+  },
+  
+  // Refresh LinkedIn access token
+  refreshToken: async () => {
+    console.log('Refreshing LinkedIn token...');
+    try {
+      return await api.post("/api/linkedin/refresh-token");
+    } catch (error) {
+      console.error('Error refreshing LinkedIn token:', error);
       throw error;
     }
   },

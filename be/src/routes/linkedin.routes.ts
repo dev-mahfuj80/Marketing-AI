@@ -64,4 +64,11 @@ router.get("/status", asyncHandler(linkedInStatusController.checkStatus));
  */
 router.get("/profile", authenticate, asyncHandler(linkedinController.getProfileInfo));
 
+/**
+ * @route   POST /api/linkedin/refresh-token
+ * @desc    Refresh the LinkedIn access token
+ * @access  Private - User must be logged in
+ */
+router.post("/refresh-token", authenticate, asyncHandler(linkedinController.refreshToken));
+
 export default router;

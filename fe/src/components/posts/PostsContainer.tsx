@@ -126,10 +126,32 @@ export function PostsContainer({
             </p>
           </div>
           
-          <div className="mt-6 flex justify-center">
-            <Button asChild variant="outline">
+          <div className="mt-6 flex justify-center space-x-3">
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                try {
+                  // Try to refresh token first
+                  await window.fetch('/api/linkedin/refresh-token', {
+                    method: 'POST',
+                    credentials: 'include' // Important for cookies
+                  });
+                  
+                  // If successful, trigger onRefresh to refetch profile
+                  if (onRefresh) onRefresh();
+                } catch (error) {
+                  console.error('Error refreshing token:', error);
+                  // If token refresh fails, will need to reconnect
+                  window.location.href = '/api/linkedin/auth';
+                }
+              }}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Token
+            </Button>
+            
+            <Button variant="default">
               <a href="/api/linkedin/auth" className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
                 Reconnect with Required Permissions
               </a>
             </Button>
