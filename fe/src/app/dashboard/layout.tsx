@@ -44,10 +44,10 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  
+
   // Authentication state - use direct selector to avoid recreating objects
   const logout = useAuthStore((state) => state.logout);
-  
+
   // UI state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -122,7 +122,7 @@ export default function DashboardLayout({
               <span className="text-sm font-medium">Dark Mode</span>
               <ThemeToggle />
             </div>
-            
+
             {/* Logout button */}
             <Button
               variant="outline"
@@ -183,7 +183,7 @@ export default function DashboardLayout({
           )}
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:p-8">{children}</main>
+          <main className="flex-1 p-4 md:px-8">{children}</main>
         </div>
       </div>
     </AuthGuard>

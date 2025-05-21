@@ -35,6 +35,10 @@ export class LinkedInStatusController {
       // Test the credentials by attempting to get a token
       let credentialsValid = false;
       try {
+        // Make sure linkedinService is initialized
+        if (!this.linkedinService) {
+          this.linkedinService = new LinkedInService();
+        }
         await this.linkedinService.testCredentials();
         credentialsValid = true;
       } catch (error) {
@@ -126,10 +130,167 @@ export class LinkedInStatusController {
         }
       }
 
-      // If we couldn't validate a specific token or get org info
+      // If we couldn't validate a specific token or get org info, let's check for specific permissions
+      let availablePermissions = [];
+      let permissionDetails = {};
+      
+      // Check for specific permissions if we have a valid token
+      if (tokenStatus.valid && env.LINKEDIN_ACCESS_TOKEN) {
+        // Check basic profile access
+        try {
+          const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+            headers: {
+              'Authorization': `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
+              'X-Restli-Protocol-Version': '2.0.0'
+            }
+          });
+          if (profileResponse.status === 200) {
+            availablePermissions.push('r_liteprofile');
+            permissionDetails['r_liteprofile'] = {
+              name: "r_liteprofile",
+              description: "Read basic profile information",
+              status: "granted"
+            };
+          }
+        } catch (profileError) {
+          console.warn("LinkedIn profile access check failed:", profileError);
+          permissionDetails['r_liteprofile'] = {
+            name: "r_liteprofile",
+            description: "Read basic profile information",
+            status: "missing"
+          };
+        }
+        
+        // Check email access
+        try {
+          const emailResponse = await axios.get('https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', {
+            headers: {
+              'Authorization': `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
+              'X-Restli-Protocol-Version': '2.0.0'
+            }
+          });
+          if (emailResponse.status === 200) {
+            availablePermissions.push('r_emailaddress');
+            permissionDetails['r_emailaddress'] = {
+              name: "r_emailaddress",
+              description: "Read email address",
+              status: "granted"
+            };
+          }
+        } catch (emailError) {
+          console.warn("LinkedIn email access check failed:", emailError);
+          permissionDetails['r_emailaddress'] = {
+            name: "r_emailaddress",
+            description: "Read email address",
+            status: "missing"
+          };
+        }
+        
+        // Check organization post access
+        try {
+          const orgPostsResponse = await axios.get('https://api.linkedin.com/v2/ugcPosts?q=authors&authors=List(urn%3Ali%3Aorganization%3A123)&count=1', {
+            headers: {
+              'Authorization': `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
+              'X-Restli-Protocol-Version': '2.0.0'
+            }
+          });
+          if (orgPostsResponse.status === 200) {
+            availablePermissions.push('r_organization_social');
+            permissionDetails['r_organization_social'] = {
+              name: "r_organization_social",
+              description: "Read organization social posts",
+              status: "granted"
+            };
+          }
+        } catch (orgPostsError) {
+          console.warn("LinkedIn org posts access check failed:", orgPostsError);
+          permissionDetails['r_organization_social'] = {
+            name: "r_organization_social",
+            description: "Read organization social posts",
+            status: "missing"
+          };
+        }
+        
+        // Check write organization social permission
+        try {
+          // We can't actually test posting, but check if the API accepts a draft request
+          const testPayload = {
+            author: "urn:li:organization:123",
+            lifecycleState: "DRAFT",
+            specificContent: {
+              "com.linkedin.ugc.ShareContent": {
+                shareCommentary: {
+                  text: "Test draft post"
+                },
+                shareMediaCategory: "NONE"
+              }
+            },
+            visibility: {
+              "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
+            }
+          };
+          
+          const orgWriteResponse = await axios.post('https://api.linkedin.com/v2/ugcPosts', testPayload, {
+            headers: {
+              'Authorization': `Bearer ${env.LINKEDIN_ACCESS_TOKEN}`,
+              'X-Restli-Protocol-Version': '2.0.0',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (orgWriteResponse.status === 201 || orgWriteResponse.status === 200) {
+            availablePermissions.push('w_organization_social');
+            permissionDetails['w_organization_social'] = {
+              name: "w_organization_social",
+              description: "Create and manage organization social posts",
+              status: "granted"
+            };
+          }
+        } catch (orgWriteError) {
+          // If it fails with a 403, it's a permissions issue
+          const isPermissionIssue = orgWriteError.response?.status === 403;
+          
+          permissionDetails['w_organization_social'] = {
+            name: "w_organization_social",
+            description: "Create and manage organization social posts",
+            status: isPermissionIssue ? "missing" : "unknown"
+          };
+        }
+      }
+      
+      // Format permissions for response
+      const permissionsList = Object.values(permissionDetails).length > 0 ? 
+        Object.values(permissionDetails) : 
+        [
+          {
+            name: "r_organization_social",
+            description: "Read organization social posts and metrics",
+            status: tokenStatus.valid ? "unknown" : "missing"
+          },
+          {
+            name: "w_organization_social",
+            description: "Create and manage organization social posts",
+            status: tokenStatus.valid ? "unknown" : "missing"
+          },
+          {
+            name: "r_liteprofile",
+            description: "Read basic profile information",
+            status: tokenStatus.valid ? "unknown" : "missing"
+          },
+          {
+            name: "r_emailaddress",
+            description: "Read email address",
+            status: tokenStatus.valid ? "unknown" : "missing"
+          }
+        ];
+      
+      // Determine if we have enough permissions for posts
+      const hasPostPermissions = availablePermissions.includes('r_organization_social');
+      
       return res.status(200).json({
         connected: tokenStatus.valid,
         credentialsValid,
+        hasPostPermissions,
         lastChecked: new Date().toISOString(),
         message: tokenStatus.valid 
           ? "LinkedIn connection active" 
@@ -141,25 +302,9 @@ export class LinkedInStatusController {
           ? "Generate a new access token with proper permissions"
           : "Update your LinkedIn API credentials in the environment settings",
         authUrl: credentialsValid 
-          ? `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(env.LINKEDIN_REDIRECT_URI)}&scope=r_organization_social%20w_organization_social%20rw_organization_admin` 
+          ? `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${env.LINKEDIN_CLIENT_ID}&redirect_uri=${encodeURIComponent(env.LINKEDIN_REDIRECT_URI)}&scope=r_liteprofile%20r_emailaddress%20r_organization_social%20w_organization_social%20rw_organization_admin` 
           : null,
-        permissions: [
-          {
-            name: "r_organization_social",
-            description: "Read organization social posts and metrics",
-            status: tokenStatus.valid ? "granted" : "unknown"
-          },
-          {
-            name: "w_organization_social",
-            description: "Create and manage organization social posts",
-            status: tokenStatus.valid ? "granted" : "unknown"
-          },
-          {
-            name: "rw_organization_admin",
-            description: "Manage organization page administration",
-            status: tokenStatus.valid ? "granted" : "unknown"
-          }
-        ]
+        permissions: permissionsList
       });
     } catch (error) {
       console.error("Error checking LinkedIn status:", error);

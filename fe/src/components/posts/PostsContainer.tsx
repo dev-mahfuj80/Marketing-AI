@@ -78,11 +78,11 @@ export function PostsContainer({
   // Loading state
   if (isLoading) {
     return (
-      <div className={cn("space-y-4", className)}>
-        {[1, 2, 3].map((i) => (
+      <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", className)}>
+        {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card 
             key={i} 
-            className="h-40 bg-muted animate-pulse rounded-md"
+            className="h-64 bg-muted animate-pulse rounded-md"
           />
         ))}
       </div>
@@ -92,7 +92,7 @@ export function PostsContainer({
   // LinkedIn with limited permissions (no posts access but profile info available)
   if (platform === "linkedin" && limitedPermissions && profileInfo) {
     return (
-      <div className={cn("p-6", className)}>
+      <div className={cn("p-6 max-h-[calc(100vh-120px)] overflow-y-auto", className)}>
         <Card className="p-6 border-2 border-blue-100 dark:border-blue-900/30">
           <div className="text-center mb-6">
             <h3 className="text-lg font-medium text-blue-700 dark:text-blue-400 mb-3">
@@ -125,6 +125,15 @@ export function PostsContainer({
               Please contact your administrator to update the LinkedIn API configuration.
             </p>
           </div>
+          
+          <div className="mt-6 flex justify-center">
+            <Button asChild variant="outline">
+              <a href="/api/linkedin/auth" className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Reconnect with Required Permissions
+              </a>
+            </Button>
+          </div>
         </Card>
       </div>
     );
@@ -133,7 +142,7 @@ export function PostsContainer({
   // Empty state
   if (posts.length === 0) {
     return (
-      <div className={cn("text-center py-16", className)}>
+      <div className={cn("text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto", className)}>
         <h3 className="text-lg font-medium">{emptyMessage}</h3>
         <p className="text-muted-foreground mt-1">
           Create your first post by clicking &quot;Create Post&quot; in the sidebar
@@ -153,63 +162,69 @@ export function PostsContainer({
     );
   }
 
-  // Render posts with scroll container
+  // Render posts with scroll container and grid layout
   return (
     <div 
       ref={containerRef}
       className={cn(
-        "max-h-[70vh] overflow-y-auto pr-1 space-y-4 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent", 
+        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent", 
         className
       )}
     >
-      {posts.map((post) => (
-        <Card 
-          key={post.id} 
-          className={cn(
-            "border rounded-md p-4 transition-colors", 
-            platformClasses[platform].hover
-          )}
-        >
-          <p className="line-clamp-3 mb-2">
-            {post.content || post.message || 'No content'}
-          </p>
-          
-          {(post.imageUrl || post.full_picture) && (
-            <div className="relative h-32 mb-2 bg-muted rounded overflow-hidden">
-              <div 
-                style={{ backgroundImage: `url(${post.imageUrl || post.full_picture})` }}
-                className="absolute inset-0 bg-cover bg-center"
-                role="img"
-                aria-label="Post image"
-              />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
+        {posts.map((post) => (
+          <Card 
+            key={post.id} 
+            className={cn(
+              "border rounded-md p-4 transition-colors h-full flex flex-col", 
+              platformClasses[platform].hover
+            )}
+          >
+            <div className="flex-grow">
+              <p className="line-clamp-3 mb-2">
+                {post.content || post.message || 'No content'}
+              </p>
+              
+              {(post.imageUrl || post.full_picture) && (
+                <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
+                  <div 
+                    style={{ backgroundImage: `url(${post.imageUrl || post.full_picture})` }}
+                    className="absolute inset-0 bg-cover bg-center"
+                    role="img"
+                    aria-label="Post image"
+                  />
+                </div>
+              )}
             </div>
-          )}
-          
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{formatDate(post.createdAt || post.created_time)}</span>
-            <div className="flex gap-3">
-              <span>{post.likes || 0} likes</span>
-              <span>{post.comments || 0} comments</span>
-              {post.shares && post.shares > 0 && <span>{post.shares} shares</span>}
+            
+            <div className="mt-auto">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{formatDate(post.createdAt || post.created_time)}</span>
+                <div className="flex gap-3">
+                  <span>{post.likes || 0} likes</span>
+                  <span>{post.comments || 0} comments</span>
+                  {post.shares && post.shares > 0 && <span>{post.shares} shares</span>}
+                </div>
+              </div>
+              
+              {post.permalink_url && (
+                <div className="mt-2 text-xs">
+                  <a 
+                    href={post.permalink_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className={cn("hover:underline", platformClasses[platform].link)}
+                  >
+                    View on {platform === 'facebook' ? 'Facebook' : 'LinkedIn'}
+                  </a>
+                </div>
+              )}
             </div>
-          </div>
-          
-          {post.permalink_url && (
-            <div className="mt-2 text-xs">
-              <a 
-                href={post.permalink_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className={cn("hover:underline", platformClasses[platform].link)}
-              >
-                View on {platform === 'facebook' ? 'Facebook' : 'LinkedIn'}
-              </a>
-            </div>
-          )}
-        </Card>
-      ))}
+          </Card>
+        ))}
       
-      <div className="flex justify-center py-3">
+      </div>
+      <div className="flex justify-center py-3 mt-2">
         <Button 
           variant="ghost" 
           size="sm"
