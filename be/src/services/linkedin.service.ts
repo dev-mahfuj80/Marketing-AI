@@ -133,7 +133,6 @@ export class LinkedInService {
   async testCredentials(): Promise<{
     access_token: string;
     expires_in: number;
-    limited_permissions?: boolean;
   }> {
     try {
       debug("Testing LinkedIn credentials");
@@ -166,15 +165,9 @@ export class LinkedInService {
         throw new Error("LinkedIn API returned success but no access token");
       }
 
-      // Check if we have a token but might face permission limitations
-      const limited_permissions = response.data.scope ? 
-        !response.data.scope.includes("w_organization_social") || 
-        !response.data.scope.includes("w_member_social") : true;
-
       return {
         access_token: response.data.access_token,
         expires_in: response.data.expires_in || 3600, // Default 1 hour if no expiry
-        limited_permissions
       };
     } catch (error) {
       debug("LinkedIn credentials test failed");
@@ -186,19 +179,6 @@ export class LinkedInService {
           statusText: error.response.statusText,
           data: error.response.data,
         });
-
-        // Check if this is an auth error but we might still have basic connectivity
-        // Error code 401 with "access_denied" or "This application is not allowed to create application tokens"
-        if (error.response.status === 401 && 
-            (error.response.data?.error === "access_denied" || 
-             error.response.data?.error_description?.includes("not allowed to create"))) {
-          // Return a limited token info, we'll handle this specially on frontend
-          return {
-            access_token: "limited_access", // Placeholder token - not used for actual API requests
-            expires_in: 3600,
-            limited_permissions: true
-          };
-        }
       }
 
       const errorMessage =
@@ -216,35 +196,63 @@ export class LinkedInService {
   private async getAccessToken(): Promise<{
     access_token: string;
     expires_in?: number;
-    limited_permissions?: boolean;
   }> {
     try {
-      // First, try to use an admin user with valid token
-      const admin = await this.getAdminWithValidToken();
-      if (admin && admin.linkedInAccessToken) {
-        debug("Using existing admin LinkedIn token");
+      debug("Getting LinkedIn access token");
+
+      // First try to get stored admin OAuth token if available
+      const adminUser = await this.getAdminWithValidToken();
+
+      if (adminUser && adminUser.linkedInAccessToken) {
+        debug("Using admin OAuth token for LinkedIn API");
         return {
-          access_token: admin.linkedInAccessToken,
-          expires_in: admin.linkedInExpiresAt
+          access_token: adminUser.linkedInAccessToken,
+          expires_in: adminUser.linkedInExpiresAt
             ? Math.floor(
-                (admin.linkedInExpiresAt.getTime() - Date.now()) / 1000
+                (adminUser.linkedInExpiresAt.getTime() - new Date().getTime()) /
+                  1000
               )
-            : undefined,
+            : 3600, // Default 1 hour if no expiry date
         };
       }
 
-      // If no admin token, fall back to client credentials
-      debug("No admin token, trying client credentials");
-      const tokenResponse = await this.testCredentials();
+      // If no admin token is available, fallback to client credentials flow
+      debug("No admin token available, using client credentials flow");
+      const response = await axios.post(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: env.LINKEDIN_CLIENT_ID,
+          client_secret: env.LINKEDIN_CLIENT_SECRET,
+          scope:
+            "r_organization_social w_organization_social w_member_social r_liteprofile",
+        }),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }
+      );
 
-      return {
-        access_token: tokenResponse.access_token,
-        expires_in: tokenResponse.expires_in,
-        limited_permissions: tokenResponse.limited_permissions
-      };
+      debug("LinkedIn token response", {
+        expires_in: response.data.expires_in,
+        has_token: !!response.data.access_token,
+      });
+
+      return response.data;
     } catch (error) {
-      debug("Error getting LinkedIn access token");
-      throw error;
+      console.error("Error getting LinkedIn access token:", error);
+
+      // Log more details for debugging
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("LinkedIn token error details:", {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+        });
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Failed to get LinkedIn access token: ${errorMessage}`);
     }
   }
 
@@ -505,7 +513,13 @@ export class LinkedInService {
    * @param refreshToken The refresh token to use
    * @returns Promise with new access token info or null if refresh failed
    */
-  async refreshAccessToken(refreshToken: string): Promise<{ access_token: string; refresh_token?: string; expires_in: number } | null> {
+  async refreshAccessToken(
+    refreshToken: string
+  ): Promise<{
+    access_token: string;
+    refresh_token?: string;
+    expires_in: number;
+  } | null> {
     try {
       debug("Refreshing user LinkedIn token");
 
@@ -523,11 +537,11 @@ export class LinkedInService {
       );
 
       debug("LinkedIn token refresh successful");
-      
+
       return {
         access_token: response.data.access_token,
         refresh_token: response.data.refresh_token,
-        expires_in: response.data.expires_in
+        expires_in: response.data.expires_in,
       };
     } catch (error) {
       console.error("Error refreshing LinkedIn user token:", error);
@@ -542,237 +556,181 @@ export class LinkedInService {
    */
   async getUserProfile(accessToken: string): Promise<any> {
     try {
-      // Special case for limited permissions token
-      if (accessToken === "limited_access") {
-        debug("Using limited profile information due to permission restrictions");
-        return {
-          id: "limited",
-          firstName: "LinkedIn",
-          lastName: "User",
-          name: "LinkedIn User",
-          email: null,
-          profilePicture: null,
-          limited: true
-        };
-      }
-
-      // First attempt to get basic profile information
-      try {
-        const profileResponse = await axios.get('https://api.linkedin.com/v2/me', {
+      // Get basic profile information
+      const profileResponse = await axios.get(
+        "https://api.linkedin.com/v2/me",
+        {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'X-Restli-Protocol-Version': '2.0.0'
-          }
-        });
-
-        // Try to get email address if the token has permission
-        let emailData = null;
-        try {
-          const emailResponse = await axios.get(
-            'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))', 
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'X-Restli-Protocol-Version': '2.0.0'
-              }
-            }
-          );
-          
-          if (emailResponse.data?.elements?.length > 0) {
-            emailData = emailResponse.data.elements[0]['handle~']?.emailAddress || null;
-          }
-        } catch (emailError) {
-          debug("Could not fetch LinkedIn email - permission may be missing");
+            Authorization: `Bearer ${accessToken}`,
+            "X-Restli-Protocol-Version": "2.0.0",
+          },
         }
+      );
 
-        // Return formatted profile data
-        return {
-          id: profileResponse.data.id,
-          firstName: profileResponse.data.localizedFirstName,
-          lastName: profileResponse.data.localizedLastName,
-          name: `${profileResponse.data.localizedFirstName} ${profileResponse.data.localizedLastName}`,
-          email: emailData,
-          profilePicture: null, // Requires additional API call with r_liteprofile permission
-          raw: profileResponse.data
-        };
-      } catch (profileError) {
-        // If we can't get profile info with normal method, try alternate endpoints
-        debug("Error fetching LinkedIn profile with primary endpoint, trying fallback");
-        
-        // Unable to get profile details, return limited info
-        return {
-          id: "restricted",
-          firstName: "LinkedIn",
-          lastName: "User",
-          name: "LinkedIn User",
-          email: null,
-          profilePicture: null,
-          limited: true
-        };
+      // Try to get email address if the token has permission
+      let emailData = null;
+      try {
+        const emailResponse = await axios.get(
+          "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))",
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "X-Restli-Protocol-Version": "2.0.0",
+            },
+          }
+        );
+
+        if (emailResponse.data?.elements?.length > 0) {
+          emailData =
+            emailResponse.data.elements[0]["handle~"]?.emailAddress || null;
+        }
+      } catch (emailError) {
+        debug("Could not fetch LinkedIn email - permission may be missing");
       }
+
+      // Return formatted profile data
+      return {
+        id: profileResponse.data.id,
+        firstName: profileResponse.data.localizedFirstName,
+        lastName: profileResponse.data.localizedLastName,
+        name: `${profileResponse.data.localizedFirstName} ${profileResponse.data.localizedLastName}`,
+        email: emailData,
+        profilePicture: null, // Requires additional API call with r_liteprofile permission
+        raw: profileResponse.data,
+      };
     } catch (error) {
       console.error("Error fetching LinkedIn user profile:", error);
-      // Return generic profile rather than failing completely
-      return {
-        id: "error",
-        firstName: "LinkedIn",
-        lastName: "User",
-        name: "LinkedIn User",
-        email: null,
-        profilePicture: null,
-        limited: true,
-        error: error instanceof Error ? error.message : "Unknown error"
-      };
+      throw error;
     }
   }
 
   /**
    * Validate LinkedIn access token by making requests to LinkedIn's API
    * @param accessToken The access token to validate
-   * @returns Promise<{valid: boolean, limitations?: string[]}> True if the token is valid
+   * @returns Promise<boolean> True if the token is valid
    */
-  async validateAccessToken(accessToken: string): Promise<{valid: boolean, limitations?: string[]}> {
-    // Special case for our "limited_access" placeholder token
-    if (accessToken === "limited_access") {
-      return {
-        valid: true,
-        limitations: [
-          "ugcPosts", "organizationalEntityAcls", "profile", "email"
-        ]
-      };
-    }
-    
-    // Define the endpoints to try
+  async validateAccessToken(accessToken: string): Promise<boolean> {
+    // Try multiple different endpoints to validate the token
+    // This helps when the token may have limited permissions
     const endpointsToTry = [
-      // Try UGC posts API - works with ugc-post-share permission
-      { url: "https://api.linkedin.com/v2/ugcPosts?q=authors&authors=List(urn%3Ali%3Aorganization%3A123)&count=1", description: "ugcPosts endpoint", permissionKey: "ugcPosts" },
+      // Try posts endpoint first - works with w_member_social permission
+      {
+        url: "https://api.linkedin.com/v2/ugcPosts?q=authors&authors=List(urn%3Ali%3Aorganization%3A123)&count=1",
+        description: "ugcPosts endpoint",
+      },
       // Try organization API - works with organization permissions
-      { url: "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee", description: "organization acls endpoint", permissionKey: "organizationalEntityAcls" },
+      {
+        url: "https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee",
+        description: "organization acls endpoint",
+      },
       // Try profile endpoint - requires r_liteprofile or profile permission
-      { url: "https://api.linkedin.com/v2/me", description: "profile endpoint", permissionKey: "profile" },
+      {
+        url: "https://api.linkedin.com/v2/me",
+        description: "profile endpoint",
+      },
       // Try email endpoint - requires r_emailaddress or email permission
-      { url: "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))", description: "email endpoint", permissionKey: "email" }
+      {
+        url: "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))",
+        description: "email endpoint",
+      },
     ];
-    
+
     try {
       debug("Validating LinkedIn access token using multiple endpoints");
-      
-      // Track which permissions are missing
-      const missingPermissions: string[] = [];
-      let anyEndpointSucceeded = false;
-      
-      // Try each endpoint to see which permissions we have
+
+      // Try each endpoint until one succeeds
       for (const endpoint of endpointsToTry) {
         try {
           debug(`Trying to validate token with ${endpoint.description}`);
-          
+
           const response = await axios.get(endpoint.url, {
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'X-Restli-Protocol-Version': '2.0.0', // Add protocol version for LinkedIn API
-              'LinkedIn-Version': 'v2' // Add API version
-            }
+              Authorization: `Bearer ${accessToken}`,
+              "X-Restli-Protocol-Version": "2.0.0", // Add protocol version for LinkedIn API
+              "LinkedIn-Version": "v2", // Add API version
+            },
           });
-          
-          // If we get a 200 response, this permission is granted
+
+          // If we get a 200 response, the token is valid
           if (response.status === 200) {
-            debug(`LinkedIn token is valid for ${endpoint.description} - returned 200`);
-            anyEndpointSucceeded = true;
-            // Don't add this to missing permissions
+            debug(
+              `LinkedIn token is valid - ${endpoint.description} returned 200`
+            );
+            return true;
           }
         } catch (endpointError) {
           if (axios.isAxiosError(endpointError)) {
-            // If it's a permissions error (403), track the missing permission
+            // If it's a permissions error (403), continue trying other endpoints
             if (endpointError.response?.status === 403) {
               debug(`Permission error for ${endpoint.description}:`, {
                 status: endpointError.response?.status,
-                message: endpointError.response?.data?.message || 'Permission denied'
+                message:
+                  endpointError.response?.data?.message || "Permission denied",
               });
-              
-              // Add to missing permissions
-              if (endpoint.permissionKey) {
-                missingPermissions.push(endpoint.permissionKey);
-              }
-              
               // Continue to the next endpoint
               continue;
             }
-            
+
             // If it's a 401 or other auth error, the token itself is invalid
             if (endpointError.response?.status === 401) {
-              debug(`Authentication failed for ${endpoint.description} - Token is invalid`);
-              return { valid: false };
+              debug(
+                `Authentication failed for ${endpoint.description} - Token is invalid`
+              );
+              return false;
             }
-            
+
             debug(`Error calling ${endpoint.description}:`, {
               status: endpointError.response?.status,
-              data: endpointError.response?.data
+              data: endpointError.response?.data,
             });
-            
-            // Add to missing permissions
-            if (endpoint.permissionKey) {
-              missingPermissions.push(endpoint.permissionKey);
-            }
           } else {
-            debug(`Non-Axios error with ${endpoint.description}:`, endpointError);
-            // Add to missing permissions
-            if (endpoint.permissionKey) {
-              missingPermissions.push(endpoint.permissionKey);
-            }
+            debug(
+              `Non-Axios error with ${endpoint.description}:`,
+              endpointError
+            );
           }
+          // Continue to the next endpoint
         }
       }
-      
-      // If none of our specific endpoints worked, try a simpler test
-      if (!anyEndpointSucceeded) {
-        try {
-          debug("Trying API version endpoint as final validation");
-          const versionResponse = await axios.get("https://api.linkedin.com/v2/apiConfig", {
+
+      // If we tried all endpoints and none worked, try a simpler test:
+      // Just check if we can make any call to the LinkedIn API
+      try {
+        debug("Trying API version endpoint as final validation");
+        const versionResponse = await axios.get(
+          "https://api.linkedin.com/v2/apiConfig",
+          {
             headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            }
-          });
-          
-          if (versionResponse.status === 200) {
-            debug("LinkedIn token is valid - API version endpoint returned 200");
-            return { 
-              valid: true, 
-              limitations: missingPermissions.length > 0 ? missingPermissions : undefined 
-            };
+              Authorization: `Bearer ${accessToken}`,
+            },
           }
-        } catch (versionError) {
-          debug("API version endpoint failed, token appears invalid");
-          // Final attempt failed
+        );
+
+        if (versionResponse.status === 200) {
+          debug("LinkedIn token is valid - API version endpoint returned 200");
+          return true;
         }
-      } else {
-        // At least one endpoint worked, so the token is valid but with limitations
-        return { 
-          valid: true, 
-          limitations: missingPermissions.length > 0 ? missingPermissions : undefined 
-        };
+      } catch (versionError) {
+        debug("API version endpoint failed, token appears invalid");
+        // Final attempt failed
       }
-      
+
       // If we get here, we've tried all endpoints and none worked
       debug("LinkedIn token validation failed - all endpoints returned errors");
-      return { valid: false };
+      return false;
     } catch (error) {
       debug("LinkedIn token validation failed with unexpected error");
       if (axios.isAxiosError(error)) {
-        debug("Axios error details:", { 
+        debug("Axios error details:", {
           status: error.response?.status,
-          data: error.response?.data
+          data: error.response?.data,
         });
-        
-        // Check if it's an expired token or permission issue
-        if (error.response?.status === 401) {
-          return { valid: false };
-        }
       } else {
         debug("Non-Axios error:", error);
       }
-      
+
       // Token is invalid if we get here
-      return { valid: false };
+      return false;
     }
   }
 }

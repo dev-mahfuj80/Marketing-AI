@@ -15,7 +15,7 @@ interface Post {
   comments?: number;
   shares?: number;
   imageUrl?: string;
-  
+
   // Facebook specific fields
   message?: string;
   created_time?: string;
@@ -46,10 +46,10 @@ export function PostsContainer({
   className,
   emptyMessage = "No posts found",
   limitedPermissions = false,
-  profileInfo
+  profileInfo,
 }: PostsContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Format date helper
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
@@ -78,12 +78,14 @@ export function PostsContainer({
   // Loading state
   if (isLoading) {
     return (
-      <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4", className)}>
+      <div
+        className={cn(
+          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
+          className
+        )}
+      >
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Card 
-            key={i} 
-            className="h-64 bg-muted animate-pulse rounded-md"
-          />
+          <Card key={i} className="h-64 bg-muted animate-pulse rounded-md" />
         ))}
       </div>
     );
@@ -92,7 +94,12 @@ export function PostsContainer({
   // LinkedIn with limited permissions (no posts access but profile info available)
   if (platform === "linkedin" && limitedPermissions && profileInfo) {
     return (
-      <div className={cn("p-6 max-h-[calc(100vh-120px)] overflow-y-auto", className)}>
+      <div
+        className={cn(
+          "p-6 max-h-[calc(100vh-120px)] overflow-y-auto",
+          className
+        )}
+      >
         <Card className="p-6 border-2 border-blue-100 dark:border-blue-900/30">
           <div className="text-center mb-6">
             <h3 className="text-lg font-medium text-blue-700 dark:text-blue-400 mb-3">
@@ -102,7 +109,8 @@ export function PostsContainer({
               You do not have access to fetch posts from LinkedIn.
             </p>
             <p className="text-muted-foreground text-sm mt-1">
-              Your current LinkedIn API permissions are limited to basic profile information.
+              Your current LinkedIn API permissions are limited to basic profile
+              information.
             </p>
           </div>
 
@@ -110,46 +118,49 @@ export function PostsContainer({
             <div className="space-y-2">
               <div className="flex items-center">
                 <span className="font-medium w-40">LinkedIn Username:</span>
-                <span>{profileInfo.name || 'Not available'}</span>
+                <span className="font-semibold text-blue-700 dark:text-blue-400">
+                  {profileInfo.name || "LinkedIn User"}
+                </span>
               </div>
               <div className="flex items-center">
                 <span className="font-medium w-40">Email:</span>
-                <span>{profileInfo.email || 'Not available'}</span>
+                <span>{profileInfo.email || "Not available"}</span>
               </div>
             </div>
           </div>
 
           <div className="text-sm text-muted-foreground mt-4">
             <p>
-              To view and publish posts through LinkedIn, you need to grant additional permissions.
-              Please contact your administrator to update the LinkedIn API configuration.
+              To view and publish posts through LinkedIn, you need to grant
+              additional permissions. Please contact your administrator to
+              update the LinkedIn API configuration.
             </p>
           </div>
-          
+
           <div className="mt-6 flex justify-center space-x-3">
-            <Button 
+            <Button
               variant="outline"
               onClick={async () => {
                 try {
                   // Try to refresh token first
-                  await window.fetch('/api/linkedin/refresh-token', {
-                    method: 'POST',
-                    credentials: 'include' // Important for cookies
+                  await window.fetch("/api/linkedin/refresh-token", {
+                    method: "POST",
+                    credentials: "include", // Important for cookies
                   });
-                  
+
                   // If successful, trigger onRefresh to refetch profile
                   if (onRefresh) onRefresh();
                 } catch (error) {
-                  console.error('Error refreshing token:', error);
+                  console.error("Error refreshing token:", error);
                   // If token refresh fails, will need to reconnect
-                  window.location.href = '/api/linkedin/auth';
+                  window.location.href = "/api/linkedin/auth";
                 }
               }}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Token
             </Button>
-            
+
             <Button variant="default">
               <a href="/api/linkedin/auth" className="flex items-center gap-2">
                 Reconnect with Required Permissions
@@ -164,14 +175,20 @@ export function PostsContainer({
   // Empty state
   if (posts.length === 0) {
     return (
-      <div className={cn("text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto", className)}>
+      <div
+        className={cn(
+          "text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto",
+          className
+        )}
+      >
         <h3 className="text-lg font-medium">{emptyMessage}</h3>
         <p className="text-muted-foreground mt-1">
-          Create your first post by clicking &quot;Create Post&quot; in the sidebar
+          Create your first post by clicking &quot;Create Post&quot; in the
+          sidebar
         </p>
         <div className="mt-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={onRefresh}
             className="text-xs h-8"
@@ -186,31 +203,35 @@ export function PostsContainer({
 
   // Render posts with scroll container and grid layout
   return (
-    <div 
+    <div
       ref={containerRef}
       className={cn(
-        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent", 
+        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent",
         className
       )}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
         {posts.map((post) => (
-          <Card 
-            key={post.id} 
+          <Card
+            key={post.id}
             className={cn(
-              "border rounded-md p-4 transition-colors h-full flex flex-col", 
+              "border rounded-md p-4 transition-colors h-full flex flex-col",
               platformClasses[platform].hover
             )}
           >
             <div className="flex-grow">
               <p className="line-clamp-3 mb-2">
-                {post.content || post.message || 'No content'}
+                {post.content || post.message || "No content"}
               </p>
-              
+
               {(post.imageUrl || post.full_picture) && (
                 <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
-                  <div 
-                    style={{ backgroundImage: `url(${post.imageUrl || post.full_picture})` }}
+                  <div
+                    style={{
+                      backgroundImage: `url(${
+                        post.imageUrl || post.full_picture
+                      })`,
+                    }}
                     className="absolute inset-0 bg-cover bg-center"
                     role="img"
                     aria-label="Post image"
@@ -218,37 +239,41 @@ export function PostsContainer({
                 </div>
               )}
             </div>
-            
+
             <div className="mt-auto">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>{formatDate(post.createdAt || post.created_time)}</span>
                 <div className="flex gap-3">
                   <span>{post.likes || 0} likes</span>
                   <span>{post.comments || 0} comments</span>
-                  {post.shares && post.shares > 0 && <span>{post.shares} shares</span>}
+                  {post.shares && post.shares > 0 && (
+                    <span>{post.shares} shares</span>
+                  )}
                 </div>
               </div>
-              
+
               {post.permalink_url && (
                 <div className="mt-2 text-xs">
-                  <a 
-                    href={post.permalink_url} 
-                    target="_blank" 
+                  <a
+                    href={post.permalink_url}
+                    target="_blank"
                     rel="noopener noreferrer"
-                    className={cn("hover:underline", platformClasses[platform].link)}
+                    className={cn(
+                      "hover:underline",
+                      platformClasses[platform].link
+                    )}
                   >
-                    View on {platform === 'facebook' ? 'Facebook' : 'LinkedIn'}
+                    View on {platform === "facebook" ? "Facebook" : "LinkedIn"}
                   </a>
                 </div>
               )}
             </div>
           </Card>
         ))}
-      
       </div>
       <div className="flex justify-center py-3 mt-2">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={onRefresh}
           className="text-xs"

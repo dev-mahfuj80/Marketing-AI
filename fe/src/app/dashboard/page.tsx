@@ -19,6 +19,7 @@ interface ApiError {
     data?: {
       error?: string;
       message?: string;
+      limitedPermissions?: boolean;
     };
   };
   message?: string;
@@ -82,132 +83,87 @@ export default function DashboardPage() {
         ...prev,
         facebook: false,
         facebookPermissionsError:
-          fbError.message?.includes("permission") || 
-          fbError.response?.data?.error?.includes("permission") || 
+          fbError.message?.includes("permission") ||
+          fbError.response?.data?.error?.includes("permission") ||
           false,
       }));
     } finally {
       setIsFacebookLoading(false);
     }
-  }, [])
+  }, []);
 
-  // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   // Function to fetch LinkedIn profile information when posts can't be accessed
   const fetchLinkedInProfile = useCallback(async () => {
     try {
       setIsProfileLoading(true);
       const response = await linkedinApi.getProfileInfo();
-      setLinkedinProfile(response.data);
-    } catch (error) {
-      const apiError = error as ApiError;
-      console.error("Error fetching LinkedIn profile:", apiError);
-
-      // Check if error is due to expired token
-      if (apiError?.response?.status === 401 ||
-          (apiError?.response?.data?.error && apiError.response.data.error.includes('token'))) {
-        console.log('Token may be expired, attempting to refresh...');
-        try {
-          // Try to refresh the token
-          await linkedinApi.refreshToken();
-          // Try fetching profile again with renewed token
-          const newResponse = await linkedinApi.getProfileInfo();
-          setLinkedinProfile(newResponse.data);
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // Update connection status to show reconnection needed
-          setConnectionStatus(prev => ({
-            ...prev,
-            linkedin: false,
-            linkedinLimitedPermissions: false,
-            linkedinPermissionsError: true
-          }));
-        }
+      console.log("LinkedIn profile info:", response.data);
+      
+      // Store the profile info, displaying LinkedIn User name when available
+      setLinkedinProfile({
+        name: response.data.name || 
+              ((response.data.firstName && response.data.lastName) ? 
+              `${response.data.firstName} ${response.data.lastName}` : 
+              "LinkedIn User"),
+        email: response.data.email || "Not available",
+        profileImage: response.data.profilePicture || undefined
+      });
+      
+      // Mark as connected with limited permissions if applicable
+      if (response.data.limited) {
+        setConnectionStatus(prev => ({
+          ...prev,
+          linkedin: true,
+          linkedinLimitedPermissions: true
+        }));
       }
-      setConnectionStatus((prev) => ({
+    } catch (error) {
+      console.error("Error fetching LinkedIn profile:", error);
+      
+      // Set a default name even if there's an error
+      setLinkedinProfile(prev => ({
         ...prev,
-        linkedin: true,
-        linkedinLimitedPermissions: true,
+        name: "LinkedIn User"
       }));
     } finally {
       setIsProfileLoading(false);
     }
-  }, [])
-
+  }, []);
+  
   // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchLinkedInPosts = useCallback(async () => {
     setIsLinkedInLoading(true);
     try {
       // Get LinkedIn posts using direct client credentials from backend
-      const liResponse = await postsApi.getLinkedinPosts();
-      console.log("LinkedIn posts response:", liResponse.data);
-
-      // Check if the response has an error property indicating permissions issues
-      if (
-        liResponse.data.error &&
-        typeof liResponse.data.error === "string" &&
-        liResponse.data.error.includes("permission")
-      ) {
-        console.log(
-          "LinkedIn permission error detected, trying to fetch profile info instead"
-        );
-        setConnectionStatus((prev) => ({
-          ...prev,
-          linkedin: true,
-          linkedinPermissionsError: false,
-          linkedinLimitedPermissions: true,
-        }));
-        setLinkedinPosts([]);
-
-        // If posts can't be accessed due to permissions, fetch the profile info instead
-        fetchLinkedInProfile();
-      } else {
-        // Check the structure of the response and handle accordingly
-        if (Array.isArray(liResponse.data)) {
-          setLinkedinPosts(liResponse.data);
-        } else if (
-          liResponse.data.elements &&
-          Array.isArray(liResponse.data.elements)
-        ) {
-          setLinkedinPosts(liResponse.data.elements);
-        } else {
-          // If data exists but not in expected format, try to map it
-          const posts = liResponse.data.data || liResponse.data;
-          if (Array.isArray(posts)) {
-            setLinkedinPosts(posts);
-          } else {
-            setLinkedinPosts([]);
-          }
-        }
-        setConnectionStatus((prev) => ({
-          ...prev,
-          linkedin: true,
-          linkedinPermissionsError: false,
-          linkedinLimitedPermissions: false,
-        }));
-      }
+      const response = await postsApi.getLinkedinPosts();
+      console.log("LinkedIn posts response:", response.data);
+      
+      setLinkedinPosts(Array.isArray(response.data) ? response.data : []);
+      setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
+      
+      // Always try to fetch profile info to display user name
+      fetchLinkedInProfile();
+      
     } catch (error) {
-      const liError = error as ApiError;
-      console.error("Error fetching LinkedIn posts:", liError);
-      // Check if the error is specifically about permissions
-      const errorMessage = liError.message || 
-        (liError.response?.data?.error || 
-        liError.response?.data?.message || 
-        'Unknown error');
-      if (
-        errorMessage.includes("permission") ||
-        errorMessage.includes("403") ||
-        errorMessage.includes("scope")
-      ) {
-        console.log(
-          "LinkedIn posts access error, trying to fetch profile instead"
-        );
+      const linkedInError = error as ApiError;
+      console.error("Error fetching LinkedIn posts:", linkedInError);
+      setLinkedinPosts([]);
+
+      // Check if the error is related to permissions
+      const isPermissionError =
+        linkedInError.message?.includes("permission") ||
+        linkedInError.response?.status === 403;
+        
+      if (isPermissionError) {
+        // If we have permission errors, still try to get the profile info
+        console.log("LinkedIn permission error, trying to fetch profile info instead");
         setConnectionStatus((prev) => ({
-          ...prev,
+          ...prev, 
           linkedin: true,
           linkedinPermissionsError: false,
           linkedinLimitedPermissions: true,
         }));
-
+        
         // Try to get the profile info instead
         fetchLinkedInProfile();
       } else {
@@ -216,15 +172,12 @@ export default function DashboardPage() {
           ...prev,
           linkedin: false,
           linkedinPermissionsError: true,
-          linkedinLimitedPermissions: false,
         }));
       }
     } finally {
       setIsLinkedInLoading(false);
     }
   }, [fetchLinkedInProfile]);
-
-  // This block was moved up
 
   // Combined function to fetch all posts
   const fetchPosts = useCallback(() => {
@@ -290,19 +243,16 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     fetchPosts();
     checkConnectionStatus();
   }, [fetchPosts, checkConnectionStatus]);
 
-  // Removed auto-tab switching logic to always show both tabs regardless of connection status
-
-  // Check if there are error messages from redirects
   useEffect(() => {
-    const errorType = searchParams.get("error");
-    const errorMessage = searchParams.get("message");
+    const errorType = searchParams.get("error_type");
+    const errorMessage = searchParams.get("error_message");
 
     if (errorType === "linkedin_error" && errorMessage) {
       console.error("LinkedIn error:", errorMessage);
@@ -329,33 +279,28 @@ export default function DashboardPage() {
         onValueChange={setActiveTab}
       >
         <TabsList className="grid w-full md:w-[400px] grid-cols-2 mb-8">
-          {/* Always show Facebook tab */}
           <TabsTrigger value="facebook" className="flex items-center gap-2">
             <Facebook className="h-4 w-4" />
             Facebook
           </TabsTrigger>
 
-          {/* Always show LinkedIn tab */}
           <TabsTrigger value="linkedin" className="flex items-center gap-2">
             <Linkedin className="h-4 w-4" />
             LinkedIn
           </TabsTrigger>
         </TabsList>
-        {/* Facebook Content Tab */}
         {isFacebookLoading || isLoading ? (
           <div className="flex items-center justify-center h-[90vh]">
             <Loader2 className="h-12 w-12 text-primary animate-spin" />
           </div>
         ) : (
           <TabsContent value="facebook">
-            {/* Show Facebook permissions error message inside the tab if needed */}
             {connectionStatus.facebookPermissionsError && (
               <div className="mb-4">
                 <FacebookPermissions showCompact={true} />
               </div>
             )}
 
-            {/* Show loading/error state if Facebook isn't connected */}
             {!connectionStatus.facebook ? (
               <Card className="p-6 text-center">
                 <h3 className="text-lg font-medium mb-4">
@@ -382,21 +327,18 @@ export default function DashboardPage() {
             ) : null}
           </TabsContent>
         )}
-        {/* LinkedIn Content Tab */}
         {isLinkedInLoading || isLoading ? (
           <div className="flex items-center justify-center h-[90vh]">
             <Loader2 className="h-12 w-12 text-primary animate-spin" />
           </div>
         ) : (
           <TabsContent value="linkedin">
-            {/* Show LinkedIn permissions error message inside the tab if needed */}
             {connectionStatus.linkedinPermissionsError && (
               <div className="mb-4">
                 <LinkedInPermissions showCompact={true} />
               </div>
             )}
 
-            {/* Show different states based on LinkedIn connection status */}
             {!connectionStatus.linkedin ? (
               <Card className="p-6 text-center">
                 <h3 className="text-lg font-medium mb-4">
@@ -409,7 +351,6 @@ export default function DashboardPage() {
                   onClick={async () => {
                     try {
                       setIsLinkedInLoading(true);
-                      // Request a fresh auth URL and redirect to LinkedIn
                       const response = await linkedinApi.getAuthUrl();
                       if (response?.data?.authUrl) {
                         window.location.href = response.data.authUrl;
