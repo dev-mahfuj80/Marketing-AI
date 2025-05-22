@@ -50,6 +50,17 @@ if (env.isProduction()) {
     "DATABASE_URL",
     "LINKEDIN_CLIENT_ID",
     "LINKEDIN_CLIENT_SECRET",
+    "LINKEDIN_ACCESS_TOKEN",
+    "LINKEDIN_REFRESH_TOKEN",
+    "LINKEDIN_REDIRECT_URI",
+    "REDIRECT_URI",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_SECURE",
+    "SMTP_USER",
+    "SMTP_PASSWORD",
+    "SMTP_FROM",
+    "CLIENT_URL",
   ];
 
   for (const envVar of requiredEnvVars) {

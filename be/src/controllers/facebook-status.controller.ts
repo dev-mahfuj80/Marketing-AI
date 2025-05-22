@@ -18,8 +18,10 @@ export class FacebookStatusController {
           credentialsValid: false,
           message: "Facebook API credentials are not configured",
           lastChecked: new Date().toISOString(),
-          permissionNote: "Please add Facebook app ID and page access token to your environment variables",
-          nextSteps: "Contact your administrator to set up Facebook API credentials"
+          permissionNote:
+            "Please add Facebook app ID and page access token to your environment variables",
+          nextSteps:
+            "Contact your administrator to set up Facebook API credentials",
         });
       }
 
@@ -30,18 +32,18 @@ export class FacebookStatusController {
         {
           name: "pages_read_engagement",
           description: "Access posts and metrics for Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown"
+          status: "unknown" as "granted" | "missing" | "unknown",
         },
         {
           name: "pages_manage_posts",
           description: "Create and manage posts for Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown"
+          status: "unknown" as "granted" | "missing" | "unknown",
         },
         {
           name: "pages_show_list",
           description: "Access the list of Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown"
-        }
+          status: "unknown" as "granted" | "missing" | "unknown",
+        },
       ];
 
       try {
@@ -51,8 +53,8 @@ export class FacebookStatusController {
           {
             params: {
               access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-              fields: "id,name,category,picture,access_token,fan_count"
-            }
+              fields: "id,name,category,picture,access_token,fan_count",
+            },
           }
         );
 
@@ -63,7 +65,7 @@ export class FacebookStatusController {
             name: pageResponse.data.name,
             category: pageResponse.data.category,
             picture: pageResponse.data.picture?.data?.url || null,
-            fanCount: pageResponse.data.fan_count || 0
+            fanCount: pageResponse.data.fan_count || 0,
           };
 
           // Now check which permissions we have by trying to get posts
@@ -73,8 +75,8 @@ export class FacebookStatusController {
               {
                 params: {
                   access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-                  limit: 1
-                }
+                  limit: 1,
+                },
               }
             );
 
@@ -84,8 +86,10 @@ export class FacebookStatusController {
             }
           } catch (postsError) {
             // If we get a permission error (code 10), mark as missing
-            if (axios.isAxiosError(postsError) && 
-                postsError.response?.data?.error?.code === 10) {
+            if (
+              axios.isAxiosError(postsError) &&
+              postsError.response?.data?.error?.code === 10
+            ) {
               requiredPermissions[0].status = "missing";
             }
           }
@@ -98,8 +102,8 @@ export class FacebookStatusController {
               {
                 params: {
                   access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-                  limit: 1
-                }
+                  limit: 1,
+                },
               }
             );
 
@@ -109,8 +113,10 @@ export class FacebookStatusController {
             }
           } catch (publishError) {
             // If we get a permission error (code 10), mark as missing
-            if (axios.isAxiosError(publishError) && 
-                publishError.response?.data?.error?.code === 10) {
+            if (
+              axios.isAxiosError(publishError) &&
+              publishError.response?.data?.error?.code === 10
+            ) {
               requiredPermissions[1].status = "missing";
             }
           }
@@ -128,16 +134,21 @@ export class FacebookStatusController {
         connected: tokenValid,
         credentialsValid: true, // If we have credentials set, consider them valid
         lastChecked: new Date().toISOString(),
-        message: tokenValid 
-          ? "Facebook connection active" 
+        message: tokenValid
+          ? "Facebook connection active"
           : "Facebook connection inactive or invalid token",
-        permissionNote: tokenValid && requiredPermissions.some(p => p.status === "missing")
-          ? "Your Facebook access token is missing some required permissions"
-          : "Facebook integration requires a page access token with proper permissions",
+        permissionNote:
+          tokenValid && requiredPermissions.some((p) => p.status === "missing")
+            ? "Your Facebook access token is missing some required permissions"
+            : "Facebook integration requires a page access token with proper permissions",
         nextSteps: "Ensure your page access token has all required permissions",
-        authUrl: `https://www.facebook.com/v18.0/dialog/oauth?client_id=${env.FACEBOOK_APP_ID}&redirect_uri=${encodeURIComponent(env.REDIRECT_URI)}&state=facebook&scope=public_profile,pages_show_list,pages_read_engagement,pages_manage_posts`,
+        authUrl: `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
+          env.FACEBOOK_APP_ID
+        }&redirect_uri=${encodeURIComponent(
+          env.REDIRECT_URI
+        )}&state=facebook&scope=public_profile,pages_show_list,pages_read_engagement,pages_manage_posts`,
         pageInfo: pageInfo,
-        permissions: requiredPermissions
+        permissions: requiredPermissions,
       });
     } catch (error) {
       console.error("Error checking Facebook status:", error);
@@ -146,7 +157,7 @@ export class FacebookStatusController {
         credentialsValid: false,
         message: "Error checking Facebook status",
         lastChecked: new Date().toISOString(),
-        error: (error as Error).message
+        error: (error as Error).message,
       });
     }
   }

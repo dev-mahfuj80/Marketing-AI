@@ -13,11 +13,11 @@ interface MulterRequest extends Request {
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ 
-  storage, 
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
-const uploadMiddleware = upload.single('image');
+const uploadMiddleware = upload.single("image");
 const uploadAsync = util.promisify(uploadMiddleware);
 
 /**
@@ -63,23 +63,23 @@ export const facebookController = {
     try {
       // Default to the page ID in the environment or use the one from the request
       const pageId = req.params.pageId || env.FACEBOOK_PAGE_ID;
-      
+
       // Process file upload if present - do this BEFORE we try to access body
       try {
         await uploadAsync(req, res);
       } catch (uploadError) {
-        console.error('File upload error:', uploadError);
-        return res.status(400).json({ message: 'File upload failed' });
+        console.error("File upload error:", uploadError);
+        return res.status(400).json({ message: "File upload failed" });
       }
 
       // Now we can safely access the body
       // Initialize message and link in case req.body is undefined
-      let message = '';
+      let message = "";
       let link = undefined;
 
       // Safely access req.body properties
       if (req.body) {
-        message = req.body.message || '';
+        message = req.body.message || "";
         link = req.body.link;
       }
 
@@ -102,10 +102,10 @@ export const facebookController = {
 
       // Check if we have an image file
       if (req.file) {
-        console.log('Image file detected, uploading to Facebook');
+        console.log("Image file detected, uploading to Facebook");
         // Get image buffer from multer
         const imageBuffer = req.file.buffer;
-        
+
         result = await facebookService.publishPagePost(
           pageId,
           env.FACEBOOK_PAGE_ACCESS_TOKEN,
