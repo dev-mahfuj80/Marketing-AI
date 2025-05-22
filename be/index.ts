@@ -14,38 +14,17 @@ try {
   throw err;
 }
 
-try {
-  console.log("Importing prisma...");
-  var { prisma } = await import("./src/utils/prisma.js");
-  console.log("Prisma imported successfully");
-} catch (err) {
-  console.error("Error importing prisma:", err);
-  throw err;
-}
-
 // Import routes
 try {
   console.log("Importing routes...");
   var authRoutes = await import("./src/routes/auth.routes.js").then(
     (m) => m.default
   );
-  var socialAuthRoutes = await import(
-    "./src/routes/social-auth.routes.js"
-  ).then((m) => m.default);
+
   var postsRoutes = await import("./src/routes/posts.routes.js").then(
     (m) => m.default
   );
   var facebookRoutes = await import("./src/routes/facebook.routes.js").then(
-    (m) => m.default
-  );
-  var linkedinRoutes = await import("./src/routes/linkedin.routes.js").then(
-    (m) => m.default
-  );
-  var linkedinAdminRoutes = await import("./src/routes/linkedin-admin.routes.js").then(
-    (m) => m.default
-  );
-  
-  var linkedinAuthCallbackRoutes = await import("./src/routes/linkedin-auth-callback.routes.js").then(
     (m) => m.default
   );
   console.log("Routes imported successfully");
@@ -70,16 +49,16 @@ app.use((req, res, next) => {
 
 app.use(
   cors({
-    origin: function(origin, callback) {
+    origin: function (origin, callback) {
       const allowedOrigins = [
         env.FRONTEND_URL,
         "https://marketing-ai-omega.vercel.app",
         // Local development URLs
         "http://localhost:3000",
-        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
         "http://localhost:5173", // Vite default
       ];
-      
+
       // Allow requests with no origin (like mobile apps, curl, postman)
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
@@ -90,27 +69,21 @@ app.use(
     },
     credentials: true, // Allow cookies
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "X-Requested-With",
+    ],
     exposedHeaders: ["Set-Cookie"],
   })
 );
 
 // API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/social", socialAuthRoutes);
 app.use("/api/posts", postsRoutes);
 app.use("/api/facebook", facebookRoutes);
-app.use("/api/linkedin", linkedinRoutes);
-app.use("/api/linkedin-admin", linkedinAdminRoutes);
-app.use("/api/auth", linkedinAuthCallbackRoutes); // Add the new LinkedIn auth callback routes
 
-// Simple health check route
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "Server is running...",
-    timestamp: new Date().toISOString(),
-  });
-});
 app.get("/", (req, res) => {
   res
     .status(200)
