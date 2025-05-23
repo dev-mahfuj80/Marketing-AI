@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -40,7 +46,7 @@ export function Providers({
 
   useEffect(() => {
     // Skip during SSR
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
     const root = window.document.documentElement;
 
     root.classList.remove("light", "dark");

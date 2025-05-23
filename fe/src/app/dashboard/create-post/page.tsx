@@ -70,15 +70,21 @@ export default function CreatePostPage() {
     try {
       const promises = [];
       let successCount = 0;
-      
+
       // Handle post creation for each selected platform
       if (values.publishToFacebook) {
         try {
           // Get the actual image file if provided
-          const imageFile = values.image && values.image.length > 0 ? values.image[0] : undefined;
-          
+          const imageFile =
+            values.image && values.image.length > 0
+              ? values.image[0]
+              : undefined;
+
           // Send directly to Facebook API using the dedicated function with the image file
-          const fbPromise = postsApi.createFacebookPost(values.content, imageFile);
+          const fbPromise = postsApi.createFacebookPost(
+            values.content,
+            imageFile
+          );
           promises.push(fbPromise);
           await fbPromise;
           successCount++;
@@ -86,14 +92,20 @@ export default function CreatePostPage() {
           console.error("Error publishing to Facebook:", fbError);
         }
       }
-      
+
       if (values.publishToLinkedin) {
         try {
           // Prepare image URL for LinkedIn if provided
-          const imageUrl = values.image && values.image.length > 0 ? URL.createObjectURL(values.image[0]) : undefined;
-          
+          const imageUrl =
+            values.image && values.image.length > 0
+              ? URL.createObjectURL(values.image[0])
+              : undefined;
+
           // Send directly to LinkedIn API using the dedicated function
-          const liPromise = postsApi.createLinkedinPost(values.content, imageUrl);
+          const liPromise = postsApi.createLinkedinPost(
+            values.content,
+            imageUrl
+          );
           promises.push(liPromise);
           await liPromise;
           successCount++;
@@ -101,16 +113,20 @@ export default function CreatePostPage() {
           console.error("Error publishing to LinkedIn:", liError);
         }
       }
-      
+
       // Wait for all promises to complete
       await Promise.allSettled(promises);
-      
+
       if (successCount > 0) {
-        setSuccess(`Post created successfully on ${successCount} platform${successCount > 1 ? 's' : ''}!`);
-        
+        setSuccess(
+          `Post created successfully on ${successCount} platform${
+            successCount > 1 ? "s" : ""
+          }!`
+        );
+
         // Reset form
         form.reset();
-        
+
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           router.push("/dashboard");

@@ -20,9 +20,13 @@ import { SiteFooter } from "@/components/site-footer";
 // The main exported component that wraps the content in Suspense
 export default function Home() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
       <HomeContent />
     </Suspense>
   );
@@ -32,11 +36,11 @@ export default function Home() {
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const code = searchParams?.get('code');
-  const state = searchParams?.get('state');
-  const error = searchParams?.get('error');
-  const errorDescription = searchParams?.get('error_description');
-  
+  const code = searchParams?.get("code");
+  const state = searchParams?.get("state");
+  const error = searchParams?.get("error");
+  const errorDescription = searchParams?.get("error_description");
+
   // Use individual selectors to avoid recreating objects on every render
   const isAuthenticated = useAuthStore(
     (state: AuthState) => state.isAuthenticated
@@ -44,65 +48,83 @@ function HomeContent() {
   const isLoading = useAuthStore((state: AuthState) => state.isLoading);
   const [isClient, setIsClient] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  
+
   // Handle LinkedIn OAuth callback
   useEffect(() => {
     // Check for OAuth errors first
     if (error) {
-      console.error('LinkedIn OAuth error:', { error, errorDescription });
-      
+      console.error("LinkedIn OAuth error:", { error, errorDescription });
+
       // Handle specific LinkedIn OAuth errors
-      if (error === 'unauthorized_scope_error') {
-        router.push('/login?error=linkedin_scope_error&message=' + 
-          encodeURIComponent('Required LinkedIn permissions not granted. Please ensure all requested permissions are approved in the LinkedIn Developer Portal.'));
+      if (error === "unauthorized_scope_error") {
+        router.push(
+          "/login?error=linkedin_scope_error&message=" +
+            encodeURIComponent(
+              "Required LinkedIn permissions not granted. Please ensure all requested permissions are approved in the LinkedIn Developer Portal."
+            )
+        );
       } else {
-        router.push(`/login?error=linkedin_auth_failed&message=${encodeURIComponent(errorDescription || error)}`);
+        router.push(
+          `/login?error=linkedin_auth_failed&message=${encodeURIComponent(
+            errorDescription || error
+          )}`
+        );
       }
       return;
     }
-    
+
     // Handle successful OAuth callback with code
-    if (code && (state === 'login' || state === 'linkedin')) {
-      console.log('LinkedIn OAuth callback detected:', { code, state });
+    if (code && (state === "login" || state === "linkedin")) {
+      console.log("LinkedIn OAuth callback detected:", { code, state });
       setIsRedirecting(true);
-      
+
       // Forward the auth code to our backend
       const handleLinkedInCallback = async () => {
         try {
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/api/auth/callback/linkedin?code=${code}&state=${state}`,
-            { credentials: 'include' } // Important for cookies
+            { credentials: "include" } // Important for cookies
           );
-          
+
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
+
           const data = await response.json();
-          
+
           if (data.success) {
             // If successful login/connection, redirect accordingly
-            if (state === 'login') {
-              router.push('/dashboard');
+            if (state === "login") {
+              router.push("/dashboard");
             } else {
-              router.push('/dashboard/settings?platform=linkedin&status=success');
+              router.push(
+                "/dashboard/settings?platform=linkedin&status=success"
+              );
             }
           } else {
             // If error, redirect to login with error message
-            router.push(`/login?error=${encodeURIComponent(data.message || 'LinkedIn authentication failed')}`);
+            router.push(
+              `/login?error=${encodeURIComponent(
+                data.message || "LinkedIn authentication failed"
+              )}`
+            );
           }
         } catch (error) {
-          console.error('LinkedIn callback handling error:', error);
-          router.push('/login?error=linkedin_auth_failed&message=' + 
-            encodeURIComponent('Failed to process LinkedIn authentication. Please try again.'));
+          console.error("LinkedIn callback handling error:", error);
+          router.push(
+            "/login?error=linkedin_auth_failed&message=" +
+              encodeURIComponent(
+                "Failed to process LinkedIn authentication. Please try again."
+              )
+          );
         } finally {
           setIsRedirecting(false);
         }
       };
-      
+
       handleLinkedInCallback();
     }
-    
+
     // Set isClient to true after component mounts
     setIsClient(true);
     console.log("isAuthenticated", isAuthenticated);
@@ -282,10 +304,15 @@ function HomeContent() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900">
+      <section
+        id="pricing"
+        className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900"
+      >
         <div className="container mx-auto max-w-screen-xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Simple, Transparent Pricing</h2>
+            <h2 className="text-3xl font-bold mb-4">
+              Simple, Transparent Pricing
+            </h2>
             <p className="text-xl text-muted-foreground max-w-[600px] mx-auto">
               Choose the perfect plan for your social media needs
             </p>
@@ -296,9 +323,16 @@ function HomeContent() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border flex flex-col">
               <div className="mb-4">
                 <h3 className="text-xl font-bold">Free</h3>
-                <p className="text-3xl font-bold mt-2">$0<span className="text-base font-normal text-muted-foreground">/month</span></p>
+                <p className="text-3xl font-bold mt-2">
+                  $0
+                  <span className="text-base font-normal text-muted-foreground">
+                    /month
+                  </span>
+                </p>
               </div>
-              <p className="text-muted-foreground mb-6">Perfect for personal use and testing the platform</p>
+              <p className="text-muted-foreground mb-6">
+                Perfect for personal use and testing the platform
+              </p>
               <ul className="space-y-3 mb-8 flex-grow">
                 <li className="flex items-center">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
@@ -313,7 +347,9 @@ function HomeContent() {
                   <span>Basic analytics</span>
                 </li>
               </ul>
-              <Button variant="outline" className="w-full mt-auto">Get Started</Button>
+              <Button variant="outline" className="w-full mt-auto">
+                Get Started
+              </Button>
             </div>
 
             {/* Pro Plan */}
@@ -323,9 +359,16 @@ function HomeContent() {
               </div>
               <div className="mb-4">
                 <h3 className="text-xl font-bold">Pro</h3>
-                <p className="text-3xl font-bold mt-2">$29<span className="text-base font-normal text-muted-foreground">/month</span></p>
+                <p className="text-3xl font-bold mt-2">
+                  $29
+                  <span className="text-base font-normal text-muted-foreground">
+                    /month
+                  </span>
+                </p>
               </div>
-              <p className="text-muted-foreground mb-6">Ideal for businesses growing their social presence</p>
+              <p className="text-muted-foreground mb-6">
+                Ideal for businesses growing their social presence
+              </p>
               <ul className="space-y-3 mb-8 flex-grow">
                 <li className="flex items-center">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
@@ -355,9 +398,16 @@ function HomeContent() {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border flex flex-col">
               <div className="mb-4">
                 <h3 className="text-xl font-bold">Enterprise</h3>
-                <p className="text-3xl font-bold mt-2">$99<span className="text-base font-normal text-muted-foreground">/month</span></p>
+                <p className="text-3xl font-bold mt-2">
+                  $99
+                  <span className="text-base font-normal text-muted-foreground">
+                    /month
+                  </span>
+                </p>
               </div>
-              <p className="text-muted-foreground mb-6">For larger teams and enterprises</p>
+              <p className="text-muted-foreground mb-6">
+                For larger teams and enterprises
+              </p>
               <ul className="space-y-3 mb-8 flex-grow">
                 <li className="flex items-center">
                   <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
@@ -384,7 +434,9 @@ function HomeContent() {
                   <span>Dedicated account manager</span>
                 </li>
               </ul>
-              <Button variant="outline" className="w-full mt-auto">Contact Sales</Button>
+              <Button variant="outline" className="w-full mt-auto">
+                Contact Sales
+              </Button>
             </div>
           </div>
         </div>
@@ -396,7 +448,8 @@ function HomeContent() {
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">What Our Users Say</h2>
             <p className="text-xl text-muted-foreground max-w-[600px] mx-auto">
-              Don&apos;t just take our word for it - hear from some of our satisfied customers
+              Don&apos;t just take our word for it - hear from some of our
+              satisfied customers
             </p>
           </div>
 
@@ -409,7 +462,9 @@ function HomeContent() {
                 </div>
                 <div>
                   <h4 className="font-bold">Sarah Brown</h4>
-                  <p className="text-sm text-muted-foreground">Marketing Director</p>
+                  <p className="text-sm text-muted-foreground">
+                    Marketing Director
+                  </p>
                 </div>
               </div>
               <div className="flex text-amber-400 mb-2">
@@ -418,7 +473,10 @@ function HomeContent() {
                 ))}
               </div>
               <p className="text-muted-foreground">
-                &quot;Marketing AI has transformed how we manage our social media. The AI-generated content ideas save us hours each week, and the analytics help us understand what&apos;s working.&quot;</p>
+                &quot;Marketing AI has transformed how we manage our social
+                media. The AI-generated content ideas save us hours each week,
+                and the analytics help us understand what&apos;s working.&quot;
+              </p>
             </div>
 
             {/* Testimonial 2 */}
@@ -429,7 +487,9 @@ function HomeContent() {
                 </div>
                 <div>
                   <h4 className="font-bold">Michael Johnson</h4>
-                  <p className="text-sm text-muted-foreground">Small Business Owner</p>
+                  <p className="text-sm text-muted-foreground">
+                    Small Business Owner
+                  </p>
                 </div>
               </div>
               <div className="flex text-amber-400 mb-2">
@@ -438,7 +498,11 @@ function HomeContent() {
                 ))}
               </div>
               <p className="text-muted-foreground">
-                &quot;As a small business owner, I don&apos;t have time to manage multiple social platforms. This tool lets me schedule content for the entire month in just an hour. Absolute game-changer!&quot;</p>
+                &quot;As a small business owner, I don&apos;t have time to
+                manage multiple social platforms. This tool lets me schedule
+                content for the entire month in just an hour. Absolute
+                game-changer!&quot;
+              </p>
             </div>
 
             {/* Testimonial 3 */}
@@ -449,7 +513,9 @@ function HomeContent() {
                 </div>
                 <div>
                   <h4 className="font-bold">Amy Lee</h4>
-                  <p className="text-sm text-muted-foreground">Social Media Consultant</p>
+                  <p className="text-sm text-muted-foreground">
+                    Social Media Consultant
+                  </p>
                 </div>
               </div>
               <div className="flex text-amber-400 mb-2">
@@ -459,17 +525,26 @@ function HomeContent() {
                 <Star className="h-4 w-4 text-muted-foreground" />
               </div>
               <p className="text-muted-foreground">
-                &quot;I manage social media for multiple clients, and this platform helps me keep everything organized. The content generation features are impressive and save me tons of time crafting posts.&quot;</p>
+                &quot;I manage social media for multiple clients, and this
+                platform helps me keep everything organized. The content
+                generation features are impressive and save me tons of time
+                crafting posts.&quot;
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900">
+      <section
+        id="faq"
+        className="py-12 md:py-20 px-4 md:px-6 bg-gray-50 dark:bg-gray-900"
+      >
         <div className="container mx-auto max-w-screen-xl">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-3xl font-bold mb-4">
+              Frequently Asked Questions
+            </h2>
             <p className="text-xl text-muted-foreground max-w-[600px] mx-auto">
               Find answers to common questions about our platform
             </p>
@@ -478,31 +553,58 @@ function HomeContent() {
           <div className="max-w-3xl mx-auto space-y-6">
             {/* FAQ Item 1 */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-bold mb-2">How does the AI content generation work?</h3>
-              <p className="text-muted-foreground">Our AI content generation uses advanced machine learning algorithms trained on successful social media posts. Simply provide a topic or keyword, and our AI will generate engaging content ideas, complete with hashtags and call-to-actions tailored to your audience.</p>
+              <h3 className="text-lg font-bold mb-2">
+                How does the AI content generation work?
+              </h3>
+              <p className="text-muted-foreground">
+                Our AI content generation uses advanced machine learning
+                algorithms trained on successful social media posts. Simply
+                provide a topic or keyword, and our AI will generate engaging
+                content ideas, complete with hashtags and call-to-actions
+                tailored to your audience.
+              </p>
             </div>
 
             {/* FAQ Item 2 */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-bold mb-2">Can I connect multiple social media accounts?</h3>
-              <p className="text-muted-foreground">Yes! Depending on your plan, you can connect multiple Facebook, LinkedIn, Twitter, and Instagram accounts. The Pro plan supports up to 5 accounts, while the Enterprise plan allows unlimited connections.</p>
+              <h3 className="text-lg font-bold mb-2">
+                Can I connect multiple social media accounts?
+              </h3>
+              <p className="text-muted-foreground">
+                Yes! Depending on your plan, you can connect multiple Facebook,
+                LinkedIn, Twitter, and Instagram accounts. The Pro plan supports
+                up to 5 accounts, while the Enterprise plan allows unlimited
+                connections.
+              </p>
             </div>
 
             {/* FAQ Item 3 */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-bold mb-2">How far in advance can I schedule posts?</h3>
-              <p className="text-muted-foreground">You can schedule posts up to 6 months in advance on all plans. Our calendar interface makes it easy to visualize your content schedule and maintain a consistent posting cadence.</p>
+              <h3 className="text-lg font-bold mb-2">
+                How far in advance can I schedule posts?
+              </h3>
+              <p className="text-muted-foreground">
+                You can schedule posts up to 6 months in advance on all plans.
+                Our calendar interface makes it easy to visualize your content
+                schedule and maintain a consistent posting cadence.
+              </p>
             </div>
 
             {/* FAQ Item 4 */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border">
-              <h3 className="text-lg font-bold mb-2">Do you offer a free trial?</h3>
-              <p className="text-muted-foreground">Yes, we offer a 14-day free trial of our Pro plan so you can experience all the features before committing. No credit card required to sign up for the trial.</p>
+              <h3 className="text-lg font-bold mb-2">
+                Do you offer a free trial?
+              </h3>
+              <p className="text-muted-foreground">
+                Yes, we offer a 14-day free trial of our Pro plan so you can
+                experience all the features before committing. No credit card
+                required to sign up for the trial.
+              </p>
             </div>
           </div>
         </div>
       </section>
-      
+
       {/* Footer */}
       <SiteFooter />
     </main>
