@@ -101,62 +101,70 @@ export const linkedinApi = {
   // Get LinkedIn auth URL for OAuth flow
   getAuthUrl: async () => {
     try {
-      console.log('Frontend: Getting LinkedIn auth URL');
-      const response = await api.get('/api/linkedin/auth');
-      console.log('LinkedIn auth URL response:', response.status);
+      console.log("Frontend: Getting LinkedIn auth URL");
+      const response = await api.get("/api/linkedin/auth");
+      console.log("LinkedIn auth URL response:", response.status);
       return response;
     } catch (error) {
-      console.error('Error getting LinkedIn auth URL:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to get LinkedIn authorization URL');
+      console.error("Error getting LinkedIn auth URL:", error);
+      throw new Error(
+        error instanceof Error
+          ? error.message
+          : "Failed to get LinkedIn authorization URL"
+      );
     }
   },
-  
+
   // Handle OAuth callback - typically called by the callback page
   handleCallback: async (code: string, state: string) => {
     try {
-      console.log('Processing LinkedIn OAuth callback...');
-      return await api.get(`/api/linkedin/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`);
+      console.log("Processing LinkedIn OAuth callback...");
+      return await api.get(
+        `/api/linkedin/callback?code=${encodeURIComponent(
+          code
+        )}&state=${encodeURIComponent(state)}`
+      );
     } catch (error) {
-      console.error('Error processing LinkedIn OAuth callback:', error);
+      console.error("Error processing LinkedIn OAuth callback:", error);
       throw error;
     }
   },
-  
+
   // Check LinkedIn connection status
   checkStatus: async () => {
-    console.log('Checking LinkedIn connection status...');
+    console.log("Checking LinkedIn connection status...");
     return api.get("/api/linkedin/status");
   },
-  
+
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
-    console.log('Fetching LinkedIn profile information...');
+    console.log("Fetching LinkedIn profile information...");
     try {
       return await api.get("/api/linkedin/profile");
     } catch (error) {
-      console.error('Error fetching LinkedIn profile:', error);
+      console.error("Error fetching LinkedIn profile:", error);
       throw error;
     }
   },
-  
+
   // Disconnect LinkedIn account
   disconnect: async () => {
-    console.log('Disconnecting LinkedIn account...');
+    console.log("Disconnecting LinkedIn account...");
     try {
       return await api.post("/api/linkedin/disconnect");
     } catch (error) {
-      console.error('Error disconnecting LinkedIn account:', error);
+      console.error("Error disconnecting LinkedIn account:", error);
       throw error;
     }
   },
-  
+
   // Refresh LinkedIn access token
   refreshToken: async () => {
-    console.log('Refreshing LinkedIn token...');
+    console.log("Refreshing LinkedIn token...");
     try {
       return await api.post("/api/linkedin/refresh-token");
     } catch (error) {
-      console.error('Error refreshing LinkedIn token:', error);
+      console.error("Error refreshing LinkedIn token:", error);
       throw error;
     }
   },
@@ -167,69 +175,73 @@ export const linkedinApi = {
     try {
       return await api.get(`/api/linkedin/posts?limit=${limit}`);
     } catch (error) {
-      console.error('Error fetching LinkedIn posts:', error);
+      console.error("Error fetching LinkedIn posts:", error);
       throw error;
     }
   },
-  
+
   // Publish a post to LinkedIn
   publishPost: async (content: string, imageUrl?: string, link?: string) => {
-    console.log('Publishing LinkedIn post:', { content, hasImage: !!imageUrl, hasLink: !!link });
+    console.log("Publishing LinkedIn post:", {
+      content,
+      hasImage: !!imageUrl,
+      hasLink: !!link,
+    });
     try {
       return await api.post("/api/linkedin/posts", { content, imageUrl, link });
     } catch (error) {
-      console.error('Error publishing LinkedIn post:', error);
+      console.error("Error publishing LinkedIn post:", error);
       throw error;
     }
-  }
+  },
 };
 
 // Facebook API specific calls
 export const facebookApi = {
   // Check Facebook connection status and permissions
   checkStatus: async () => {
-    console.log('Checking Facebook connection status...');
+    console.log("Checking Facebook connection status...");
     try {
       return await api.get("/api/facebook/status");
     } catch (error) {
-      console.error('Error checking Facebook status:', error);
+      console.error("Error checking Facebook status:", error);
       throw error;
     }
   },
-  
+
   // Get auth URL for Facebook (if we ever implement OAuth flow)
   getAuthUrl: async () => {
     try {
-      console.log('Getting Facebook auth URL');
-      const response = await api.get('/api/social/facebook/auth');
+      console.log("Getting Facebook auth URL");
+      const response = await api.get("/api/social/facebook/auth");
       return response.data;
     } catch (error) {
-      console.error('Error getting Facebook auth URL:', error);
+      console.error("Error getting Facebook auth URL:", error);
       throw error;
     }
   },
-  
+
   // Disconnect Facebook account
   disconnect: async () => {
-    console.log('Disconnecting Facebook account...');
+    console.log("Disconnecting Facebook account...");
     try {
       return await api.post("/api/social/facebook/disconnect");
     } catch (error) {
-      console.error('Error disconnecting Facebook account:', error);
+      console.error("Error disconnecting Facebook account:", error);
       throw error;
     }
   },
-  
+
   // Get Facebook page details
-  getPageDetails: async (pageId = 'me') => {
+  getPageDetails: async (pageId = "me") => {
     console.log(`Fetching Facebook page details for page ID: ${pageId}`);
     try {
       return await api.get(`/api/facebook/pages/${pageId}`);
     } catch (error) {
-      console.error('Error fetching Facebook page details:', error);
+      console.error("Error fetching Facebook page details:", error);
       throw error;
     }
-  }
+  },
 };
 
 // Social Media Posts API calls
@@ -240,35 +252,50 @@ export const postsApi = {
     try {
       return await api.get(`/api/facebook/pages/${pageId}/posts`);
     } catch (error) {
-      console.error('Error fetching Facebook posts:', error);
+      console.error("Error fetching Facebook posts:", error);
       throw error;
     }
   },
 
-  createFacebookPost: async (content: string, image?: File, pageId: string = "me") => {
+  createFacebookPost: async (
+    content: string,
+    image?: File,
+    pageId: string = "me"
+  ) => {
     console.log(`Creating Facebook post for page ID: ${pageId}`);
-    
+
     try {
       // If we have an image, we need to use FormData
       if (image) {
         const formData = new FormData();
-        formData.append('message', content);
-        formData.append('image', image);
-        
-        return await api.post(`/api/facebook/pages/${pageId}/publish`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        formData.append("message", content);
+        formData.append("image", image);
+
+        return await api.post(
+          `/api/facebook/pages/${pageId}/publish`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
       } else {
         // No image, just send a regular JSON request
-        return await api.post(`/api/facebook/pages/${pageId}/publish`, { message: content });
+        return await api.post(`/api/facebook/pages/${pageId}/publish`, {
+          message: content,
+        });
       }
     } catch (error) {
-      console.error('Error creating Facebook post:', error);
+      console.error("Error creating Facebook post:", error);
       // Check for common permission errors
-      if (axios.isAxiosError(error) && error.response?.data?.error?.includes('permission')) {
-        throw new Error('Permission denied: Make sure your Facebook access token has posting permissions');
+      if (
+        axios.isAxiosError(error) &&
+        error.response?.data?.error?.includes("permission")
+      ) {
+        throw new Error(
+          "Permission denied: Make sure your Facebook access token has posting permissions"
+        );
       }
       throw error;
     }
@@ -277,7 +304,7 @@ export const postsApi = {
   getLinkedinPosts: async () => {
     return api.get("/api/linkedin/posts");
   },
-  
+
   createLinkedinPost: async (content: string, imageUrl?: string) => {
     return api.post("/api/linkedin/posts", { content, imageUrl });
   },
@@ -285,23 +312,31 @@ export const postsApi = {
   // Generic post creation function
   createPost: async (formData: FormData) => {
     // Extract data from formData to determine which platform to post to
-    const content = formData.get('content') as string;
-    const platform = formData.get('platform') as string;
-    const image = formData.get('image') as File | null;
-    
-    console.log('Creating post with platform:', platform, 'has image:', !!image);
-    
+    const content = formData.get("content") as string;
+    const platform = formData.get("platform") as string;
+    const image = formData.get("image") as File | null;
+
+    console.log(
+      "Creating post with platform:",
+      platform,
+      "has image:",
+      !!image
+    );
+
     // If a specific platform is specified, use the dedicated endpoint
-    if (platform === 'facebook') {
+    if (platform === "facebook") {
       // For Facebook, pass the actual File object, not a URL
       return postsApi.createFacebookPost(content, image || undefined);
-    } else if (platform === 'linkedin') {
+    } else if (platform === "linkedin") {
       // For LinkedIn, pass the actual content and image
-      return postsApi.createLinkedinPost(content, image ? URL.createObjectURL(image) : undefined);
+      return postsApi.createLinkedinPost(
+        content,
+        image ? URL.createObjectURL(image) : undefined
+      );
     }
-    
+
     // If no platform specified or other platform, use the generic endpoint
-    console.warn('Using generic post endpoint');
+    console.warn("Using generic post endpoint");
     return api.post("/api/posts/publish", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
