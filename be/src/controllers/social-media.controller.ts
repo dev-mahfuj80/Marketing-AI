@@ -28,13 +28,8 @@ const uploadAsync = util.promisify(uploadMiddleware);
  * Social Media Controller - handles all social media platform interactions
  */
 export class SocialMediaController {
-  /**
-   * FACEBOOK METHODS
-   */
 
-  /**
-   * Check Facebook connection status and available permissions
-   */
+  // ===================================================================== FACEBOOK =====================================================================
   async checkFacebookStatus(req: Request, res: Response) {
     try {
       // First check if Facebook credentials are configured
@@ -187,9 +182,7 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Get Facebook posts for the authenticated user
-   */
+
   async getFacebookPosts(req: Request, res: Response) {
     try {
       if (!req.user?.id) {
@@ -299,9 +292,6 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Get posts from the Facebook page using the PAGE_ACCESS_TOKEN in .env
-   */
   async getPagePosts(req: Request, res: Response) {
     try {
       const { limit = 10 } = req.query;
@@ -369,9 +359,6 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Publish a post to a Facebook page using the PAGE_ACCESS_TOKEN in .env
-   */
   async publishPagePost(req: MulterRequest, res: Response) {
     try {
       // Default to the page ID in the environment or use the one from the request
@@ -458,13 +445,7 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * LINKEDIN METHODS
-   */
-
-  /**
-   * Check LinkedIn connection status and available permissions
-   */
+ // ===================================================================== LINKEDIN =====================================================================
   async checkLinkedInStatus(req: Request, res: Response) {
     try {
       // First check if LinkedIn credentials are configured
@@ -525,9 +506,6 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Get LinkedIn posts for the authenticated user
-   */
   async getLinkedInPosts(req: Request, res: Response) {
     try {
       if (!req.user?.id) {
@@ -632,9 +610,6 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Get LinkedIn posts using the ACCESS_TOKEN in .env
-   */
   async getLinkedInPagePosts(req: Request, res: Response) {
     try {
       const { limit = 10 } = req.query;
@@ -742,9 +717,6 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * Publish a post to LinkedIn using the ACCESS_TOKEN in .env
-   */
   async publishLinkedInPost(req: MulterRequest, res: Response) {
     try {
       // Process file upload if present - do this BEFORE we try to access body
@@ -831,13 +803,8 @@ export class SocialMediaController {
     }
   }
 
-  /**
-   * CROSS-PLATFORM METHODS
-   */
+  // ===================================================================== CROSS-PLATFORM =====================================================================
 
-  /**
-   * Create a new post on multiple platforms
-   */
   async createPost(req: Request, res: Response) {
     try {
       if (!req.user?.id) {

@@ -1,8 +1,6 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { Router } from "express";
 import { body } from "express-validator";
-import { validationResult } from "express-validator";
-import { env } from "../config/env.js";
 import {
   register,
   login,
@@ -16,11 +14,6 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user
- * @access  Public
- */
 router.post(
   "/register",
   [
@@ -35,11 +28,6 @@ router.post(
   }) as RequestHandler
 );
 
-/**
- * @route   POST /api/auth/login
- * @desc    User login
- * @access  Public
- */
 router.post(
   "/login",
   [
@@ -51,29 +39,15 @@ router.post(
   }) as RequestHandler
 );
 
-/**
- * @route   POST /api/auth/refresh
- * @desc    Refresh access token
- * @access  Public (with refresh token cookie)
- */
 router.post("/refresh", ((req: Request, res: Response, next: NextFunction) => {
   refresh(req, res).catch(next);
 }) as RequestHandler);
 
-/**
- * @route   POST /api/auth/logout
- * @desc    User logout
- * @access  Public
- */
+
 router.post("/logout", ((req: Request, res: Response, next: NextFunction) => {
   logout(req, res).catch(next);
 }) as RequestHandler);
 
-/**
- * @route   GET /api/auth/me
- * @desc    Get current user
- * @access  Private
- */
 router.get("/me", authenticate, ((
   req: Request,
   res: Response,
@@ -82,11 +56,6 @@ router.get("/me", authenticate, ((
   getCurrentUser(req, res).catch(next);
 }) as RequestHandler);
 
-/**
- * @route   POST /api/auth/forgot-password
- * @desc    Request password reset email
- * @access  Public
- */
 router.post(
   "/forgot-password",
   [body("email").isEmail().withMessage("Please provide a valid email")],
@@ -95,11 +64,6 @@ router.post(
   }) as RequestHandler
 );
 
-/**
- * @route   POST /api/auth/request-password-reset
- * @desc    Alias for forgot-password (for backwards compatibility)
- * @access  Public
- */
 router.post(
   "/request-password-reset",
   [body("email").isEmail().withMessage("Please provide a valid email")],
@@ -108,11 +72,6 @@ router.post(
   }) as RequestHandler
 );
 
-/**
- * @route   POST /api/auth/reset-password
- * @desc    Reset password with token
- * @access  Public
- */
 router.post(
   "/reset-password",
   [
@@ -125,10 +84,5 @@ router.post(
     resetPassword(req, res).catch(next);
   }) as RequestHandler
 );
-
-/**
- * Social authentication routes have been removed.
- * The application now uses direct API key approach for social media interactions.
- */
 
 export default router;
