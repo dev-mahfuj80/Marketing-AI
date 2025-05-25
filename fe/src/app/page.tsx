@@ -75,7 +75,6 @@ function HomeContent() {
 
     // Handle successful OAuth callback with code
     if (code && (state === "login" || state === "linkedin")) {
-      console.log("LinkedIn OAuth callback detected:", { code, state });
       setIsRedirecting(true);
 
       // Forward the auth code to our backend
@@ -127,7 +126,6 @@ function HomeContent() {
 
     // Set isClient to true after component mounts
     setIsClient(true);
-    console.log("isAuthenticated", isAuthenticated);
   }, [code, state, isAuthenticated, router, error, errorDescription]);
 
   const handleGetStarted = async (e: React.MouseEvent) => {
@@ -139,10 +137,8 @@ function HomeContent() {
       // await checkAuthStatus();
 
       if (isAuthenticated) {
-        console.log("User is authenticated");
         router.push("/dashboard");
       } else {
-        console.log("User is not authenticated");
         router.push("/login?redirect=/dashboard");
       }
     } catch (error) {

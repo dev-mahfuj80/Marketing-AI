@@ -53,8 +53,6 @@ export const useAuthStore = create(
           set({ isLoading: true, error: null });
           const response = await authApi.login(email, password);
 
-          console.log("Storing user data in auth store:", response.data.user);
-
           // Store the user data from the response
           set({
             user: response.data.user,

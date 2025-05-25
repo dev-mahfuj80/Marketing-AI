@@ -61,8 +61,7 @@ export function LinkedInPost({ onPostCreated }: LinkedInPostProps) {
   // Check LinkedIn connection status
   const checkConnectionStatus = async () => {
     try {
-      const response = await linkedinApi.checkStatus();
-      console.log('LinkedIn connection status:', response.data);
+      const response = await linkedinApi.getProfileInfo();
       
       setConnectionStatus({
         connected: response.data.connected,
@@ -90,7 +89,7 @@ export function LinkedInPost({ onPostCreated }: LinkedInPostProps) {
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await linkedinApi.getPosts();
+      const response = await linkedinApi.getPagePosts();
       
       // Transform the response to match our Post interface
       type LinkedInApiPost = {
@@ -215,32 +214,6 @@ export function LinkedInPost({ onPostCreated }: LinkedInPostProps) {
               onClick={() => window.location.href = '/dashboard/settings'}
             >
               Go to Settings
-            </Button>
-            <Button 
-              onClick={() => {
-                if (connectionStatus.oauthUrl) {
-                  // Use the OAuth URL provided by the backend
-                  console.log('Redirecting to LinkedIn OAuth URL');
-                  window.location.href = connectionStatus.oauthUrl;
-                } else {
-                  // Fallback to the API call if no URL is provided
-                  console.log('No OAuth URL provided, using API call');
-                  linkedinApi.getAuthUrl().then(response => {
-                    if (response?.authUrl) {
-                      window.location.href = response.authUrl;
-                    } else {
-                      alert("Error: Could not get LinkedIn authentication URL.");
-                    }
-                  }).catch(error => {
-                    console.error("Error initiating LinkedIn OAuth flow:", error);
-                    alert("Error connecting to LinkedIn. Please try from the settings page.");
-                  });
-                }
-              }}
-              className={cn("inline-flex items-center gap-2")}
-            >
-              <ExternalLink className="h-4 w-4" />
-              Connect LinkedIn Now
             </Button>
           </div>
         </CardContent>

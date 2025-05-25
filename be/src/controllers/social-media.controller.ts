@@ -257,14 +257,6 @@ export class SocialMediaController {
             reactions as Record<string, number>
           ).reduce((a: number, b: number) => a + b, 0);
         }
-
-        // Log post data for debugging
-        console.log(`Post ${post.id} image data:`, {
-          full_picture: post.full_picture,
-          picture: post.picture,
-          attachments: post.attachments?.data?.[0]?.url
-        });
-
         return {
           id: post.id,
           platformId: post.id,
@@ -328,13 +320,6 @@ export class SocialMediaController {
             reactions as Record<string, number>
           ).reduce((a: number, b: number) => a + b, 0);
         }
-
-        // Log post data for debugging
-        console.log(`Post ${post.id} image data:`, {
-          full_picture: post.full_picture,
-          picture: post.picture,
-          attachments: post.attachments?.data?.[0]?.url
-        });
 
         return {
           id: post.id,
@@ -506,126 +491,16 @@ export class SocialMediaController {
     }
   }
 
-  async getLinkedInPosts(req: Request, res: Response) {
-    try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      // Get user with LinkedIn token
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-      });
-
-      if (!user?.linkedInToken) {
-        return res
-          .status(400)
-          .json({ message: "LinkedIn account not connected" });
-      }
-
-      // Check if token has expired
-      if (user.linkedInTokenExpiry && user.linkedInTokenExpiry < new Date()) {
-        return res.status(401).json({
-          message: "LinkedIn token expired, please reconnect your account",
-        });
-      }
-
-      // Get user profile to get URN
-      const profileResponse = await axios.get("https://api.linkedin.com/v2/me", {
-        headers: {
-          Authorization: `Bearer ${user.linkedInToken}`,
-        },
-      });
-
-      const personId = profileResponse.data.id;
-      const personUrn = `urn:li:person:${personId}`;
-
-      // Get posts from LinkedIn
-      const postsResponse = await axios.get(
-        "https://api.linkedin.com/v2/ugcPosts",
-        {
-          params: {
-            q: "authors",
-            authors: `List(${personUrn})`,
-          },
-          headers: {
-            Authorization: `Bearer ${user.linkedInToken}`,
-          },
-        }
-      );
-
-      const posts = postsResponse.data.elements || [];
-
-      // Transform posts to our format
-      const formattedPosts = posts.map((post: any) => {
-        let content = "";
-        let mediaUrl = null;
-
-        if (
-          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary
-            ?.text
-        ) {
-          content =
-            post.specificContent["com.linkedin.ugc.ShareContent"].shareCommentary
-              .text;
-        }
-
-        if (
-          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.media?.[0]
-            ?.originalUrl
-        ) {
-          mediaUrl =
-            post.specificContent["com.linkedin.ugc.ShareContent"].media[0]
-              .originalUrl;
-        }
-
-        return {
-          id: post.id,
-          platformId: post.id,
-          platform: "LINKEDIN",
-          content,
-          mediaUrl,
-          publishedAt:
-            post.created && post.created.time
-              ? new Date(post.created.time)
-              : new Date(),
-          url: null, // LinkedIn API doesn't easily provide permalinks
-          engagement: {
-            impressions: 0, // LinkedIn requires a separate Social Engagement API call
-            reactions: 0,
-          },
-        };
-      });
-
-      return res.status(200).json({ posts: formattedPosts });
-    } catch (error: any) {
-      console.error(
-        "Error fetching LinkedIn posts:",
-        error.response?.data || error.message
-      );
-      return res.status(500).json({
-        message: "Error fetching LinkedIn posts",
-        error: error.response?.data?.message || error.message,
-      });
-    }
-  }
 
   async getLinkedInPagePosts(req: Request, res: Response) {
     try {
       const { limit = 10 } = req.query;
-      console.log("=========================");
-      console.log("LinkedIn Debug: getLinkedInPagePosts called");
 
       if (!env.LINKEDIN_ACCESS_TOKEN) {
-        console.log("LinkedIn Debug: No access token found");
         return res
           .status(500)
           .json({ message: "LinkedIn access token not configured" });
       }
-      
-      console.log("LinkedIn Debug: Using token:", env.LINKEDIN_ACCESS_TOKEN.substring(0, 20) + "...");
-
-      console.log("Attempting to fetch LinkedIn posts with access token");
       
       // Instantiate the LinkedIn service
       const linkedInService = new LinkedInService();
@@ -636,16 +511,9 @@ export class SocialMediaController {
         env.LINKEDIN_ACCESS_TOKEN,
         Number(limit)
       );
-
-      // Check if we got a proper response
-      if (!result || (!result.elements && !Array.isArray(result))) {
-        console.warn("LinkedIn returned unexpected response format:", result);
-        return res.status(200).json({ posts: [] });
-      }
       
       // Normalize posts array
       const posts = result.elements || (Array.isArray(result) ? result : []);
-      console.log(`Found ${posts.length} LinkedIn posts`);
 
       // Transform posts to our format
       const formattedPosts = posts.map((post: any) => {
@@ -679,12 +547,6 @@ export class SocialMediaController {
             post.specificContent["com.linkedin.ugc.ShareContent"].media[0]
               .originalUrl;
         }
-
-        // Log post data for debugging
-        console.log(`Post ${post.id} data:`, {
-          content,
-          mediaUrl
-        });
 
         return {
           id: post.id || post.activity || `linkedin-${Date.now()}`,

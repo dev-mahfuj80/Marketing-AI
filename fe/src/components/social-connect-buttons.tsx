@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Facebook, Linkedin, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { linkedinApi } from "@/lib/api";
 
 interface SocialConnectButtonsProps {
   onRefresh?: () => void;
@@ -95,7 +94,7 @@ export function SocialConnectButtons({ onRefresh }: SocialConnectButtonsProps) {
   // Refresh data after status change
   const refreshData = () => {
     if (onRefresh) {
-      console.log('Refreshing data after connection status change');
+     
       onRefresh();
     }
   };
@@ -128,10 +127,9 @@ export function SocialConnectButtons({ onRefresh }: SocialConnectButtonsProps) {
     setCheckingStatus(prev => ({ ...prev, linkedin: true }));
     
     try {
-      console.log('Frontend: Checking LinkedIn connection status directly');
+     
       // Make a direct fetch call to get the raw response
       const response = await fetch('/api/linkedin/status');
-      console.log('LinkedIn status response code:', response.status);
       
       if (response.ok) {
         const data = await response.json();
@@ -171,18 +169,10 @@ export function SocialConnectButtons({ onRefresh }: SocialConnectButtonsProps) {
     
     try {
       // Get the auth URL from the backend
-      console.log('Frontend: Initiating LinkedIn OAuth flow');
-      const response = await linkedinApi.getAuthUrl();
+      
       
       // Using the enhanced API client, the data is returned directly, not nested in data property
-      if (response?.authUrl) {
-        console.log('LinkedIn auth URL received, redirecting...');
-        // Open the LinkedIn auth URL in a new window
-        window.location.href = response.authUrl;
-      } else {
-        console.error("LinkedIn auth URL not received", response);
-        alert("Error connecting to LinkedIn. Please try again later.");
-      }
+     
     } catch (error) {
       console.error("Error initiating LinkedIn authentication:", error);
       alert("Could not connect to LinkedIn: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -195,7 +185,6 @@ export function SocialConnectButtons({ onRefresh }: SocialConnectButtonsProps) {
     setCheckingStatus(prev => ({ ...prev, linkedin: true }));
     
     try {
-      await linkedinApi.disconnect();
       
       // Update connection status
       setConnectionStatus(prev => ({

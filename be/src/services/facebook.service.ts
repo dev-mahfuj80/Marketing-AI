@@ -49,7 +49,6 @@ export class FacebookService {
     try {
       // If we have an image buffer, we need to use the photos edge instead of feed
       if (imageBuffer) {
-        console.log("Publishing post with image to Facebook page");
 
         // Create FormData for multipart upload
         const form = new FormData();

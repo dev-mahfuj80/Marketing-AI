@@ -65,7 +65,6 @@ export const authApi = {
       // Try the first endpoint format
       try {
         const response = await api.post("/api/auth/forgot-password", { email });
-        console.log("Password reset response:", response);
         return response;
       } catch (innerError) {
         console.log(
@@ -107,7 +106,6 @@ export const linkedinApi = {
 
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
-    console.log("Getting LinkedIn profile info...");
     try {
       return await api.get("/api/linkedin/profile");
     } catch (error) {
@@ -119,20 +117,17 @@ export const linkedinApi = {
   
   // Get LinkedIn posts directly from page using access token - no auth required
   getPagePosts: async (limit = 10) => {
-    console.log("Fetching LinkedIn page posts with access token...");
     try {
       return await api.get("/api/social/linkedin/page/posts", {
         params: { limit },
       });
     } catch (error) {
-      console.error("Error fetching LinkedIn page posts:", error);
       throw error;
     }
   },
 
   // Publish a post to LinkedIn using page access token
   publishPagePost: async (message: string, link?: string) => {
-    console.log("Publishing LinkedIn post with access token...");
     try {
       return await api.post("/api/social/linkedin/page/publish", {
         message,
@@ -149,10 +144,8 @@ export const linkedinApi = {
 export const facebookApi = {
   // Check Facebook connection status and permissions
   checkStatus: async () => {
-    console.log("Checking Facebook connection status...");
     try {
       const response = await api.get("/api/social/facebook/status");
-      console.log("Facebook status response:", response.status);
       return response;
     } catch (error) {
       console.error("Error checking Facebook status:", error);
@@ -160,36 +153,11 @@ export const facebookApi = {
     }
   },
 
-  // Get auth URL for Facebook (if we ever implement OAuth flow)
-  getAuthUrl: async () => {
-    try {
-      console.log("Getting Facebook auth URL");
-      const response = await api.get("/api/social/facebook/auth");
-      return response.data;
-    } catch (error) {
-      console.error("Error getting Facebook auth URL:", error);
-      throw error;
-    }
-  },
-
-  // Disconnect Facebook account
-  disconnect: async () => {
-    console.log("Disconnecting Facebook account...");
-    try {
-      return await api.post("/api/social/facebook/disconnect");
-    } catch (error) {
-      console.error("Error disconnecting Facebook account:", error);
-      throw error;
-    }
-  },
-
   // Get Facebook page details
   getPageDetails: async (pageId = "me") => {
-    console.log(`Fetching Facebook page details for page ID: ${pageId}`);
     try {
       return await api.get(`/api/social/facebook/pages/${pageId}`);
     } catch (error) {
-      console.error("Error fetching Facebook page details:", error);
       throw error;
     }
   },
@@ -198,14 +166,10 @@ export const facebookApi = {
 // Social Media Posts API calls
 export const postsApi = {
   getFacebookPosts: async (pageId: string = "me") => {
-    // Using the new endpoint format that works with FACEBOOK_PAGE_ACCESS_TOKEN from .env
-    console.log(`Fetching Facebook posts for page ID: ${pageId}`);
     try {
       const response = await api.get(`/api/social/facebook/pages/${pageId}/posts`);
-      console.log('Raw Facebook API response:', response.data);
       return response;
     } catch (error) {
-      console.error("Error fetching Facebook posts:", error);
       throw error;
     }
   },
@@ -215,8 +179,6 @@ export const postsApi = {
     image?: File,
     pageId: string = "me"
   ) => {
-    console.log(`Creating Facebook post for page ID: ${pageId}`);
-
     try {
       // If we have an image, we need to use FormData
       if (image) {

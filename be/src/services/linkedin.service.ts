@@ -25,22 +25,18 @@ export class LinkedInService {
 
   async getPosts(accessToken: string, limit = 10) {
     try {
-      console.log("LinkedIn: Starting to fetch posts with token", accessToken.substring(0, 15) + "...");
-      
-      const exactUrl = `https://api.linkedin.com/${this.apiVersion}/shares?count=${limit}&owners=urn%3Ali%3Aorganization%3A102063139&q=owners&start=10`;
+      const exactUrl = `https://api.linkedin.com/v2/shares?owners=urn:li:organization:102063139&q=owners&start=10&count=10`;
       
       const response = await axios.get(exactUrl, {
         headers: {
+          // need client id and secret also
           Authorization: `Bearer ${accessToken}`,
-          "X-Restli-Protocol-Version": "2.0.0"
         }
       });
       
       if (response.data && response.data.elements && response.data.elements.length > 0) {
-        console.log(`LinkedIn: Found ${response.data.elements.length} posts`);
         return response.data;
       } else {
-        console.log("LinkedIn: API returned empty results");
         return { elements: [] };
       }
     } catch (error) {
@@ -59,8 +55,6 @@ export class LinkedInService {
 
   async publishPost(accessToken: string, text: string, imageUrl?: string, articleUrl?: string) {
     try {
-      console.log("LinkedIn: Publishing post");
-      
       // First get the user profile to get the URN
       const profileResponse = await axios.get(
         `https://api.linkedin.com/${this.apiVersion}/me`,

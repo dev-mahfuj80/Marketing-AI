@@ -119,7 +119,6 @@ export default function DashboardPage() {
     try {
       setIsProfileLoading(true);
       const response = await linkedinApi.getProfileInfo();
-      console.log("LinkedIn profile info:", response.data);
       
       // Store the profile info, displaying LinkedIn User name when available
       setLinkedinProfile({
@@ -159,7 +158,7 @@ export default function DashboardPage() {
       // First try the direct access token method (like Facebook)
       try {
         const response = await linkedinApi.getPagePosts();
-        // console.log("LinkedIn page posts response:", response.data);
+     
         setLinkedinPosts(response.data.posts || []);
         setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
         return; // If successful, we're done
@@ -213,7 +212,6 @@ export default function DashboardPage() {
       try {
         const fbResponse = await facebookApi.checkStatus();
         const fbData = fbResponse.data;
-        console.log("Facebook connection data:", fbData);
 
         setConnectionStatus((prev) => ({
           ...prev,
