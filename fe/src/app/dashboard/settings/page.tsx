@@ -6,22 +6,18 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Facebook,
-  Linkedin,
   RefreshCw,
   CheckCircle,
   XCircle,
-  Key,
-  HelpCircle,
   User,
   Mail,
   Edit2,
+  Linkedin,
+  Facebook,
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
-import { postsApi } from "@/lib/api";
 import { LinkedInPermissions } from "@/components/linkedin/LinkedInPermissions";
 import { FacebookPermissions } from "@/components/facebook/FacebookPermissions";
-import { useRouter, useSearchParams } from "next/navigation";
 
 interface ConnectionStatus {
   facebook: boolean;
@@ -33,8 +29,6 @@ interface ConnectionStatus {
 }
 
 export default function SettingsPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("accounts");
   const [notification, setNotification] = useState<{
@@ -110,19 +104,6 @@ export default function SettingsPage() {
 
     return () => clearTimeout(notificationTimeout);
   }, []);
-
-  // Format date for display
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never";
-
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   // Fetch connection status from API
   useEffect(() => {

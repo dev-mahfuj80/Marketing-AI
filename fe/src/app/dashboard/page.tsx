@@ -370,7 +370,7 @@ export default function DashboardPage() {
                   onClick={async () => {
                     try {
                       setIsLinkedInLoading(true);
-                      const response = await linkedinApi.getAuthUrl();
+                      const response = await linkedinApi.getPagePosts();
                       if (response?.data?.authUrl) {
                         window.location.href = response.data.authUrl;
                       } else {
@@ -388,12 +388,12 @@ export default function DashboardPage() {
                   {isLinkedInLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Connecting...
+                      Loading...
                     </>
                   ) : (
                     <>
                       <Linkedin className="h-4 w-4 mr-2" />
-                      Connect LinkedIn
+                      Get Post
                     </>
                   )}
                 </Button>

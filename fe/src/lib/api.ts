@@ -104,22 +104,6 @@ export const authApi = {
 
 // LinkedIn API specific calls
 export const linkedinApi = {
-  // Get LinkedIn auth URL for OAuth flow
-  getAuthUrl: async () => {
-    try {
-      console.log("Frontend: Getting LinkedIn auth URL");
-      const response = await api.get("/api/linkedin/auth");
-      console.log("LinkedIn auth URL response:", response.status);
-      return response;
-    } catch (error) {
-      console.error("Error getting LinkedIn auth URL:", error);
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to get LinkedIn authorization URL"
-      );
-    }
-  },
 
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
@@ -145,7 +129,7 @@ export const linkedinApi = {
       throw error;
     }
   },
-  
+
   // Publish a post to LinkedIn using page access token
   publishPagePost: async (message: string, link?: string) => {
     console.log("Publishing LinkedIn post with access token...");
