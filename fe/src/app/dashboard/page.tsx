@@ -3,11 +3,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState, useCallback } from "react";
 import { postsApi, linkedinApi, facebookApi } from "@/lib/api";
-import { PostsContainer } from "@/components/posts/PostsContainer";
+import { FacebookPostsContainer } from "@/components/posts/facebook-posts-container";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useSearchParams } from "next/navigation";
 import { Linkedin, Facebook, Loader2 } from "lucide-react";
+import { LinkedInPostsContainer } from "@/components/posts/linkedin-posts-container";
 
 // Define post interfaces
 // Define API error interface for better type safety
@@ -26,19 +27,26 @@ interface ApiError {
 interface Post {
   id: string;
   content?: string;
-  platform?: "facebook" | "linkedin";
+  platform: "facebook" | "linkedin";
   createdAt?: string;
   likes?: number;
   comments?: number;
   shares?: number;
   imageUrl?: string | null;
-
-  // Facebook specific fields
   message?: string;
   created_time?: string;
   permalink_url?: string;
   full_picture?: string | null;
   picture?: string | null;
+  
+  // LinkedIn specific fields
+  platformId?: string | number | null;
+  publishedAt?: number;
+  mediaUrl?: string | null;
+  engagement?: {
+    impressions: number;
+    reactions: number;
+  };
 }
 
 export default function DashboardPage() {
@@ -61,7 +69,7 @@ export default function DashboardPage() {
     email?: string;
     profileImage?: string;
   }>({});
-
+console.log(linkedinProfile);
   // Facebook posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchFacebookPosts = useCallback(async () => {
     setIsFacebookLoading(true);
@@ -144,49 +152,18 @@ export default function DashboardPage() {
   
   // LinkedIn posts fetching function wrapped in useCallback
   const fetchLinkedInPosts = useCallback(async () => {
-    console.log("Fetching LinkedIn posts...");
     setIsLinkedInLoading(true);
-    try {
-      // First try the direct access token method (like Facebook)
       try {
         const response = await linkedinApi.getPagePosts();
-     
         setLinkedinPosts(response.data.posts || []);
         setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
-        return; // If successful, we're done
+        return; 
       } catch (directError) {
         console.log("Direct LinkedIn access token failed, trying OAuth method...", directError);
-        // Fall through to the OAuth method
-      }
-      
-    } catch (error) {
-      const liError = error as ApiError;
-      console.error("Error fetching LinkedIn posts:", liError);
-      setLinkedinPosts([]);
-      
-      // Special handling for limited permissions (no posts access)
-      if (
-        liError.response?.data?.limitedPermissions ||
-        liError.message?.includes("insufficient scope") ||
-        liError.response?.status === 403
-      ) {
-        setConnectionStatus((prev) => ({
-          ...prev,
-          linkedin: true,
-        }));
-        
-        // If we have limited permissions, try to fetch profile info instead
-        fetchLinkedInProfile();
-      } else {
-        setConnectionStatus((prev) => ({
-          ...prev,
-          linkedin: false,
-        }));
-      }
-    } finally {
+      }finally {
       setIsLinkedInLoading(false);
     }
-  }, [fetchLinkedInProfile]);
+  }, []);
 
   // Combined function to fetch all posts
   const fetchPosts = useCallback(() => {
@@ -265,7 +242,7 @@ export default function DashboardPage() {
       }));
     }
   }, [searchParams]);
-
+console.log(linkedinPosts);
   return (
     <div className="space-y-8">
       <Tabs
@@ -306,7 +283,7 @@ export default function DashboardPage() {
                 </Button>
               </Card>
             ) : (
-              <PostsContainer
+              <FacebookPostsContainer
                 platform="facebook"
                 posts={facebookPosts}
                 isLoading={isFacebookLoading}
@@ -322,65 +299,12 @@ export default function DashboardPage() {
           </div>
         ) : (
           <TabsContent value="linkedin">
-            {!connectionStatus.linkedin ? (
-              <Card className="p-6 text-center">
-                <h3 className="text-lg font-medium mb-4">
-                  LinkedIn is not connected
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  Connect your LinkedIn account to view and manage your posts.
-                </p>
-                <Button 
-                  onClick={async () => {
-                    try {
-                      setIsLinkedInLoading(true);
-                      const response = await linkedinApi.getPagePosts();
-                      if (response?.data?.authUrl) {
-                        window.location.href = response.data.authUrl;
-                      } else {
-                        console.error("Failed to get LinkedIn auth URL");
-                        setIsLinkedInLoading(false);
-                      }
-                    } catch (error) {
-                      console.error("Error starting LinkedIn auth flow:", error);
-                      setIsLinkedInLoading(false);
-                    }
-                  }} 
-                  variant="outline"
-                  disabled={isLinkedInLoading}
-                >
-                  {isLinkedInLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Linkedin className="h-4 w-4 mr-2" />
-                      Get Post
-                    </>
-                  )}
-                </Button>
-              </Card>
-            ) : connectionStatus.linkedin ? (
-              <PostsContainer
-                platform="linkedin"
-                posts={[]}
-                isLoading={isProfileLoading}
-                onRefresh={fetchLinkedInProfile}
-                emptyMessage="LinkedIn profile information"
-                limitedPermissions={true}
-                profileInfo={linkedinProfile} 
-              />
-            ) : (
-              <PostsContainer
-                platform="linkedin"
+              <LinkedInPostsContainer
                 posts={linkedinPosts}
                 isLoading={isLinkedInLoading}
                 onRefresh={fetchLinkedInPosts}
                 emptyMessage="No LinkedIn posts found"
               />
-            )}
           </TabsContent>
         )}
       </Tabs>

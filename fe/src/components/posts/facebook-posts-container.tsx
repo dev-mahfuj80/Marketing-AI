@@ -39,7 +39,7 @@ interface PostsContainerProps {
   };
 }
 
-export function PostsContainer({
+export function FacebookPostsContainer({
   platform,
   posts,
   isLoading,
@@ -201,7 +201,7 @@ export function PostsContainer({
       </div>
     );
   }
-
+console.log(posts);
   // Render posts with scroll container and grid layout
   return (
     <div
@@ -255,9 +255,7 @@ export function PostsContainer({
                 <div className="flex gap-3">
                   <span>{post.likes || 0} likes</span>
                   <span>{post.comments || 0} comments</span>
-                  {post.shares && post.shares > 0 && (
-                    <span>{post.shares} shares</span>
-                  )}
+                  <span>{post.shares || 0} shares</span>
                 </div>
               </div>
 

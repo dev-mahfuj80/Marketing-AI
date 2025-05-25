@@ -107,7 +107,7 @@ export const linkedinApi = {
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
     try {
-      return await api.get("/api/linkedin/profile");
+      return await api.get("/api/social/linkedin/profile");
     } catch (error) {
       console.error("Error getting LinkedIn profile info:", error);
       throw error;
