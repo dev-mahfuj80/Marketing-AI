@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import multer from "multer";
 import util from "util";
 import { FacebookService } from "../services/facebook.service.js";
+import { LinkedInService } from "../services/linkedin.service.js";
 
 // Prisma client
 const prisma = new PrismaClient();
@@ -462,6 +463,69 @@ export class SocialMediaController {
    */
 
   /**
+   * Check LinkedIn connection status and available permissions
+   */
+  async checkLinkedInStatus(req: Request, res: Response) {
+    try {
+      // First check if LinkedIn credentials are configured
+      if (!env.LINKEDIN_CLIENT_ID || !env.LINKEDIN_ACCESS_TOKEN) {
+        return res.status(200).json({
+          connected: false,
+          credentialsValid: false,
+          message: "LinkedIn API credentials are not configured",
+          lastChecked: new Date().toISOString(),
+          permissionNote:
+            "Please add LinkedIn client ID and access token to your environment variables",
+          nextSteps:
+            "Contact your administrator to set up LinkedIn API credentials",
+        });
+      }
+
+      // Test if the access token is valid
+      let tokenValid = false;
+      let profileInfo = null;
+      
+      try {
+        // Check if the token is valid by making a request to the LinkedIn API
+        const linkedInService = new LinkedInService();
+        const profileResponse = await linkedInService.getProfileInfo(env.LINKEDIN_ACCESS_TOKEN);
+        
+        if (profileResponse && profileResponse.id) {
+          tokenValid = true;
+          profileInfo = profileResponse;
+        }
+      } catch (error) {
+        console.error("LinkedIn token validation failed:", error);
+        tokenValid = false;
+      }
+
+      // Response with status information
+      return res.status(200).json({
+        connected: tokenValid,
+        credentialsValid: true, // If we have credentials set, consider them valid
+        lastChecked: new Date().toISOString(),
+        message: tokenValid
+          ? "LinkedIn connection active"
+          : "LinkedIn connection inactive or invalid token",
+        permissionNote: tokenValid 
+          ? "LinkedIn access token is valid"
+          : "LinkedIn integration requires a valid access token",
+        nextSteps: "Ensure your LinkedIn access token has not expired",
+        profileInfo: profileInfo,
+      });
+    } catch (error) {
+      console.error("Error checking LinkedIn status:", error);
+      return res.status(500).json({
+        connected: false,
+        credentialsValid: false,
+        message: "Error checking LinkedIn status",
+        lastChecked: new Date().toISOString(),
+        error: (error as Error).message,
+      });
+    }
+  }
+
+  /**
    * Get LinkedIn posts for the authenticated user
    */
   async getLinkedInPosts(req: Request, res: Response) {
@@ -565,6 +629,205 @@ export class SocialMediaController {
         message: "Error fetching LinkedIn posts",
         error: error.response?.data?.message || error.message,
       });
+    }
+  }
+
+  /**
+   * Get LinkedIn posts using the ACCESS_TOKEN in .env
+   */
+  async getLinkedInPagePosts(req: Request, res: Response) {
+    try {
+      const { limit = 10 } = req.query;
+      console.log("=========================");
+      console.log("LinkedIn Debug: getLinkedInPagePosts called");
+
+      if (!env.LINKEDIN_ACCESS_TOKEN) {
+        console.log("LinkedIn Debug: No access token found");
+        return res
+          .status(500)
+          .json({ message: "LinkedIn access token not configured" });
+      }
+      
+      console.log("LinkedIn Debug: Using token:", env.LINKEDIN_ACCESS_TOKEN.substring(0, 20) + "...");
+
+      console.log("Attempting to fetch LinkedIn posts with access token");
+      
+      // Instantiate the LinkedIn service
+      const linkedInService = new LinkedInService();
+      
+      // Get posts directly using the service
+      // The service now has improved error handling and will return empty results instead of throwing
+      const result = await linkedInService.getPosts(
+        env.LINKEDIN_ACCESS_TOKEN,
+        Number(limit)
+      );
+
+      // Check if we got a proper response
+      if (!result || (!result.elements && !Array.isArray(result))) {
+        console.warn("LinkedIn returned unexpected response format:", result);
+        return res.status(200).json({ posts: [] });
+      }
+      
+      // Normalize posts array
+      const posts = result.elements || (Array.isArray(result) ? result : []);
+      console.log(`Found ${posts.length} LinkedIn posts`);
+
+      // Transform posts to our format
+      const formattedPosts = posts.map((post: any) => {
+        let content = "";
+        let mediaUrl = null;
+
+        // Handle share-specific content
+        if (post.text) {
+          // For /shares endpoint response
+          content = post.text.text || "";
+        } else if (
+          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary
+            ?.text
+        ) {
+          // For /ugcPosts endpoint response
+          content =
+            post.specificContent["com.linkedin.ugc.ShareContent"].shareCommentary
+              .text;
+        }
+
+        // Handle media URL
+        if (post.content?.contentEntities?.[0]?.entityLocation) {
+          // For /shares endpoint response
+          mediaUrl = post.content.contentEntities[0].entityLocation;
+        } else if (
+          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.media?.[0]
+            ?.originalUrl
+        ) {
+          // For /ugcPosts endpoint response
+          mediaUrl =
+            post.specificContent["com.linkedin.ugc.ShareContent"].media[0]
+              .originalUrl;
+        }
+
+        // Log post data for debugging
+        console.log(`Post ${post.id} data:`, {
+          content,
+          mediaUrl
+        });
+
+        return {
+          id: post.id || post.activity || `linkedin-${Date.now()}`,
+          platformId: post.id || post.activity,
+          platform: "LINKEDIN",
+          content,
+          mediaUrl,
+          publishedAt:
+            post.created?.time ||
+            post.createdTime ||
+            post.lastModified?.time ||
+            post.lastModifiedTime ||
+            new Date(),
+          url: null, // LinkedIn API doesn't easily provide permalinks
+          engagement: {
+            impressions: 0, 
+            reactions: 0,
+          },
+        };
+      });
+
+      return res.status(200).json({ posts: formattedPosts });
+    } catch (error) {
+      console.error("Error fetching LinkedIn page posts:", error);
+      // Always return a 200 response with empty posts array to avoid frontend errors
+      return res.status(200).json({ 
+        posts: [], 
+        error: "Failed to fetch LinkedIn posts. Please check server logs for details."
+      });
+    }
+  }
+
+  /**
+   * Publish a post to LinkedIn using the ACCESS_TOKEN in .env
+   */
+  async publishLinkedInPost(req: MulterRequest, res: Response) {
+    try {
+      // Process file upload if present - do this BEFORE we try to access body
+      try {
+        await uploadAsync(req, res);
+      } catch (uploadError) {
+        console.error("File upload error:", uploadError);
+        return res.status(400).json({ message: "File upload failed" });
+      }
+
+      // Now we can safely access the body
+      // Initialize message and link in case req.body is undefined
+      let message = "";
+      let link = undefined;
+
+      // Safely access req.body properties
+      if (req.body) {
+        message = req.body.message || "";
+        link = req.body.link;
+      }
+
+      if (!message) {
+        return res
+          .status(400)
+          .json({ message: "Message is required" });
+      }
+
+      if (!env.LINKEDIN_ACCESS_TOKEN) {
+        return res
+          .status(500)
+          .json({ message: "LinkedIn access token not configured" });
+      }
+
+      const linkedInService = new LinkedInService();
+      let result;
+
+      // Check if we have an image file or link
+      if (req.file) {
+        // This would require uploading to a publicly accessible URL first
+        // For simplicity, we'll just note that this functionality would need additional implementation
+        return res.status(400).json({ 
+          message: "Direct image uploads for LinkedIn not supported. Please provide a public image URL instead." 
+        });
+      } else if (link) {
+        // If we have a link, use it as the article URL
+        result = await linkedInService.publishPost(
+          env.LINKEDIN_ACCESS_TOKEN,
+          message,
+          undefined,
+          link
+        );
+      } else {
+        // No image or link, just publish the text post
+        result = await linkedInService.publishPost(
+          env.LINKEDIN_ACCESS_TOKEN,
+          message
+        );
+      }
+
+      // Save the post to our database
+      if (result && result.id) {
+        await prisma.post.create({
+          data: {
+            content: message,
+            mediaUrl: link || null,
+            status: "PUBLISHED",
+            platform: "LINKEDIN",
+            platformId: result.id,
+            publishedAt: new Date(),
+            userId: req.user?.id || 1, // Default to user ID 1 if not authenticated
+          },
+        });
+      }
+
+      return res.status(200).json({
+        message: "Post published successfully to LinkedIn",
+        postId: result.id,
+      });
+    } catch (error) {
+      console.error("Error publishing LinkedIn post:", error);
+      return res
+        .status(500)
+        .json({ message: "Failed to publish LinkedIn post" });
     }
   }
 

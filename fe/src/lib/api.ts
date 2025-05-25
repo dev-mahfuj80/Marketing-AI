@@ -121,82 +121,41 @@ export const linkedinApi = {
     }
   },
 
-  // Handle OAuth callback - typically called by the callback page
-  handleCallback: async (code: string, state: string) => {
-    try {
-      console.log("Processing LinkedIn OAuth callback...");
-      return await api.get(
-        `/api/linkedin/callback?code=${encodeURIComponent(
-          code
-        )}&state=${encodeURIComponent(state)}`
-      );
-    } catch (error) {
-      console.error("Error processing LinkedIn OAuth callback:", error);
-      throw error;
-    }
-  },
-
-  // Check LinkedIn connection status
-  checkStatus: async () => {
-    console.log("Checking LinkedIn connection status...");
-    return api.get("/api/linkedin/status");
-  },
-
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
-    console.log("Fetching LinkedIn profile information...");
+    console.log("Getting LinkedIn profile info...");
     try {
       return await api.get("/api/linkedin/profile");
     } catch (error) {
-      console.error("Error fetching LinkedIn profile:", error);
+      console.error("Error getting LinkedIn profile info:", error);
       throw error;
     }
   },
 
-  // Disconnect LinkedIn account
-  disconnect: async () => {
-    console.log("Disconnecting LinkedIn account...");
+  
+  // Get LinkedIn posts directly from page using access token - no auth required
+  getPagePosts: async (limit = 10) => {
+    console.log("Fetching LinkedIn page posts with access token...");
     try {
-      return await api.post("/api/linkedin/disconnect");
+      return await api.get("/api/social/linkedin/page/posts", {
+        params: { limit },
+      });
     } catch (error) {
-      console.error("Error disconnecting LinkedIn account:", error);
+      console.error("Error fetching LinkedIn page posts:", error);
       throw error;
     }
   },
-
-  // Refresh LinkedIn access token
-  refreshToken: async () => {
-    console.log("Refreshing LinkedIn token...");
+  
+  // Publish a post to LinkedIn using page access token
+  publishPagePost: async (message: string, link?: string) => {
+    console.log("Publishing LinkedIn post with access token...");
     try {
-      return await api.post("/api/linkedin/refresh-token");
+      return await api.post("/api/social/linkedin/page/publish", {
+        message,
+        link,
+      });
     } catch (error) {
-      console.error("Error refreshing LinkedIn token:", error);
-      throw error;
-    }
-  },
-
-  // Get LinkedIn posts with better error handling
-  getPosts: async (limit = 10) => {
-    console.log(`Fetching LinkedIn posts with limit: ${limit}`);
-    try {
-      return await api.get(`/api/linkedin/posts?limit=${limit}`);
-    } catch (error) {
-      console.error("Error fetching LinkedIn posts:", error);
-      throw error;
-    }
-  },
-
-  // Publish a post to LinkedIn
-  publishPost: async (content: string, imageUrl?: string, link?: string) => {
-    console.log("Publishing LinkedIn post:", {
-      content,
-      hasImage: !!imageUrl,
-      hasLink: !!link,
-    });
-    try {
-      return await api.post("/api/linkedin/posts", { content, imageUrl, link });
-    } catch (error) {
-      console.error("Error publishing LinkedIn post:", error);
+      console.error("Error publishing LinkedIn post with access token:", error);
       throw error;
     }
   },

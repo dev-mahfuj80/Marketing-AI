@@ -52,7 +52,7 @@ app.use(
         "https://marketing-ai-omega.vercel.app",
         // Local development URLs
         "http://localhost:3000",
-        "http://127.0.0.1:51883",
+        "http://127.0.0.1:61389",
         "http://127.0.0.1:3001",
         "http://localhost:5173", // Vite default
       ];

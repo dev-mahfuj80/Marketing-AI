@@ -73,7 +73,6 @@ export default function DashboardPage() {
     try {
       // Get Facebook posts using the direct page token from backend
       const fbResponse = await postsApi.getFacebookPosts();
-      console.log("Facebook posts response:", fbResponse.data);
       
       // Check if the response has posts in the expected format
       let posts: Post[] = [];
@@ -87,16 +86,8 @@ export default function DashboardPage() {
         // If neither format is present, use the raw data
         posts = Array.isArray(fbResponse.data) ? fbResponse.data : [];
       }
-      
       // Process posts to ensure image fields are properly handled
       const processedPosts = posts.map(post => {
-        // Log each post to debug image fields
-        console.log(`Processing post ${post.id} with image fields:`, {
-          full_picture: post.full_picture,
-          picture: post.picture,
-          imageUrl: post.imageUrl
-        });
-        
         return {
           ...post,
           // Ensure we have at least one image field populated
@@ -161,44 +152,42 @@ export default function DashboardPage() {
     }
   }, []);
   
-  // LinkedIn posts fetching function wrapped in useCallback to prevent unnecessary re-renders
+  // LinkedIn posts fetching function wrapped in useCallback
   const fetchLinkedInPosts = useCallback(async () => {
     setIsLinkedInLoading(true);
     try {
-      // Get LinkedIn posts using direct client credentials from backend
-      const response = await postsApi.getLinkedinPosts();
-      console.log("LinkedIn posts response:", response.data);
-      
-      setLinkedinPosts(Array.isArray(response.data) ? response.data : []);
-      setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
-      
-      // Always try to fetch profile info to display user name
-      fetchLinkedInProfile();
+      // First try the direct access token method (like Facebook)
+      try {
+        const response = await linkedinApi.getPagePosts();
+        // console.log("LinkedIn page posts response:", response.data);
+        setLinkedinPosts(response.data.posts || []);
+        setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
+        return; // If successful, we're done
+      } catch (directError) {
+        console.log("Direct LinkedIn access token failed, trying OAuth method...", directError);
+        // Fall through to the OAuth method
+      }
       
     } catch (error) {
-      const linkedInError = error as ApiError;
-      console.error("Error fetching LinkedIn posts:", linkedInError);
+      const liError = error as ApiError;
+      console.error("Error fetching LinkedIn posts:", liError);
       setLinkedinPosts([]);
-
-      // Check if the error is related to permissions
-      const isPermissionError =
-        linkedInError.message?.includes("permission") ||
-        linkedInError.response?.status === 403;
-        
-      if (isPermissionError) {
-        // If we have permission errors, still try to get the profile info
-        console.log("LinkedIn permission error, trying to fetch profile info instead");
+      
+      // Special handling for limited permissions (no posts access)
+      if (
+        liError.response?.data?.limitedPermissions ||
+        liError.message?.includes("insufficient scope") ||
+        liError.response?.status === 403
+      ) {
         setConnectionStatus((prev) => ({
-          ...prev, 
+          ...prev,
           linkedin: true,
-          linkedinPermissionsError: false,
           linkedinLimitedPermissions: true,
         }));
         
-        // Try to get the profile info instead
+        // If we have limited permissions, try to fetch profile info instead
         fetchLinkedInProfile();
       } else {
-        // General connection error
         setConnectionStatus((prev) => ({
           ...prev,
           linkedin: false,
@@ -247,9 +236,8 @@ export default function DashboardPage() {
 
       // Check LinkedIn connection status using our API service
       try {
-        const liResponse = await linkedinApi.checkStatus();
+        const liResponse = await linkedinApi.getProfileInfo();
         const liData = liResponse.data;
-        console.log("LinkedIn connection data:", liData);
 
         setConnectionStatus((prev) => ({
           ...prev,
