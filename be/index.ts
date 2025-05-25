@@ -21,10 +21,7 @@ try {
     (m) => m.default
   );
 
-  var postsRoutes = await import("./src/routes/posts.routes.js").then(
-    (m) => m.default
-  );
-  var facebookRoutes = await import("./src/routes/facebook.routes.js").then(
+  var socialMediaRoutes = await import("./src/routes/social-media.routes.js").then(
     (m) => m.default
   );
   console.log("Routes imported successfully");
@@ -55,6 +52,7 @@ app.use(
         "https://marketing-ai-omega.vercel.app",
         // Local development URLs
         "http://localhost:3000",
+        "http://127.0.0.1:51883",
         "http://127.0.0.1:3001",
         "http://localhost:5173", // Vite default
       ];
@@ -81,8 +79,7 @@ app.use(
 
 // API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/posts", postsRoutes);
-app.use("/api/facebook", facebookRoutes);
+app.use("/api/social", socialMediaRoutes);
 
 app.get("/", (req, res) => {
   res

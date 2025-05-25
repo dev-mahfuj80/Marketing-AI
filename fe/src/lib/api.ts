@@ -2,11 +2,17 @@ import axios from "axios";
 
 // Create an Axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
   withCredentials: true, // Important for handling cookies
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+// Log the API configuration for debugging
+console.log('API Configuration:', {
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  withCredentials: true
 });
 
 // Auth API calls
@@ -202,7 +208,9 @@ export const facebookApi = {
   checkStatus: async () => {
     console.log("Checking Facebook connection status...");
     try {
-      return await api.get("/api/facebook/status");
+      const response = await api.get("/api/social/facebook/status");
+      console.log("Facebook status response:", response.status);
+      return response;
     } catch (error) {
       console.error("Error checking Facebook status:", error);
       throw error;
@@ -236,7 +244,7 @@ export const facebookApi = {
   getPageDetails: async (pageId = "me") => {
     console.log(`Fetching Facebook page details for page ID: ${pageId}`);
     try {
-      return await api.get(`/api/facebook/pages/${pageId}`);
+      return await api.get(`/api/social/facebook/pages/${pageId}`);
     } catch (error) {
       console.error("Error fetching Facebook page details:", error);
       throw error;
@@ -250,7 +258,9 @@ export const postsApi = {
     // Using the new endpoint format that works with FACEBOOK_PAGE_ACCESS_TOKEN from .env
     console.log(`Fetching Facebook posts for page ID: ${pageId}`);
     try {
-      return await api.get(`/api/facebook/pages/${pageId}/posts`);
+      const response = await api.get(`/api/social/facebook/pages/${pageId}/posts`);
+      console.log('Raw Facebook API response:', response.data);
+      return response;
     } catch (error) {
       console.error("Error fetching Facebook posts:", error);
       throw error;
@@ -272,7 +282,7 @@ export const postsApi = {
         formData.append("image", image);
 
         return await api.post(
-          `/api/facebook/pages/${pageId}/publish`,
+          `/api/social/facebook/pages/${pageId}/publish`,
           formData,
           {
             headers: {
@@ -282,7 +292,7 @@ export const postsApi = {
         );
       } else {
         // No image, just send a regular JSON request
-        return await api.post(`/api/facebook/pages/${pageId}/publish`, {
+        return await api.post(`/api/social/facebook/pages/${pageId}/publish`, {
           message: content,
         });
       }
@@ -302,11 +312,11 @@ export const postsApi = {
   },
 
   getLinkedinPosts: async () => {
-    return api.get("/api/linkedin/posts");
+    return api.get("/api/social/linkedin/posts");
   },
 
   createLinkedinPost: async (content: string, imageUrl?: string) => {
-    return api.post("/api/linkedin/posts", { content, imageUrl });
+    return api.post("/api/social/linkedin/posts", { content, imageUrl });
   },
 
   // Generic post creation function
@@ -337,7 +347,7 @@ export const postsApi = {
 
     // If no platform specified or other platform, use the generic endpoint
     console.warn("Using generic post endpoint");
-    return api.post("/api/posts/publish", formData, {
+    return api.post("/api/social/posts", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

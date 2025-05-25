@@ -14,13 +14,14 @@ interface Post {
   likes?: number;
   comments?: number;
   shares?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
 
   // Facebook specific fields
   message?: string;
   created_time?: string;
   permalink_url?: string;
-  full_picture?: string;
+  full_picture?: string | null;
+  picture?: string | null;
 }
 
 interface PostsContainerProps {
@@ -224,17 +225,25 @@ export function PostsContainer({
                 {post.content || post.message || "No content"}
               </p>
 
-              {(post.imageUrl || post.full_picture) && (
+              {(post.imageUrl || post.full_picture || post.picture) && (
                 <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
                   <div
                     style={{
                       backgroundImage: `url(${
-                        post.imageUrl || post.full_picture
+                        post.imageUrl || post.full_picture || post.picture || ''
                       })`,
                     }}
                     className="absolute inset-0 bg-cover bg-center"
                     role="img"
                     aria-label="Post image"
+                    onClick={() => {
+                      // Log which image field is being used
+                      console.log('Image displayed from field:', 
+                        post.imageUrl ? 'imageUrl' : 
+                        post.full_picture ? 'full_picture' : 
+                        'picture'
+                      );
+                    }}
                   />
                 </div>
               )}

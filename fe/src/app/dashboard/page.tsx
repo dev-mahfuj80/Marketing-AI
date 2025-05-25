@@ -33,13 +33,14 @@ interface Post {
   likes?: number;
   comments?: number;
   shares?: number;
-  imageUrl?: string;
+  imageUrl?: string | null;
 
   // Facebook specific fields
   message?: string;
   created_time?: string;
   permalink_url?: string;
-  full_picture?: string;
+  full_picture?: string | null;
+  picture?: string | null;
 }
 
 export default function DashboardPage() {
@@ -73,7 +74,37 @@ export default function DashboardPage() {
       // Get Facebook posts using the direct page token from backend
       const fbResponse = await postsApi.getFacebookPosts();
       console.log("Facebook posts response:", fbResponse.data);
-      setFacebookPosts(fbResponse.data.data || []);
+      
+      // Check if the response has posts in the expected format
+      let posts: Post[] = [];
+      
+      if (fbResponse.data.posts) {
+        posts = fbResponse.data.posts || [];
+      } else if (fbResponse.data.data) {
+        // Handle old response format
+        posts = fbResponse.data.data || [];
+      } else {
+        // If neither format is present, use the raw data
+        posts = Array.isArray(fbResponse.data) ? fbResponse.data : [];
+      }
+      
+      // Process posts to ensure image fields are properly handled
+      const processedPosts = posts.map(post => {
+        // Log each post to debug image fields
+        console.log(`Processing post ${post.id} with image fields:`, {
+          full_picture: post.full_picture,
+          picture: post.picture,
+          imageUrl: post.imageUrl
+        });
+        
+        return {
+          ...post,
+          // Ensure we have at least one image field populated
+          imageUrl: post.imageUrl || post.full_picture || post.picture || null
+        };
+      });
+      
+      setFacebookPosts(processedPosts);
       setConnectionStatus((prev) => ({ ...prev, facebook: true }));
     } catch (error) {
       const fbError = error as ApiError;

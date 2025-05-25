@@ -20,12 +20,24 @@ export class FacebookService {
         {
           params: {
             fields:
-              "id,message,created_time,attachments,permalink_url,full_picture",
+              "id,message,created_time,attachments,permalink_url,full_picture,picture",
             limit,
             access_token: pageAccessToken,
           },
         }
       );
+      
+      // Process the response to ensure images are properly included
+      if (response.data && response.data.data) {
+        response.data.data = response.data.data.map((post: any) => {
+          // Make sure full_picture is included
+          if (!post.full_picture && post.picture) {
+            post.full_picture = post.picture;
+          }
+          return post;
+        });
+      }
+      
       return response.data;
     } catch (error) {
       console.error("Error fetching Facebook page posts:", error);
