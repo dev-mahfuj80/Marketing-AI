@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import axios from "axios";
 import { env } from "../config/env.js";
@@ -30,6 +30,7 @@ const uploadAsync = util.promisify(uploadMiddleware);
 export class SocialMediaController {
 
   // ===================================================================== FACEBOOK =====================================================================
+  // Check Facebook status
   async checkFacebookStatus(req: Request, res: Response) {
     try {
       // First check if Facebook credentials are configured
@@ -182,109 +183,8 @@ export class SocialMediaController {
     }
   }
 
-
+  // Get Facebook page posts
   async getFacebookPosts(req: Request, res: Response) {
-    try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      // Get user with Facebook token
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-      });
-
-      if (!user?.facebookToken) {
-        return res
-          .status(400)
-          .json({ message: "Facebook account not connected" });
-      }
-
-      // Check if token has expired
-      if (user.facebookTokenExpiry && user.facebookTokenExpiry < new Date()) {
-        return res.status(401).json({
-          message: "Facebook token expired, please reconnect your account",
-        });
-      }
-
-      // Get Facebook Pages
-      const pagesResponse = await axios.get(
-        "https://graph.facebook.com/v18.0/me/accounts",
-        {
-          params: {
-            access_token: user.facebookToken,
-            fields: "id,name,access_token",
-          },
-        }
-      );
-
-      const pages = pagesResponse.data.data || [];
-
-      if (pages.length === 0) {
-        return res.status(404).json({ message: "No Facebook pages found" });
-      }
-
-      // Use the first page's access token (can be enhanced to allow page selection)
-      const pageAccessToken = pages[0].access_token;
-      const pageId = pages[0].id;
-
-      // Get posts from the page
-      const postsResponse = await axios.get(
-        `https://graph.facebook.com/v18.0/${pageId}/posts`,
-        {
-          params: {
-            access_token: pageAccessToken,
-            fields:
-              "id,message,created_time,permalink_url,attachments{type,url},full_picture,picture,insights.metric(post_impressions,post_reactions_by_type_total)",
-            limit: 10,
-          },
-        }
-      );
-
-      const posts = postsResponse.data.data || [];
-
-      // Transform posts to our format
-      const formattedPosts = posts.map((post: any) => {
-        const engagement = {
-          impressions: post.insights?.data?.[0]?.values?.[0]?.value || 0,
-          reactions: 0,
-        };
-
-        if (post.insights?.data?.[1]?.values?.[0]?.value) {
-          const reactions = post.insights.data[1].values[0].value;
-          // Type assertion to fix the reduce function
-          engagement.reactions = Object.values(
-            reactions as Record<string, number>
-          ).reduce((a: number, b: number) => a + b, 0);
-        }
-        return {
-          id: post.id,
-          platformId: post.id,
-          platform: "FACEBOOK",
-          content: post.message || "",
-          mediaUrl: post.attachments?.data?.[0]?.url || null,
-          full_picture: post.full_picture || null,
-          picture: post.picture || null,
-          publishedAt: new Date(post.created_time),
-          url: post.permalink_url,
-          engagement,
-        };
-      });
-
-      return res.status(200).json({ posts: formattedPosts });
-    } catch (error: any) {
-      console.error(
-        "Error fetching Facebook posts:",
-        error.response?.data || error.message
-      );
-      return res.status(500).json({
-        message: "Error fetching Facebook posts",
-        error: error.response?.data?.error?.message || error.message,
-      });
-    }
-  }
-
-  async getPagePosts(req: Request, res: Response) {
     try {
       const { limit = 10 } = req.query;
 
@@ -344,6 +244,7 @@ export class SocialMediaController {
     }
   }
 
+  // Publish Facebook page post
   async publishPagePost(req: MulterRequest, res: Response) {
     try {
       // Default to the page ID in the environment or use the one from the request
@@ -431,6 +332,20 @@ export class SocialMediaController {
   }
 
  // ===================================================================== LINKEDIN =====================================================================
+
+  // Get LinkedIn profile 
+  async getLinkedInProfile(req: Request, res: Response) {
+    try {
+      const linkedInService = new LinkedInService();
+      const profileInfo = await linkedInService.getProfileInfo(env.LINKEDIN_ACCESS_TOKEN);
+      return res.status(200).json({ profileInfo });
+    } catch (error) {
+      console.error("Error fetching LinkedIn profile:", error);
+      return res.status(500).json({ message: "Failed to fetch LinkedIn profile" });
+    }
+  }
+ 
+  // Check LinkedIn status
   async checkLinkedInStatus(req: Request, res: Response) {
     try {
       // First check if LinkedIn credentials are configured
@@ -491,7 +406,7 @@ export class SocialMediaController {
     }
   }
 
-
+  // Get LinkedIn page posts
   async getLinkedInPagePosts(req: Request, res: Response) {
     try {
       const { limit = 10 } = req.query;
@@ -578,7 +493,7 @@ export class SocialMediaController {
       });
     }
   }
-
+// Publish LinkedIn post
   async publishLinkedInPost(req: MulterRequest, res: Response) {
     try {
       // Process file upload if present - do this BEFORE we try to access body

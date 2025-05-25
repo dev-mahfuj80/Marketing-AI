@@ -25,6 +25,7 @@ export class LinkedInService {
 
   async getPosts(accessToken: string, limit = 10) {
     try {
+      console.log("Fetching LinkedIn posts...");
       const exactUrl = `https://api.linkedin.com/v2/shares?owners=urn:li:organization:102063139&q=owners&start=10&count=10`;
       
       const response = await axios.get(exactUrl, {
@@ -33,7 +34,7 @@ export class LinkedInService {
           Authorization: `Bearer ${accessToken}`,
         }
       });
-      
+      console.log("LinkedIn posts response:", response.data);
       if (response.data && response.data.elements && response.data.elements.length > 0) {
         return response.data;
       } else {

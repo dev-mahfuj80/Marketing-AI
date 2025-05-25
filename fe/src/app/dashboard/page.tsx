@@ -144,6 +144,7 @@ export default function DashboardPage() {
   
   // LinkedIn posts fetching function wrapped in useCallback
   const fetchLinkedInPosts = useCallback(async () => {
+    console.log("Fetching LinkedIn posts...");
     setIsLinkedInLoading(true);
     try {
       // First try the direct access token method (like Facebook)
