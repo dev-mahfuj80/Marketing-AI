@@ -7,12 +7,6 @@ import FormData from "form-data";
 export class FacebookService {
   private apiVersion = "v19.0"; // Current Facebook Graph API version
 
-  /**
-   * Get page posts using page access token
-   * @param pageId ID of the Facebook page
-   * @param pageAccessToken Access token for the page
-   * @param limit Number of posts to retrieve
-   */
   async getPagePosts(pageId: string, pageAccessToken: string, limit = 10) {
     try {
       const response = await axios.get(
@@ -45,14 +39,6 @@ export class FacebookService {
     }
   }
 
-  /**
-   * Publish a post to a Facebook page
-   * @param pageId ID of the Facebook page
-   * @param pageAccessToken Access token for the page
-   * @param message Message content for the post
-   * @param link Optional link to include in the post
-   * @param imageBuffer Optional image buffer to upload with the post
-   */
   async publishPagePost(
     pageId: string,
     pageAccessToken: string,
@@ -108,13 +94,6 @@ export class FacebookService {
     }
   }
 
-  /**
-   * Uploads an image to a Facebook page and returns the post ID
-   * @param pageId ID of the Facebook page
-   * @param pageAccessToken Access token for the page
-   * @param imageUrl Public URL of the image to upload
-   * @param message Optional caption for the image
-   */
   async uploadPhotoToPage(
     pageId: string,
     pageAccessToken: string,

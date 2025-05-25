@@ -1,14 +1,10 @@
 import axios from "axios";
 
-/**
- * LinkedIn Service - handles LinkedIn API interactions
- */
+
 export class LinkedInService {
   private apiVersion: string = "v2";
 
-  /**
-   * Check LinkedIn access token validity
-   */
+ 
   async checkAccessToken(accessToken: string) {
     try {
       const response = await axios.get(
@@ -27,22 +23,11 @@ export class LinkedInService {
     }
   }
 
-  /**
-   * Get user's LinkedIn posts
-   */
   async getPosts(accessToken: string, limit = 10) {
     try {
       console.log("LinkedIn: Starting to fetch posts with token", accessToken.substring(0, 15) + "...");
       
-      // Use the exact organization ID from the working Postman URL
-      const organizationId = "102063139";
-      
-      // IMPORTANT: DO NOT use urn:li:organization: format - use exactly what works in Postman
-      // The user's working Postman URL uses owners=urn%3Ali%3Aorganization%3A102063139
-      // So we'll construct the exact same URL without any modifications
       const exactUrl = `https://api.linkedin.com/${this.apiVersion}/shares?count=${limit}&owners=urn%3Ali%3Aorganization%3A102063139&q=owners&start=10`;
-      
-      console.log("LinkedIn: Using exact Postman URL format:", exactUrl);
       
       const response = await axios.get(exactUrl, {
         headers: {
@@ -50,8 +35,6 @@ export class LinkedInService {
           "X-Restli-Protocol-Version": "2.0.0"
         }
       });
-      
-      console.log("LinkedIn: API response status:", response.status);
       
       if (response.data && response.data.elements && response.data.elements.length > 0) {
         console.log(`LinkedIn: Found ${response.data.elements.length} posts`);
@@ -74,9 +57,6 @@ export class LinkedInService {
     }
   }
 
-  /**
-   * Publish a post to LinkedIn
-   */
   async publishPost(accessToken: string, text: string, imageUrl?: string, articleUrl?: string) {
     try {
       console.log("LinkedIn: Publishing post");
@@ -157,9 +137,6 @@ export class LinkedInService {
     }
   }
 
-  /**
-   * Get basic profile information
-   */
   async getProfileInfo(accessToken: string) {
     try {
       const response = await axios.get(
