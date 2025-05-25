@@ -3,8 +3,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState, useCallback } from "react";
 import { postsApi, linkedinApi, facebookApi } from "@/lib/api";
-import { LinkedInPermissions } from "@/components/linkedin/LinkedInPermissions";
-import { FacebookPermissions } from "@/components/facebook/FacebookPermissions";
 import { PostsContainer } from "@/components/posts/PostsContainer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -55,9 +53,6 @@ export default function DashboardPage() {
   const [connectionStatus, setConnectionStatus] = useState({
     facebook: false,
     linkedin: false,
-    facebookPermissionsError: false,
-    linkedinPermissionsError: false,
-    linkedinLimitedPermissions: false,
   });
 
   // Store LinkedIn profile info if posts can't be accessed
@@ -104,10 +99,6 @@ export default function DashboardPage() {
       setConnectionStatus((prev) => ({
         ...prev,
         facebook: false,
-        facebookPermissionsError:
-          fbError.message?.includes("permission") ||
-          fbError.response?.data?.error?.includes("permission") ||
-          false,
       }));
     } finally {
       setIsFacebookLoading(false);
@@ -181,7 +172,6 @@ export default function DashboardPage() {
         setConnectionStatus((prev) => ({
           ...prev,
           linkedin: true,
-          linkedinLimitedPermissions: true,
         }));
         
         // If we have limited permissions, try to fetch profile info instead
@@ -190,7 +180,6 @@ export default function DashboardPage() {
         setConnectionStatus((prev) => ({
           ...prev,
           linkedin: false,
-          linkedinPermissionsError: true,
         }));
       }
     } finally {
@@ -216,12 +205,6 @@ export default function DashboardPage() {
         setConnectionStatus((prev) => ({
           ...prev,
           facebook: fbData.connected || false,
-          facebookPermissionsError:
-            (fbData.connected &&
-              fbData.permissions?.some(
-                (p: { status: string }) => p.status === "missing"
-              )) ||
-            false,
         }));
       } catch (fbError) {
         console.error("Error checking Facebook connection:", fbError);
@@ -240,12 +223,6 @@ export default function DashboardPage() {
         setConnectionStatus((prev) => ({
           ...prev,
           linkedin: liData.connected || false,
-          linkedinPermissionsError:
-            (liData.connected &&
-              liData.permissions?.some(
-                (p: { status: string }) => p.status === "missing"
-              )) ||
-            false,
         }));
       } catch (liError) {
         console.error("Error checking LinkedIn connection:", liError);
@@ -312,12 +289,6 @@ export default function DashboardPage() {
           </div>
         ) : (
           <TabsContent value="facebook">
-            {connectionStatus.facebookPermissionsError && (
-              <div className="mb-4">
-                <FacebookPermissions showCompact={true} />
-              </div>
-            )}
-
             {!connectionStatus.facebook ? (
               <Card className="p-6 text-center">
                 <h3 className="text-lg font-medium mb-4">
@@ -333,7 +304,7 @@ export default function DashboardPage() {
                   </div>
                 </Button>
               </Card>
-            ) : !connectionStatus.facebookPermissionsError ? (
+            ) : (
               <PostsContainer
                 platform="facebook"
                 posts={facebookPosts}
@@ -341,7 +312,7 @@ export default function DashboardPage() {
                 onRefresh={fetchFacebookPosts}
                 emptyMessage="No Facebook posts found"
               />
-            ) : null}
+            )}
           </TabsContent>
         )}
         {isLinkedInLoading || isLoading ? (
@@ -350,12 +321,6 @@ export default function DashboardPage() {
           </div>
         ) : (
           <TabsContent value="linkedin">
-            {connectionStatus.linkedinPermissionsError && (
-              <div className="mb-4">
-                <LinkedInPermissions showCompact={true} />
-              </div>
-            )}
-
             {!connectionStatus.linkedin ? (
               <Card className="p-6 text-center">
                 <h3 className="text-lg font-medium mb-4">
@@ -396,7 +361,7 @@ export default function DashboardPage() {
                   )}
                 </Button>
               </Card>
-            ) : connectionStatus.linkedinLimitedPermissions ? (
+            ) : connectionStatus.linkedin ? (
               <PostsContainer
                 platform="linkedin"
                 posts={[]}
@@ -404,9 +369,9 @@ export default function DashboardPage() {
                 onRefresh={fetchLinkedInProfile}
                 emptyMessage="LinkedIn profile information"
                 limitedPermissions={true}
-                profileInfo={linkedinProfile}
+                profileInfo={linkedinProfile} 
               />
-            ) : !connectionStatus.linkedinPermissionsError ? (
+            ) : (
               <PostsContainer
                 platform="linkedin"
                 posts={linkedinPosts}
@@ -414,7 +379,7 @@ export default function DashboardPage() {
                 onRefresh={fetchLinkedInPosts}
                 emptyMessage="No LinkedIn posts found"
               />
-            ) : null}
+            )}
           </TabsContent>
         )}
       </Tabs>
