@@ -1,44 +1,38 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-  // Add this line for Vercel deployments
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
   relationMode = "prisma"
 }
 
 model User {
-  id                Int       @id @default(autoincrement()) @map("id")
-  name              String
-  email             String    @unique
-  password          String?
-  avatar            String?   // Profile picture URL
-  role              Role      @default(USER)
-  emailVerified     Boolean   @default(false)
-  resetPasswordToken String?   @unique
+  id                   Int            @id @default(autoincrement()) @map("id")
+  name                 String
+  email                String         @unique
+  password             String?
+  avatar               String?
+  role                 Role           @default(USER)
+  emailVerified        Boolean        @default(false)
+  resetPasswordToken   String?        @unique
   resetPasswordExpires DateTime?
-  
-  // Social media tokens
-  facebookToken        String?   // Facebook access token
+  facebookToken        String?
   facebookTokenExpiry  DateTime?
-  linkedInToken        String?   // LinkedIn access token (legacy)
-  linkedInTokenExpiry  DateTime? // LinkedIn token expiry (legacy)
-  linkedInAccessToken  String?   // LinkedIn OAuth access token
-  linkedInRefreshToken String?   // LinkedIn OAuth refresh token
-  linkedInId           String?   // LinkedIn user ID
-  linkedInExpiresAt    DateTime? // When the LinkedIn token expires
-  
-  // Relationships
-  posts             Post[]    // User's social media posts
-  refreshTokens     RefreshToken[]
-  
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
-  
+  linkedInToken        String?
+  linkedInTokenExpiry  DateTime?
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @default(now()) @updatedAt @map("updated_at")
+  linkedInAccessToken  String?
+  linkedInExpiresAt    DateTime?
+  linkedInId           String?
+  linkedInRefreshToken String?
+  posts                Post[]
+  refreshTokens        RefreshToken[]
+
   @@map("users")
 }
 
@@ -46,31 +40,28 @@ model RefreshToken {
   id        String   @id @default(uuid()) @map("id")
   token     String   @unique
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now()) @map("created_at")
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@map("refresh_tokens")
 }
 
 model Post {
-  id            Int       @id @default(autoincrement()) @map("id")
-  content       String
-  mediaUrl      String?
-  platformId    String?   // ID of the post on social platform
-  platform      Platform  // Facebook, LinkedIn, etc.
-  publishedAt   DateTime?
-  status        PostStatus @default(DRAFT)
-  engagement    Json?     // Likes, comments, shares as JSON
-  
-  // Relations
-  userId        Int
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
-  
+  id          Int        @id @default(autoincrement()) @map("id")
+  content     String
+  mediaUrl    String?
+  platformId  String?
+  platform    Platform
+  publishedAt DateTime?
+  status      PostStatus @default(DRAFT)
+  engagement  Json?
+  userId      Int
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([platform, publishedAt])
   @@map("posts")
