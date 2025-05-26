@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Create an Axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
   withCredentials: true, // Important for handling cookies
   headers: {
     "Content-Type": "application/json",
@@ -10,9 +10,9 @@ const api = axios.create({
 });
 
 // Log the API configuration for debugging
-console.log('API Configuration:', {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
-  withCredentials: true
+console.log("API Configuration:", {
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
+  withCredentials: true,
 });
 
 // Auth API calls
@@ -95,15 +95,10 @@ export const authApi = {
       throw error;
     }
   },
-
-  // Social media API functionality
-  // Note: OAuth login functionality has been removed
-  // Now using direct API keys from environment variables
 };
 
 // LinkedIn API specific calls
 export const linkedinApi = {
-
   // Get LinkedIn user profile information - available even with limited permissions
   getProfileInfo: async () => {
     try {
@@ -114,7 +109,6 @@ export const linkedinApi = {
     }
   },
 
-  
   // Get LinkedIn posts directly from page using access token - no auth required
   getPagePosts: async (limit = 10) => {
     try {
@@ -122,19 +116,6 @@ export const linkedinApi = {
         params: { limit },
       });
     } catch (error) {
-      throw error;
-    }
-  },
-
-  // Publish a post to LinkedIn using page access token
-  publishPagePost: async (message: string, link?: string) => {
-    try {
-      return await api.post("/api/social/linkedin/page/publish", {
-        message,
-        link,
-      });
-    } catch (error) {
-      console.error("Error publishing LinkedIn post with access token:", error);
       throw error;
     }
   },
@@ -167,7 +148,9 @@ export const facebookApi = {
 export const postsApi = {
   getFacebookPosts: async (pageId: string = "me") => {
     try {
-      const response = await api.get(`/api/social/facebook/pages/${pageId}/posts`);
+      const response = await api.get(
+        `/api/social/facebook/pages/${pageId}/posts`
+      );
       return response;
     } catch (error) {
       throw error;
@@ -214,10 +197,6 @@ export const postsApi = {
       }
       throw error;
     }
-  },
-
-  getLinkedinPosts: async () => {
-    return api.get("/api/social/linkedin/posts");
   },
 
   createLinkedinPost: async (content: string, imageUrl?: string) => {

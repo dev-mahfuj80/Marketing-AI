@@ -1,19 +1,3 @@
-// Using JSDoc comments instead of @ts-nocheck to fix type issues
-/**
- * @typedef {Object} User
- * @property {string} id - User ID
- * @property {string} email - User email
- * @property {string} name - User name
- */
-
-/**
- * @typedef {Object} AuthState
- * @property {User|null} user - Current user
- * @property {boolean} isAuthenticated - Authentication status
- * @property {boolean} isLoading - Loading status
- * @property {string|null} error - Error message
- */
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authApi } from "../api";
