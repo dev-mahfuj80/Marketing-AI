@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import api from "../api";
+import { facebookApi, linkedinApi } from "../api";
 
 interface SocialPost {
   id: string;
@@ -43,10 +43,14 @@ interface SocialState {
   };
 
   // functions
-  getFacebookPosts: () => Promise<void>;
-  getLinkedInPosts: () => Promise<void>;
-  getFacebookProfile: () => Promise<void>;
-  getLinkedInProfile: () => Promise<void>;
+  getFacebookPosts: (
+    pageId: string,
+    start: number,
+    count: number
+  ) => Promise<void>;
+  getLinkedInPosts: (start: number, count: number) => Promise<void>;
+  getFacebookProfile: (pageId: string) => Promise<void>;
+  getLinkedInProfile: (pageId: string) => Promise<void>;
 }
 
 export const useSocialStore = create<SocialState>()(
@@ -65,11 +69,16 @@ export const useSocialStore = create<SocialState>()(
       facebookProfile: {},
 
       // functions
-      getFacebookPosts: async () => {
+      getFacebookPosts: async (pageId = "me", start = 0, count = 10) => {
         set({ loading: true });
         try {
-          const response = await fetch("/api/facebook/posts");
-          const data = await response.json();
+          const response = await facebookApi.getFacebookPosts(
+            pageId,
+            Number(start),
+            Number(count)
+          );
+          console.log("Facebook posts response from social store:", response);
+          const data = await response.data;
           set({ facebookPosts: data.posts || [] });
         } catch (error) {
           console.error("Error fetching Facebook posts:", error);
@@ -79,10 +88,11 @@ export const useSocialStore = create<SocialState>()(
         }
       },
 
-      getLinkedInPosts: async () => {
+      getLinkedInPosts: async (start = 0, count = 10) => {
         set({ loading: true });
         try {
-          const response = await api.get("/api/linkedin/posts");
+          const response = await linkedinApi.getPagePosts(start, count);
+          console.log("LinkedIn posts response from social store:", response);
           const data = await response.data;
           set({ linkedinPosts: data.posts || [] });
         } catch (error) {

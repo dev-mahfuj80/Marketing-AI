@@ -110,12 +110,13 @@ export const linkedinApi = {
   },
 
   // Get LinkedIn posts directly from page using access token - no auth required
-  getPagePosts: async (limit = 10) => {
+  getPagePosts: async (start = 0, count = 10) => {
     try {
       return await api.get("/api/social/linkedin/page/posts", {
-        params: { limit },
+        params: { start, count },
       });
     } catch (error) {
+      console.error("Error getting LinkedIn page posts:", error);
       throw error;
     }
   },
@@ -142,21 +143,24 @@ export const facebookApi = {
       throw error;
     }
   },
-};
 
-// Social Media Posts API calls
-export const postsApi = {
-  getFacebookPosts: async (pageId: string = "me") => {
+  getFacebookPosts: async (pageId: string = "me", start = 0, count = 10) => {
     try {
       const response = await api.get(
-        `/api/social/facebook/pages/${pageId}/posts`
+        `/api/social/facebook/pages/${pageId}/posts`,
+        {
+          params: { start, count },
+        }
       );
       return response;
     } catch (error) {
       throw error;
     }
   },
+};
 
+// Social Media Posts API calls
+export const postsApi = {
   createFacebookPost: async (
     content: string,
     image?: File,

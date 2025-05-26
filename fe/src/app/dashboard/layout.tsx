@@ -101,7 +101,9 @@ export default function DashboardLayout({
         {/* Desktop Sidebar */}
         <div className="hidden md:flex w-64 flex-col border-r bg-card p-4">
           <div className="flex items-center justify-center py-4 mb-8">
-            <h1 className="text-xl font-bold">Marketing AI</h1>
+            <Link href="/" className="text-xl font-bold">
+              Marketing AI
+            </Link>
           </div>
 
           <nav className="flex flex-col gap-2">
