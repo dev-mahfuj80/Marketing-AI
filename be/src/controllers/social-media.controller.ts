@@ -28,7 +28,6 @@ const uploadAsync = util.promisify(uploadMiddleware);
  * Social Media Controller - handles all social media platform interactions
  */
 export class SocialMediaController {
-
   // ===================================================================== FACEBOOK =====================================================================
   // Check Facebook status
   async checkFacebookStatus(req: Request, res: Response) {
@@ -331,20 +330,24 @@ export class SocialMediaController {
     }
   }
 
- // ===================================================================== LINKEDIN =====================================================================
+  // ===================================================================== LINKEDIN =====================================================================
 
-  // Get LinkedIn profile 
+  // Get LinkedIn profile
   async getLinkedInProfile(req: Request, res: Response) {
     try {
       const linkedInService = new LinkedInService();
-      const profileInfo = await linkedInService.getProfileInfo(env.LINKEDIN_ACCESS_TOKEN);
+      const profileInfo = await linkedInService.getProfileInfo(
+        env.LINKEDIN_ACCESS_TOKEN
+      );
       return res.status(200).json({ profileInfo });
     } catch (error) {
       console.error("Error fetching LinkedIn profile:", error);
-      return res.status(500).json({ message: "Failed to fetch LinkedIn profile" });
+      return res
+        .status(500)
+        .json({ message: "Failed to fetch LinkedIn profile" });
     }
   }
- 
+
   // Check LinkedIn status
   async checkLinkedInStatus(req: Request, res: Response) {
     try {
@@ -365,12 +368,14 @@ export class SocialMediaController {
       // Test if the access token is valid
       let tokenValid = false;
       let profileInfo = null;
-      
+
       try {
         // Check if the token is valid by making a request to the LinkedIn API
         const linkedInService = new LinkedInService();
-        const profileResponse = await linkedInService.getProfileInfo(env.LINKEDIN_ACCESS_TOKEN);
-        
+        const profileResponse = await linkedInService.getProfileInfo(
+          env.LINKEDIN_ACCESS_TOKEN
+        );
+
         if (profileResponse && profileResponse.id) {
           tokenValid = true;
           profileInfo = profileResponse;
@@ -388,7 +393,7 @@ export class SocialMediaController {
         message: tokenValid
           ? "LinkedIn connection active"
           : "LinkedIn connection inactive or invalid token",
-        permissionNote: tokenValid 
+        permissionNote: tokenValid
           ? "LinkedIn access token is valid"
           : "LinkedIn integration requires a valid access token",
         nextSteps: "Ensure your LinkedIn access token has not expired",
@@ -409,24 +414,25 @@ export class SocialMediaController {
   // Get LinkedIn page posts
   async getLinkedInPagePosts(req: Request, res: Response) {
     try {
-      const { limit = 10 } = req.query;
+      const { start = 0, count = 10 } = req.query;
 
       if (!env.LINKEDIN_ACCESS_TOKEN) {
         return res
           .status(500)
           .json({ message: "LinkedIn access token not configured" });
       }
-      
+
       // Instantiate the LinkedIn service
       const linkedInService = new LinkedInService();
-      
+
       // Get posts directly using the service
       // The service now has improved error handling and will return empty results instead of throwing
       const result = await linkedInService.getPosts(
         env.LINKEDIN_ACCESS_TOKEN,
-        Number(limit)
+        Number(start),
+        Number(count)
       );
-      
+
       // Normalize posts array
       const posts = result.elements || (Array.isArray(result) ? result : []);
 
@@ -440,13 +446,13 @@ export class SocialMediaController {
           // For /shares endpoint response
           content = post.text.text || "";
         } else if (
-          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.shareCommentary
-            ?.text
+          post.specificContent?.["com.linkedin.ugc.ShareContent"]
+            ?.shareCommentary?.text
         ) {
           // For /ugcPosts endpoint response
           content =
-            post.specificContent["com.linkedin.ugc.ShareContent"].shareCommentary
-              .text;
+            post.specificContent["com.linkedin.ugc.ShareContent"]
+              .shareCommentary.text;
         }
 
         // Handle media URL
@@ -477,7 +483,7 @@ export class SocialMediaController {
             new Date(),
           url: null, // LinkedIn API doesn't easily provide permalinks
           engagement: {
-            impressions: 0, 
+            impressions: 0,
             reactions: 0,
           },
         };
@@ -487,13 +493,14 @@ export class SocialMediaController {
     } catch (error) {
       console.error("Error fetching LinkedIn page posts:", error);
       // Always return a 200 response with empty posts array to avoid frontend errors
-      return res.status(200).json({ 
-        posts: [], 
-        error: "Failed to fetch LinkedIn posts. Please check server logs for details."
+      return res.status(200).json({
+        posts: [],
+        error:
+          "Failed to fetch LinkedIn posts. Please check server logs for details.",
       });
     }
   }
-// Publish LinkedIn post
+  // Publish LinkedIn post
   async publishLinkedInPost(req: MulterRequest, res: Response) {
     try {
       // Process file upload if present - do this BEFORE we try to access body
@@ -516,9 +523,7 @@ export class SocialMediaController {
       }
 
       if (!message) {
-        return res
-          .status(400)
-          .json({ message: "Message is required" });
+        return res.status(400).json({ message: "Message is required" });
       }
 
       if (!env.LINKEDIN_ACCESS_TOKEN) {
@@ -534,8 +539,9 @@ export class SocialMediaController {
       if (req.file) {
         // This would require uploading to a publicly accessible URL first
         // For simplicity, we'll just note that this functionality would need additional implementation
-        return res.status(400).json({ 
-          message: "Direct image uploads for LinkedIn not supported. Please provide a public image URL instead." 
+        return res.status(400).json({
+          message:
+            "Direct image uploads for LinkedIn not supported. Please provide a public image URL instead.",
         });
       } else if (link) {
         // If we have a link, use it as the article URL
@@ -608,9 +614,9 @@ export class SocialMediaController {
       );
 
       if (invalidPlatforms.length > 0) {
-        return res
-          .status(400)
-          .json({ message: `Invalid platforms: ${invalidPlatforms.join(", ")}` });
+        return res.status(400).json({
+          message: `Invalid platforms: ${invalidPlatforms.join(", ")}`,
+        });
       }
 
       // Get user

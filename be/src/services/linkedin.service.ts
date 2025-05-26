@@ -1,10 +1,8 @@
 import axios from "axios";
 
-
 export class LinkedInService {
   private apiVersion: string = "v2";
 
- 
   async checkAccessToken(accessToken: string) {
     try {
       const response = await axios.get(
@@ -12,7 +10,7 @@ export class LinkedInService {
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            "X-Restli-Protocol-Version": "2.0.0"
+            "X-Restli-Protocol-Version": "2.0.0",
           },
         }
       );
@@ -23,19 +21,22 @@ export class LinkedInService {
     }
   }
 
-  async getPosts(accessToken: string, limit = 10) {
+  async getPosts(accessToken: string, start = 0, count = 10) {
     try {
       console.log("Fetching LinkedIn posts...");
-      const exactUrl = `https://api.linkedin.com/v2/shares?owners=urn:li:organization:102063139&q=owners&start=10&count=10`;
-      
+      const exactUrl = `https://api.linkedin.com/v2/shares?owners=urn:li:organization:102063139&q=owners&start=${start}&count=${count}`;
+
       const response = await axios.get(exactUrl, {
         headers: {
           // need client id and secret also
           Authorization: `Bearer ${accessToken}`,
-        }
+        },
       });
-      console.log("LinkedIn posts response:", response.data);
-      if (response.data && response.data.elements && response.data.elements.length > 0) {
+      if (
+        response.data &&
+        response.data.elements &&
+        response.data.elements.length > 0
+      ) {
         return response.data;
       } else {
         return { elements: [] };
@@ -46,7 +47,7 @@ export class LinkedInService {
         console.error("LinkedIn API error details:", {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+          data: error.response.data,
         });
       }
       // Return an empty response instead of throwing to avoid frontend errors
@@ -54,7 +55,12 @@ export class LinkedInService {
     }
   }
 
-  async publishPost(accessToken: string, text: string, imageUrl?: string, articleUrl?: string) {
+  async publishPost(
+    accessToken: string,
+    text: string,
+    imageUrl?: string,
+    articleUrl?: string
+  ) {
     try {
       // First get the user profile to get the URN
       const profileResponse = await axios.get(
@@ -62,7 +68,7 @@ export class LinkedInService {
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            "X-Restli-Protocol-Version": "2.0.0"
+            "X-Restli-Protocol-Version": "2.0.0",
           },
         }
       );
@@ -90,10 +96,14 @@ export class LinkedInService {
       // Add media if provided
       if (imageUrl || articleUrl) {
         // Type assertion to safely access ShareContent
-        (postPayload.specificContent as any)["com.linkedin.ugc.ShareContent"].shareMediaCategory = "ARTICLE";
-        
+        (postPayload.specificContent as any)[
+          "com.linkedin.ugc.ShareContent"
+        ].shareMediaCategory = "ARTICLE";
+
         // Type assertion for ShareContent
-        (postPayload.specificContent as any)["com.linkedin.ugc.ShareContent"].media = [
+        (postPayload.specificContent as any)[
+          "com.linkedin.ugc.ShareContent"
+        ].media = [
           {
             status: "READY",
             originalUrl: articleUrl || imageUrl,
@@ -103,8 +113,11 @@ export class LinkedInService {
       }
 
       // Post to LinkedIn
-      console.log("LinkedIn: Publishing post with payload:", JSON.stringify(postPayload, null, 2));
-      
+      console.log(
+        "LinkedIn: Publishing post with payload:",
+        JSON.stringify(postPayload, null, 2)
+      );
+
       const response = await axios.post(
         `https://api.linkedin.com/${this.apiVersion}/ugcPosts`,
         postPayload,
@@ -125,7 +138,7 @@ export class LinkedInService {
         console.error("LinkedIn API error details:", {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+          data: error.response.data,
         });
       }
       throw error;
@@ -139,25 +152,29 @@ export class LinkedInService {
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            "X-Restli-Protocol-Version": "2.0.0"
+            "X-Restli-Protocol-Version": "2.0.0",
           },
         }
       );
-      
+
       // Process the response to get a simpler format
       const profile = response.data;
       const firstName = profile.firstName?.localized?.en_US || "";
       const lastName = profile.lastName?.localized?.en_US || "";
-      
+
       // Get profile picture if available
       let profilePicture = null;
-      if (profile.profilePicture && 
-          profile.profilePicture["displayImage~"] && 
-          profile.profilePicture["displayImage~"].elements && 
-          profile.profilePicture["displayImage~"].elements.length > 0) {
-        profilePicture = profile.profilePicture["displayImage~"].elements[0].identifiers[0].identifier;
+      if (
+        profile.profilePicture &&
+        profile.profilePicture["displayImage~"] &&
+        profile.profilePicture["displayImage~"].elements &&
+        profile.profilePicture["displayImage~"].elements.length > 0
+      ) {
+        profilePicture =
+          profile.profilePicture["displayImage~"].elements[0].identifiers[0]
+            .identifier;
       }
-      
+
       return {
         id: profile.id,
         name: `${firstName} ${lastName}`.trim(),
@@ -169,7 +186,7 @@ export class LinkedInService {
         console.error("LinkedIn API error details:", {
           status: error.response.status,
           statusText: error.response.statusText,
-          data: error.response.data
+          data: error.response.data,
         });
       }
       throw error;
