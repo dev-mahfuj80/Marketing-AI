@@ -1,5 +1,5 @@
 "use client";
-
+import { Toaster } from "sonner";
 import {
   createContext,
   useContext,
@@ -74,6 +74,7 @@ export function Providers({
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
+      <Toaster richColors expand={false} position="top-center" closeButton />
       {children}
     </ThemeProviderContext.Provider>
   );

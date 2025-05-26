@@ -397,9 +397,29 @@ export const getCurrentUser = async (
         role: true,
         emailVerified: true,
         facebookToken: true,
-        linkedInToken: true,
+        linkedInAccessToken: true,
         createdAt: true,
         updatedAt: true,
+        organizations: {
+          // Include organizations
+          select: {
+            id: true,
+            name: true,
+            website: true,
+            category: true,
+            location: true,
+            description: true,
+            established: true,
+            size: true,
+            employees: true,
+            turnover: true,
+            revenue: true,
+            profit: true,
+            marketArea: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 

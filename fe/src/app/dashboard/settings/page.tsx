@@ -4,21 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  User,
-  Mail,
-  Edit2,
-} from "lucide-react";
+import { User, Mail, Edit2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
-
-
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("accounts");
 
-
   // Type-safe selectors
   const user = useAuthStore((state) => state.user);
+  console.log(user);
 
   return (
     <div className="space-y-6">
@@ -59,12 +53,12 @@ export default function SettingsPage() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <h3 className="font-medium text-sm">Email Address</h3>
                       </div>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="text-muted-foreground font-semibold text-sm flex items-center gap-1">
                         {user?.email || "Loading..."}
+                        <span className="text-xs text-muted-foreground italic font-light">
+                          (Can&apos;t be changed)
+                        </span>
                       </p>
-                    </div>
-                    <div className="text-sm text-muted-foreground italic">
-                      (Cannot be changed)
                     </div>
                   </div>
                 </div>
@@ -80,7 +74,14 @@ export default function SettingsPage() {
                         {user?.name || "Loading..."}
                       </p>
                     </div>
-                    <Button variant="outline" size="sm" className="h-7">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 cursor-pointer"
+                      onClick={() => {
+                        console.log("Edit");
+                      }}
+                    >
                       <Edit2 className="h-3.5 w-3.5 mr-1" />
                       Edit
                     </Button>

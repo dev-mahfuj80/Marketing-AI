@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// Removed useAuthStore import as we're now using direct API credentials
+import { toast } from "sonner";
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -35,9 +34,6 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function CreatePostPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const router = useRouter();
 
   // Initialize react-hook-form
   const form = useForm<FormValues>({
@@ -55,14 +51,11 @@ export default function CreatePostPage() {
 
   // Handle form submission
   async function onSubmit(values: FormValues) {
-    // Reset status
-    setError("");
-    setSuccess("");
     setIsSubmitting(true);
 
     // Validate form - at least one platform must be selected
     if (!values.publishToFacebook && !values.publishToLinkedin) {
-      setError("Please select at least one platform to publish to");
+      toast.error("Please select at least one platform to publish to");
       setIsSubmitting(false);
       return;
     }
@@ -93,6 +86,7 @@ export default function CreatePostPage() {
         }
       }
 
+      // Handle post creation for LinkedIn
       if (values.publishToLinkedin) {
         try {
           // Prepare image URL for LinkedIn if provided
@@ -118,27 +112,20 @@ export default function CreatePostPage() {
       await Promise.allSettled(promises);
 
       if (successCount > 0) {
-        setSuccess(
+        toast.success(
           `Post created successfully on ${successCount} platform${
             successCount > 1 ? "s" : ""
           }!`
         );
-
-        // Reset form
         form.reset();
-
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 2000);
       } else {
-        setError("Failed to publish to any selected platforms.");
+        toast.error("Failed to publish to any selected platforms.");
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        setError(error.response.data.message || "Failed to create post");
+        toast.error(error.response.data.message || "Failed to create post");
       } else {
-        setError("An error occurred while creating the post");
+        toast.error("An error occurred while creating the post");
       }
     } finally {
       setIsSubmitting(false);
@@ -153,19 +140,6 @@ export default function CreatePostPage() {
           Create and publish content to your social media accounts
         </p>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-6">
-          {success}
-        </div>
-      )}
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField

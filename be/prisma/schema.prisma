@@ -20,18 +20,17 @@ model User {
   emailVerified        Boolean        @default(false)
   resetPasswordToken   String?        @unique
   resetPasswordExpires DateTime?
-  facebookToken        String?
+  facebookToken        String?        
   facebookTokenExpiry  DateTime?
-  linkedInToken        String?
-  linkedInTokenExpiry  DateTime?
-  createdAt            DateTime       @default(now()) @map("created_at")
-  updatedAt            DateTime       @default(now()) @updatedAt @map("updated_at")
   linkedInAccessToken  String?
   linkedInExpiresAt    DateTime?
   linkedInId           String?
   linkedInRefreshToken String?
   posts                Post[]
+  organizations        Organization[]
   refreshTokens        RefreshToken[]
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @default(now()) @updatedAt @map("updated_at")
 
   @@map("users")
 }
@@ -46,6 +45,30 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// Organization details modal take so many info so that i can give ai so ai can generate post content company basis
+model Organization {
+  id            Int        @id @default(autoincrement()) @map("id")
+  name          String
+  website       String?
+  category      String?
+  location      String?
+  description   String?
+  established   String?
+  size          String?
+  employees     String?
+  turnover      String?
+  revenue       String?
+  profit        String?
+  marketArea    String?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at")
+  userId        Int
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("organizations")
 }
 
 model Post {
