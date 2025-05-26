@@ -38,7 +38,7 @@ interface Post {
   permalink_url?: string;
   full_picture?: string | null;
   picture?: string | null;
-  
+
   // LinkedIn specific fields
   platformId?: string | number | null;
   publishedAt?: number;
@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFacebookLoading, setIsFacebookLoading] = useState(true);
   const [isLinkedInLoading, setIsLinkedInLoading] = useState(true);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("facebook");
   const [connectionStatus, setConnectionStatus] = useState({
     facebook: false,
@@ -69,17 +69,17 @@ export default function DashboardPage() {
     email?: string;
     profileImage?: string;
   }>({});
-console.log(linkedinProfile);
+  console.log(linkedinProfile);
   // Facebook posts fetching function wrapped in useCallback to prevent unnecessary re-renders
   const fetchFacebookPosts = useCallback(async () => {
     setIsFacebookLoading(true);
     try {
       // Get Facebook posts using the direct page token from backend
       const fbResponse = await postsApi.getFacebookPosts();
-      
+
       // Check if the response has posts in the expected format
       let posts: Post[] = [];
-      
+
       if (fbResponse.data.posts) {
         posts = fbResponse.data.posts || [];
       } else if (fbResponse.data.data) {
@@ -90,14 +90,14 @@ console.log(linkedinProfile);
         posts = Array.isArray(fbResponse.data) ? fbResponse.data : [];
       }
       // Process posts to ensure image fields are properly handled
-      const processedPosts = posts.map(post => {
+      const processedPosts = posts.map((post) => {
         return {
           ...post,
           // Ensure we have at least one image field populated
-          imageUrl: post.imageUrl || post.full_picture || post.picture || null
+          imageUrl: post.imageUrl || post.full_picture || post.picture || null,
         };
       });
-      
+
       setFacebookPosts(processedPosts);
       setConnectionStatus((prev) => ({ ...prev, facebook: true }));
     } catch (error) {
@@ -118,49 +118,53 @@ console.log(linkedinProfile);
     try {
       setIsProfileLoading(true);
       const response = await linkedinApi.getProfileInfo();
-      
+
       // Store the profile info, displaying LinkedIn User name when available
       setLinkedinProfile({
-        name: response.data.name || 
-              ((response.data.firstName && response.data.lastName) ? 
-              `${response.data.firstName} ${response.data.lastName}` : 
-              "LinkedIn User"),
+        name:
+          response.data.name ||
+          (response.data.firstName && response.data.lastName
+            ? `${response.data.firstName} ${response.data.lastName}`
+            : "LinkedIn User"),
         email: response.data.email || "Not available",
-        profileImage: response.data.profilePicture || undefined
+        profileImage: response.data.profilePicture || undefined,
       });
-      
+
       // Mark as connected with limited permissions if applicable
       if (response.data.limited) {
-        setConnectionStatus(prev => ({
+        setConnectionStatus((prev) => ({
           ...prev,
           linkedin: true,
-          linkedinLimitedPermissions: true
+          linkedinLimitedPermissions: true,
         }));
       }
     } catch (error) {
       console.error("Error fetching LinkedIn profile:", error);
-      
+
       // Set a default name even if there's an error
-      setLinkedinProfile(prev => ({
+      setLinkedinProfile((prev) => ({
         ...prev,
-        name: "LinkedIn User"
+        name: "LinkedIn User",
       }));
     } finally {
       setIsProfileLoading(false);
     }
   }, []);
-  
+
   // LinkedIn posts fetching function wrapped in useCallback
   const fetchLinkedInPosts = useCallback(async () => {
     setIsLinkedInLoading(true);
-      try {
-        const response = await linkedinApi.getPagePosts();
-        setLinkedinPosts(response.data.posts || []);
-        setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
-        return; 
-      } catch (directError) {
-        console.log("Direct LinkedIn access token failed, trying OAuth method...", directError);
-      }finally {
+    try {
+      const response = await linkedinApi.getPagePosts();
+      setLinkedinPosts(response.data.posts || []);
+      setConnectionStatus((prev) => ({ ...prev, linkedin: true }));
+      return;
+    } catch (directError) {
+      console.log(
+        "Direct LinkedIn access token failed, trying OAuth method...",
+        directError
+      );
+    } finally {
       setIsLinkedInLoading(false);
     }
   }, []);
@@ -242,7 +246,7 @@ console.log(linkedinProfile);
       }));
     }
   }, [searchParams]);
-console.log(linkedinPosts);
+  console.log(linkedinPosts);
   return (
     <div className="space-y-8">
       <Tabs
@@ -299,12 +303,12 @@ console.log(linkedinPosts);
           </div>
         ) : (
           <TabsContent value="linkedin">
-              <LinkedInPostsContainer
-                posts={linkedinPosts}
-                isLoading={isLinkedInLoading}
-                onRefresh={fetchLinkedInPosts}
-                emptyMessage="No LinkedIn posts found"
-              />
+            <LinkedInPostsContainer
+              posts={linkedinPosts}
+              isLoading={isLinkedInLoading}
+              onRefresh={fetchLinkedInPosts}
+              emptyMessage="No LinkedIn posts found"
+            />
           </TabsContent>
         )}
       </Tabs>
