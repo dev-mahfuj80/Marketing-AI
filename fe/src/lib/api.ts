@@ -18,21 +18,13 @@ console.log("API Configuration:", {
 // Auth API calls
 export const authApi = {
   login: async (email: string, password: string) => {
-    console.log("Attempting login with:", { email });
-
     try {
       const response = await api.post("/api/auth/login", { email, password });
-
-      console.log("Login response:", response);
-
-      // Manually set the auth token cookie if it's not being set by the server
       if (response.data.accessToken) {
         document.cookie = `auth_token=${response.data.accessToken}; path=/; max-age=604800; SameSite=Lax`;
       }
-
       return response;
     } catch (error) {
-      console.error("Login failed:", error);
       throw error;
     }
   },

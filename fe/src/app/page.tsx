@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore, AuthState } from "@/lib/store/auth-store";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { useEffect, useState, Suspense } from "react";
 import { EnhancedNavbar } from "@/components/enhanced-navbar";
 import { SiteFooter } from "@/components/site-footer";
@@ -38,25 +38,22 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const code = searchParams?.get("code");
   const state = searchParams?.get("state");
-  const error = searchParams?.get("error");
   const errorDescription = searchParams?.get("error_description");
 
   // Use individual selectors to avoid recreating objects on every render
-  const isAuthenticated = useAuthStore(
-    (state: AuthState) => state.isAuthenticated
-  );
-  const isLoading = useAuthStore((state: AuthState) => state.isLoading);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
   const [isClient, setIsClient] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Handle LinkedIn OAuth callback
   useEffect(() => {
     // Check for OAuth errors first
-    if (error) {
-      console.error("LinkedIn OAuth error:", { error, errorDescription });
+    if (errorDescription) {
+      console.error("LinkedIn OAuth error:", { errorDescription });
 
       // Handle specific LinkedIn OAuth errors
-      if (error === "unauthorized_scope_error") {
+      if (errorDescription === "unauthorized_scope_error") {
         router.push(
           "/login?error=linkedin_scope_error&message=" +
             encodeURIComponent(
@@ -66,7 +63,7 @@ function HomeContent() {
       } else {
         router.push(
           `/login?error=linkedin_auth_failed&message=${encodeURIComponent(
-            errorDescription || error
+            errorDescription
           )}`
         );
       }
@@ -126,16 +123,13 @@ function HomeContent() {
 
     // Set isClient to true after component mounts
     setIsClient(true);
-  }, [code, state, isAuthenticated, router, error, errorDescription]);
+  }, [code, state, isAuthenticated, router, errorDescription]);
 
   const handleGetStarted = async (e: React.MouseEvent) => {
     e.preventDefault();
     setIsRedirecting(true);
 
     try {
-      // Double-check authentication status before redirecting
-      // await checkAuthStatus();
-
       if (isAuthenticated) {
         router.push("/dashboard");
       } else {

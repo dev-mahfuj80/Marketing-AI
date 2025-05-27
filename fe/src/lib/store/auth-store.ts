@@ -2,26 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authApi } from "../api";
 import { AxiosError } from "axios";
-
-// Define user type
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => Promise<boolean>;
-  checkAuthStatus: () => Promise<void>;
-  resetError: () => void;
-}
-
+import { AuthState } from "@/types/auth";
 // Create auth store with simple implementation
 export const useAuthStore = create(
   persist(
@@ -133,9 +114,6 @@ export const useAuthStore = create(
           });
         }
       },
-
-      // Social connections have been removed
-      // Now using direct API key approach for social media interactions
 
       // Reset error
       resetError: () => set({ error: null }),
