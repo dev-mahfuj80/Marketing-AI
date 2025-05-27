@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { facebookApi, linkedinApi } from "../api";
 
-interface SocialPost {
+interface FacebookPost {
   id: string;
   content?: string;
   createdAt?: string;
@@ -21,12 +21,51 @@ interface SocialPost {
   url?: string;
 }
 
+interface LinkedInPost {
+  owner: string;
+  activity: string;
+  edited: boolean;
+  created: {
+    actor: string;
+    time: number;
+  };
+  text: {
+    annotations: unknown[];
+    text: string;
+  };
+  lastModified: {
+    actor: string;
+    time: number;
+  };
+  id: string;
+  distribution?: {
+    linkedInDistributionTarget: {
+      visibleToGuest: boolean;
+    };
+  };
+  content?: {
+    contentEntities: Array<{
+      description: string;
+      entityLocation?: string;
+      thumbnails?: Array<{
+        imageSpecificContent: {
+          width: number;
+          height: number;
+        };
+        resolvedUrl: string;
+      }>;
+      entity: string;
+    }>;
+    description?: string;
+    shareMediaCategory?: string;
+  };
+}
 interface SocialState {
   // states
   loading: boolean;
   error: string | null;
-  facebookPosts: SocialPost[];
-  linkedinPosts: SocialPost[];
+  facebookPosts: FacebookPost[];
+  linkedinPosts: LinkedInPost[];
   connectionStatus: {
     facebook: boolean;
     linkedin: boolean;

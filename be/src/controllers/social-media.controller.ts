@@ -279,6 +279,8 @@ export class SocialMediaController {
 
       // Normalize posts array
       const posts = result.elements || (Array.isArray(result) ? result : []);
+      console.log("posts", posts);
+      // update posts array so that it can be useful in frontend and database
 
       return res.status(200).json({ posts });
     } catch (error) {

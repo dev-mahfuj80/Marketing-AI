@@ -4,7 +4,6 @@ import React, { useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useSocialStore } from "@/lib/store/social-store";
 import Link from "next/link";
 
@@ -19,17 +18,6 @@ export function LinkedInPostsContainer() {
   const posts = useLinkedInPosts();
   const loading = useLoading();
   const getLinkedInPosts = useGetLinkedInPosts();
-
-  // Format date helper - memoized to prevent recreating on each render
-  const formatDate = useCallback((dateString?: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }, []);
 
   // Memoize the refresh function to prevent recreation on each render
   const onRefresh = useCallback(() => {
@@ -111,20 +99,18 @@ export function LinkedInPostsContainer() {
         {posts.map((post) => (
           <Card
             key={post.id}
-            className={cn(
-              "border rounded-md p-4 transition-colors h-full flex flex-col hover:bg-blue-50 dark:hover:bg-blue-950/20"
-            )}
+            className="border rounded-md p-4 transition-colors h-full flex flex-col hover:bg-blue-50 dark:hover:bg-blue-950/20"
           >
             <div className="flex-grow">
               <p className="line-clamp-3 mb-2">
-                {post.content || "No content"}
+                {post?.text?.text || "No content"}{" "}
               </p>
-
-              {post.mediaUrl && (
+              {post?.content?.contentEntities?.[0]?.thumbnails?.[0]
+                ?.resolvedUrl && (
                 <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
                   <div
                     style={{
-                      backgroundImage: `url(${post.mediaUrl})`,
+                      backgroundImage: `url(${post?.content?.contentEntities?.[0]?.thumbnails?.[0]?.resolvedUrl})`,
                     }}
                     className="absolute inset-0 bg-cover bg-center"
                     role="img"
@@ -134,29 +120,19 @@ export function LinkedInPostsContainer() {
               )}
             </div>
 
-            <div className="mt-auto">
+            <div className="mt-auto flex items-center justify-between">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{formatDate(post.publishedAt)}</span>
-                <Link
-                  href={
-                    "https://www.linkedin.com/feed/update/urn:li:activity:" +
-                    post.id
-                  }
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View on LinkedIn
-                </Link>
-                <div className="flex gap-3">
-                  <span>{post.engagement?.reactions || 0} reactions</span>
-                  <span>{post.engagement?.impressions || 0} impressions</span>
-                </div>
+                <span>
+                  Date: {new Date(post?.created?.time).toLocaleDateString()}
+                </span>
               </div>
 
-              {post.url && (
-                <div className="mt-2 text-xs">
+              {post?.activity && (
+                <div className="text-xs">
                   <Link
-                    href={post.url}
+                    href={
+                      "https://www.linkedin.com/feed/update/" + post.activity
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
