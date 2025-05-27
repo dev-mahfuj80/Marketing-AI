@@ -11,6 +11,13 @@ interface SocialPost {
   comments?: number;
   shares?: number;
   imageUrl?: string | null;
+  picture?: string | null;
+  publishedAt?: string;
+  engagement?: {
+    impressions: number;
+    reactions: number;
+  };
+  url?: string;
 }
 
 interface SocialState {
@@ -77,7 +84,6 @@ export const useSocialStore = create<SocialState>()(
             Number(start),
             Number(count)
           );
-          console.log("Facebook posts response from social store:", response);
           const data = await response.data;
           set({ facebookPosts: data.posts || [] });
         } catch (error) {
@@ -92,7 +98,6 @@ export const useSocialStore = create<SocialState>()(
         set({ loading: true });
         try {
           const response = await linkedinApi.getPagePosts(start, count);
-          console.log("LinkedIn posts response from social store:", response);
           const data = await response.data;
           set({ linkedinPosts: data.posts || [] });
         } catch (error) {

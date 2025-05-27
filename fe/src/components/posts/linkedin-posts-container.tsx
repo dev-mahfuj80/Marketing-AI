@@ -1,69 +1,52 @@
 "use client";
 
-import { useRef } from "react";
+import React, { useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSocialStore } from "@/lib/store/social-store";
+import Link from "next/link";
 
-interface Post {
-  id: string;
-  content?: string;
-  platform: "facebook" | "linkedin";
-  platformId?: string | number | null;
-  publishedAt?: number;
-  mediaUrl?: string | null;
-  engagement?: {
-    impressions: number;
-    reactions: number;
-  };
-  url?: string | null;
-  // Include other fields that might be present in the Post type
-  imageUrl?: string | null;
-  message?: string;
-  created_time?: string;
-  permalink_url?: string;
-}
+// Use separate selectors to prevent unnecessary re-renders
+const useLinkedInPosts = () => useSocialStore((state) => state.linkedinPosts);
+const useLoading = () => useSocialStore((state) => state.loading);
+const useGetLinkedInPosts = () =>
+  useSocialStore((state) => state.getLinkedInPosts);
 
-interface LinkedInPostsContainerProps {
-  posts: Post[];
-  isLoading: boolean;
-  onRefresh: () => void;
-  className?: string;
-  emptyMessage?: string;
-  platform?: "facebook" | "linkedin";
-}
+export function LinkedInPostsContainer() {
+  // Split selectors to reduce re-renders
+  const posts = useLinkedInPosts();
+  const loading = useLoading();
+  const getLinkedInPosts = useGetLinkedInPosts();
 
-export function LinkedInPostsContainer({ 
-  posts, 
-  isLoading, 
-  onRefresh,
-  className,
-  emptyMessage = "No posts found",
-  platform = "linkedin"
-}: LinkedInPostsContainerProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Format date helper
-  const formatDate = (timestamp?: number | string) => {
-    if (!timestamp) return "";
-    const date = new Date(timestamp);
+  // Format date helper - memoized to prevent recreating on each render
+  const formatDate = useCallback((dateString?: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
+  }, []);
+
+  // Memoize the refresh function to prevent recreation on each render
+  const onRefresh = useCallback(() => {
+    getLinkedInPosts(0, 10);
+  }, [getLinkedInPosts]);
+
+  // Only run once when component mounts
+  useEffect(() => {
+    // Initial data fetch
+    getLinkedInPosts(0, 10);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Loading state
-  if (isLoading) {
+  if (loading && posts.length === 0) {
     return (
-      <div
-        className={cn(
-          "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",
-          className
-        )}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="h-64 bg-muted animate-pulse rounded-md" />
         ))}
@@ -74,17 +57,11 @@ export function LinkedInPostsContainer({
   // Empty state
   if (posts.length === 0) {
     return (
-      <div
-        className={cn(
-          "text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto",
-          className
-        )}
-      >
-        <h3 className="text-lg font-medium">{emptyMessage}</h3>
+      <div className="text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto">
+        <h3 className="text-lg font-medium">No LinkedIn posts found</h3>
         <p className="text-muted-foreground mt-1">
-          {platform === 'linkedin' 
-            ? 'Create your first LinkedIn post by clicking &quot;Create Post&quot; in the sidebar'
-            : 'No posts available'}
+          Create your first LinkedIn post by clicking &quot;Create Post&quot; in
+          the sidebar
         </p>
         <div className="mt-4">
           <Button
@@ -105,28 +82,30 @@ export function LinkedInPostsContainer({
   // Render posts with scroll container and grid layout
   return (
     <div
-      ref={containerRef}
       className={cn(
-        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent",
-        className
+        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent"
       )}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
         {posts.map((post) => (
           <Card
             key={post.id}
-            className="border rounded-md p-4 transition-colors h-full flex flex-col hover:bg-blue-50 dark:hover:bg-blue-950/20"
+            className={cn(
+              "border rounded-md p-4 transition-colors h-full flex flex-col hover:bg-blue-50 dark:hover:bg-blue-950/20"
+            )}
           >
             <div className="flex-grow">
               <p className="line-clamp-3 mb-2">
                 {post.content || "No content"}
               </p>
 
-              {post.mediaUrl && (
+              {(post.imageUrl || post.picture) && (
                 <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
                   <div
                     style={{
-                      backgroundImage: `url(${post.mediaUrl})`
+                      backgroundImage: `url(${
+                        post.imageUrl || post.picture || ""
+                      })`,
                     }}
                     className="absolute inset-0 bg-cover bg-center"
                     role="img"
@@ -147,14 +126,14 @@ export function LinkedInPostsContainer({
 
               {post.url && (
                 <div className="mt-2 text-xs">
-                  <a
+                  <Link
                     href={post.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                   >
                     View on LinkedIn
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>
@@ -168,7 +147,7 @@ export function LinkedInPostsContainer({
           onClick={onRefresh}
           className="text-xs"
         >
-          {isLoading ? (
+          {loading ? (
             <>
               <Loader2 className="h-3 w-3 mr-1 animate-spin" />
               Loading...
