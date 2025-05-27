@@ -82,22 +82,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-
-    console.log("Login attempt for:", email);
-
     // Check if tables exist first
     try {
-      // Test database connection
-      const tableCheck = await prisma.$queryRaw`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'users'
-        );
-      `;
-      console.log("Table check result:", tableCheck);
+      await prisma.$connect();
     } catch (dbError) {
-      console.error("Database check error:", dbError);
       res.status(500).json({ message: "Database connection error" });
       return;
     }
@@ -109,7 +97,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Check if user exists and provide a more helpful message
     if (!user) {
-      console.log(`User with email ${email} not found`);
       res.status(404).json({
         message: "Account not found. Please sign up first.",
         code: "USER_NOT_FOUND",
@@ -117,16 +104,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if user has a password (might be a social login only user)
-    if (!user.password) {
-      res
-        .status(401)
-        .json({ message: "Invalid login method. Try using social login." });
-      return;
-    }
-
     // Verify password
     const isPasswordValid = await verifyPassword(password, user.password);
+
     if (!isPasswordValid) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
@@ -139,23 +119,59 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.cookie("accessToken", tokens.accessToken, {
       httpOnly: true,
       secure: env.isProduction(),
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 600 * 60 * 1000, // 10 minutes
       sameSite: "lax",
     });
 
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
       secure: env.isProduction(),
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 70 * 24 * 60 * 60 * 1000, // 70 days
       sameSite: "lax",
       path: "/api/auth/refresh", // Only send cookie to refresh endpoint
     });
-    console.log(user);
+    // if linkedin access token is not set in user database & environment variables are set
+    if (
+      env.LINKEDIN_ACCESS_TOKEN &&
+      env.LINKEDIN_CLIENT_ID &&
+      env.LINKEDIN_CLIENT_SECRET &&
+      user.linkedInAccessToken === null
+    ) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          linkedInAppId: env.LINKEDIN_CLIENT_ID,
+          linkedInAppSecret: env.LINKEDIN_CLIENT_SECRET,
+          linkedInAccessToken: env.LINKEDIN_ACCESS_TOKEN,
+          linkedInRefreshToken: env.LINKEDIN_REFRESH_TOKEN,
+        },
+      });
+    }
+
+    // if facebook access token is not set in user database & environment variables are set
+    if (env.FACEBOOK_PAGE_ACCESS_TOKEN && user.facebookToken === null) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          facebookAppId: env.FACEBOOK_APP_ID,
+          facebookAppSecret: env.FACEBOOK_APP_SECRET,
+          facebookToken: env.FACEBOOK_PAGE_ACCESS_TOKEN,
+          facebookPageId: env.FACEBOOK_PAGE_ID,
+        },
+      });
+    }
     // Return user data (excluding sensitive information)
-    const { password: _, ...userWithoutPassword } = user;
+    const {
+      password: _,
+      linkedInAccessToken: _1,
+      linkedInRefreshToken: _2,
+      facebookToken: _3,
+      facebookPageId: _4,
+      ...userWithoutSensitiveInfo
+    } = user;
     res.status(200).json({
       message: "Login successful",
-      user: userWithoutPassword,
+      user: userWithoutSensitiveInfo,
       accessToken: tokens.accessToken,
     });
   } catch (error) {

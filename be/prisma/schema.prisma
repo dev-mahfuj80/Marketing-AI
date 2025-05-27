@@ -20,11 +20,13 @@ model User {
   emailVerified        Boolean        @default(false)
   resetPasswordToken   String?        @unique
   resetPasswordExpires DateTime?
-  facebookToken        String?        
-  facebookTokenExpiry  DateTime?
+  facebookAppId        String?
+  facebookAppSecret    String?
+  facebookPageId       String?
+  facebookToken        String?
+  linkedInAppId        String?
+  linkedInAppSecret    String?
   linkedInAccessToken  String?
-  linkedInExpiresAt    DateTime?
-  linkedInId           String?
   linkedInRefreshToken String?
   posts                Post[]
   organizations        Organization[]

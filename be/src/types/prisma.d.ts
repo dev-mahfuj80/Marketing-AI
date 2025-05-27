@@ -15,6 +15,11 @@ declare module "@prisma/client" {
       facebookTokenExpiry?: Date | null;
       linkedInToken?: string | null;
       linkedInTokenExpiry?: Date | null;
+      facebookAppId?: string | null;
+      facebookAppSecret?: string | null;
+      facebookPageId?: string | null;
+      linkedInAppId?: string | null;
+      linkedInAppSecret?: string | null;
     }
 
     interface UserUncheckedUpdateInput {
@@ -22,6 +27,26 @@ declare module "@prisma/client" {
       facebookTokenExpiry?: Date | null;
       linkedInToken?: string | null;
       linkedInTokenExpiry?: Date | null;
+      facebookAppId?: string | null;
+      facebookAppSecret?: string | null;
+      facebookPageId?: string | null;
+      linkedInAppId?: string | null;
+      linkedInAppSecret?: string | null;
+      facebookToken?: string | null;
+      linkedInAccessToken?: string | null;
+      linkedInRefreshToken?: string | null;
+    }
+
+    interface UserCreateInput {
+      facebookToken?: string | null;
+      facebookTokenExpiry?: Date | null;
+      linkedInToken?: string | null;
+      linkedInTokenExpiry?: Date | null;
+      facebookAppId?: string | null;
+      facebookAppSecret?: string | null;
+      facebookPageId?: string | null;
+      linkedInAppId?: string | null;
+      linkedInAppSecret?: string | null;
     }
   }
 }

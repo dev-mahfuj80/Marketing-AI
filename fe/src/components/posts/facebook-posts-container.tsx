@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -36,19 +36,42 @@ export function FacebookPostsContainer() {
     getFacebookPosts("me", 0, 10);
   }, [getFacebookPosts]);
 
-  // Only run once when component mounts
-  useEffect(() => {
-    // Initial data fetch
-    getFacebookPosts("me", 0, 10);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   console.log(posts);
+
+  if (posts.length === 0) {
+    return (
+      <div className="text-center py-16 max-h-[calc(100vh-120px)] overflow-y-auto">
+        <h3 className="text-lg font-medium">No Facebook posts found</h3>
+        <p className="text-muted-foreground mt-1">
+          Create your first Facebook post by clicking &quot;Create Post&quot; in
+          the sidebar
+        </p>
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            className="text-xs h-8"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+    );
+  } else if (loading) {
+    return (
+      <div className="text-center py-16 min-h-[calc(100vh-120px)] max-h-[calc(100vh-120px)] overflow-y-auto flex items-center justify-center ">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="mt-2 text-muted-foreground mb-2">
+          Loading Facebook posts...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={cn(
-        "max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent"
-      )}
-    >
+    <div className="max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
         {posts.map((post) => (
           <Card
@@ -114,19 +137,10 @@ export function FacebookPostsContainer() {
           variant="ghost"
           size="sm"
           onClick={onRefresh}
-          className="text-xs"
+          className="text-xs cursor-pointer"
         >
-          {loading ? (
-            <>
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              Loading...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Refresh
-            </>
-          )}
+          <RefreshCw className="h-3 w-3 mr-1" />
+          Refresh
         </Button>
       </div>
     </div>

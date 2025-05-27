@@ -17,16 +17,13 @@ export const env = {
 
   // OAuth
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
+  FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
   FACEBOOK_PAGE_ACCESS_TOKEN: process.env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
   FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID || "me",
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
   LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "", // Direct access token for LinkedIn API
-  LINKEDIN_REDIRECT_URI:
-    process.env.LINKEDIN_REDIRECT_URI ||
-    "http://localhost:5000/api/auth/linkedin/callback",
-  REDIRECT_URI:
-    process.env.REDIRECT_URI || "http://localhost:5000/api/auth/callback",
+  LINKEDIN_REFRESH_TOKEN: process.env.LINKEDIN_REFRESH_TOKEN || "", // Refresh token for LinkedIn API
 
   // Email
   SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -61,6 +58,10 @@ if (env.isProduction()) {
     "SMTP_PASSWORD",
     "SMTP_FROM",
     "CLIENT_URL",
+    "FACEBOOK_APP_ID",
+    "FACEBOOK_APP_SECRET",
+    "FACEBOOK_PAGE_ID",
+    "FACEBOOK_PAGE_ACCESS_TOKEN",
   ];
 
   for (const envVar of requiredEnvVars) {

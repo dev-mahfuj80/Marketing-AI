@@ -17,6 +17,7 @@ interface SocialPost {
     impressions: number;
     reactions: number;
   };
+  mediaUrl?: string;
   url?: string;
 }
 

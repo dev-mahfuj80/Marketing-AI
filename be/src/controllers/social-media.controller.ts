@@ -28,156 +28,29 @@ const uploadAsync = util.promisify(uploadMiddleware);
  * Social Media Controller - handles all social media platform interactions
  */
 export class SocialMediaController {
-  // ===================================================================== FACEBOOK =====================================================================
+  // ============================================ FACEBOOK ============================================
   // Check Facebook status
   async checkFacebookStatus(req: Request, res: Response) {
     try {
-      // First check if Facebook credentials are configured
-      if (!env.FACEBOOK_APP_ID || !env.FACEBOOK_PAGE_ACCESS_TOKEN) {
+      if (!env.FACEBOOK_PAGE_ACCESS_TOKEN) {
         return res.status(200).json({
           connected: false,
           credentialsValid: false,
-          message: "Facebook API credentials are not configured",
+          message: "Facebook page access token not configured",
           lastChecked: new Date().toISOString(),
           permissionNote:
-            "Please add Facebook app ID and page access token to your environment variables",
+            "Please add Facebook page access token to your environment variables",
           nextSteps:
-            "Contact your administrator to set up Facebook API credentials",
+            "Contact your administrator to set up Facebook page access token",
         });
       }
-
-      // Test if the page access token is valid
-      let tokenValid = false;
-      let pageInfo = null;
-      const requiredPermissions = [
-        {
-          name: "pages_read_engagement",
-          description: "Access posts and metrics for Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown",
-        },
-        {
-          name: "pages_manage_posts",
-          description: "Create and manage posts for Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown",
-        },
-        {
-          name: "pages_show_list",
-          description: "Access the list of Pages you manage",
-          status: "unknown" as "granted" | "missing" | "unknown",
-        },
-      ];
-
-      try {
-        // First, check if the token is valid by making a request to the FB Graph API
-        const pageResponse = await axios.get(
-          `https://graph.facebook.com/v18.0/${env.FACEBOOK_PAGE_ID}`,
-          {
-            params: {
-              access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-              fields: "id,name,category,picture,access_token,fan_count",
-            },
-          }
-        );
-
-        if (pageResponse.data && pageResponse.data.id) {
-          tokenValid = true;
-          pageInfo = {
-            pageId: pageResponse.data.id,
-            name: pageResponse.data.name,
-            category: pageResponse.data.category,
-            picture: pageResponse.data.picture?.data?.url || null,
-            fanCount: pageResponse.data.fan_count || 0,
-          };
-
-          // Now check which permissions we have by trying to get posts
-          try {
-            const postsResponse = await axios.get(
-              `https://graph.facebook.com/v18.0/${env.FACEBOOK_PAGE_ID}/posts`,
-              {
-                params: {
-                  access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-                  limit: 1,
-                },
-              }
-            );
-
-            if (postsResponse.data && postsResponse.data.data) {
-              // We have pages_read_engagement permission
-              requiredPermissions[0].status = "granted";
-            }
-          } catch (postsError) {
-            // If we get a permission error (code 10), mark as missing
-            if (
-              axios.isAxiosError(postsError) &&
-              postsError.response?.data?.error?.code === 10
-            ) {
-              requiredPermissions[0].status = "missing";
-            }
-          }
-
-          // Check publishing permissions by testing publish_status endpoint
-          try {
-            const publishPermissionResponse = await axios.get(
-              `https://graph.facebook.com/v18.0/${env.FACEBOOK_PAGE_ID}/feed`,
-              {
-                params: {
-                  access_token: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-                  limit: 1,
-                },
-              }
-            );
-
-            if (publishPermissionResponse.status === 200) {
-              // We have pages_manage_posts permission
-              requiredPermissions[1].status = "granted";
-            }
-          } catch (publishError) {
-            // If we get a permission error (code 10), mark as missing
-            if (
-              axios.isAxiosError(publishError) &&
-              publishError.response?.data?.error?.code === 10
-            ) {
-              requiredPermissions[1].status = "missing";
-            }
-          }
-
-          // If we made it this far and got page info, assume pages_show_list is granted
-          requiredPermissions[2].status = "granted";
-        }
-      } catch (error) {
-        console.error("Facebook token validation failed:", error);
-        tokenValid = false;
-      }
-
-      // Response with detailed status information
       return res.status(200).json({
-        connected: tokenValid,
-        credentialsValid: true, // If we have credentials set, consider them valid
-        lastChecked: new Date().toISOString(),
-        message: tokenValid
-          ? "Facebook connection active"
-          : "Facebook connection inactive or invalid token",
-        permissionNote:
-          tokenValid && requiredPermissions.some((p) => p.status === "missing")
-            ? "Your Facebook access token is missing some required permissions"
-            : "Facebook integration requires a page access token with proper permissions",
-        nextSteps: "Ensure your page access token has all required permissions",
-        authUrl: `https://www.facebook.com/v18.0/dialog/oauth?client_id=${
-          env.FACEBOOK_APP_ID
-        }&redirect_uri=${encodeURIComponent(
-          env.REDIRECT_URI
-        )}&state=facebook&scope=public_profile,pages_show_list,pages_read_engagement,pages_manage_posts`,
-        pageInfo: pageInfo,
-        permissions: requiredPermissions,
+        message: "Facebook connection active",
       });
     } catch (error) {
       console.error("Error checking Facebook status:", error);
       return res.status(500).json({
-        connected: false,
-        credentialsValid: false,
         message: "Error checking Facebook status",
-        lastChecked: new Date().toISOString(),
-        error: (error as Error).message,
       });
     }
   }
@@ -205,36 +78,7 @@ export class SocialMediaController {
 
       const posts = result.data || [];
 
-      // Transform posts to our format
-      const formattedPosts = posts.map((post: any) => {
-        const engagement = {
-          impressions: post.insights?.data?.[0]?.values?.[0]?.value || 0,
-          reactions: 0,
-        };
-
-        if (post.insights?.data?.[1]?.values?.[0]?.value) {
-          const reactions = post.insights.data[1].values[0].value;
-          // Type assertion to fix the reduce function
-          engagement.reactions = Object.values(
-            reactions as Record<string, number>
-          ).reduce((a: number, b: number) => a + b, 0);
-        }
-
-        return {
-          id: post.id,
-          platformId: post.id,
-          platform: "FACEBOOK",
-          content: post.message || "",
-          mediaUrl: post.attachments?.data?.[0]?.url || null,
-          full_picture: post.full_picture || null,
-          picture: post.picture || null,
-          publishedAt: new Date(post.created_time),
-          url: post.permalink_url,
-          engagement,
-        };
-      });
-
-      return res.status(200).json({ posts: formattedPosts });
+      return res.status(200).json({ posts });
     } catch (error) {
       console.error("Error fetching Facebook page posts:", error);
       return res
@@ -436,60 +280,7 @@ export class SocialMediaController {
       // Normalize posts array
       const posts = result.elements || (Array.isArray(result) ? result : []);
 
-      // Transform posts to our format
-      const formattedPosts = posts.map((post: any) => {
-        let content = "";
-        let mediaUrl = null;
-
-        // Handle share-specific content
-        if (post.text) {
-          // For /shares endpoint response
-          content = post.text.text || "";
-        } else if (
-          post.specificContent?.["com.linkedin.ugc.ShareContent"]
-            ?.shareCommentary?.text
-        ) {
-          // For /ugcPosts endpoint response
-          content =
-            post.specificContent["com.linkedin.ugc.ShareContent"]
-              .shareCommentary.text;
-        }
-
-        // Handle media URL
-        if (post.content?.contentEntities?.[0]?.entityLocation) {
-          // For /shares endpoint response
-          mediaUrl = post.content.contentEntities[0].entityLocation;
-        } else if (
-          post.specificContent?.["com.linkedin.ugc.ShareContent"]?.media?.[0]
-            ?.originalUrl
-        ) {
-          // For /ugcPosts endpoint response
-          mediaUrl =
-            post.specificContent["com.linkedin.ugc.ShareContent"].media[0]
-              .originalUrl;
-        }
-
-        return {
-          id: post.id || post.activity || `linkedin-${Date.now()}`,
-          platformId: post.id || post.activity,
-          platform: "LINKEDIN",
-          content,
-          mediaUrl,
-          publishedAt:
-            post.created?.time ||
-            post.createdTime ||
-            post.lastModified?.time ||
-            post.lastModifiedTime ||
-            new Date(),
-          url: null, // LinkedIn API doesn't easily provide permalinks
-          engagement: {
-            impressions: 0,
-            reactions: 0,
-          },
-        };
-      });
-
-      return res.status(200).json({ posts: formattedPosts });
+      return res.status(200).json({ posts });
     } catch (error) {
       console.error("Error fetching LinkedIn page posts:", error);
       // Always return a 200 response with empty posts array to avoid frontend errors
@@ -739,13 +530,13 @@ export class SocialMediaController {
 
               postResults.push(savedPost);
             }
-          } else if (platform === "LINKEDIN" && user.linkedInToken) {
+          } else if (platform === "LINKEDIN" && user.linkedInAccessToken) {
             // Get user profile to get URN
             const profileResponse = await axios.get(
               "https://api.linkedin.com/v2/me",
               {
                 headers: {
-                  Authorization: `Bearer ${user.linkedInToken}`,
+                  Authorization: `Bearer ${user.linkedInAccessToken}`,
                 },
               }
             );
@@ -793,7 +584,7 @@ export class SocialMediaController {
               postPayload,
               {
                 headers: {
-                  Authorization: `Bearer ${user.linkedInToken}`,
+                  Authorization: `Bearer ${user.linkedInAccessToken}`,
                   "Content-Type": "application/json",
                 },
               }
