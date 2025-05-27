@@ -4,21 +4,29 @@ import { facebookApi, linkedinApi } from "../api";
 
 interface FacebookPost {
   id: string;
-  content?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  likes?: number;
-  comments?: number;
-  shares?: number;
-  imageUrl?: string | null;
-  picture?: string | null;
-  publishedAt?: string;
-  engagement?: {
-    impressions: number;
-    reactions: number;
+  created_time: string;
+  message: string;
+  attachments: {
+    data: {
+      media: {
+        image: {
+          height: number;
+          src: string;
+          width: number;
+        };
+      };
+      target: {
+        id: string;
+        url: string;
+      };
+      title: string;
+      type: string;
+      url: string;
+    }[];
   };
-  mediaUrl?: string;
-  url?: string;
+  permalink_url: string;
+  full_picture: string;
+  picture: string;
 }
 
 interface LinkedInPost {

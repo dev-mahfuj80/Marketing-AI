@@ -4,7 +4,6 @@ import { FacebookPostsContainer } from "@/components/posts/facebook-posts-contai
 import { LinkedInPostsContainer } from "@/components/posts/linkedin-posts-container";
 
 export default function DashboardPage() {
-  console.log("DashboardPage");
   return (
     <div className="space-y-8">
       <Tabs defaultValue="facebook">

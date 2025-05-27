@@ -20,23 +20,10 @@ export function FacebookPostsContainer() {
   const loading = useLoading();
   const getFacebookPosts = useGetFacebookPosts();
 
-  // Format date helper - memoized to prevent recreating on each render
-  const formatDate = useCallback((dateString?: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  }, []);
-
   // Memoize the refresh function to prevent recreation on each render
   const onRefresh = useCallback(() => {
     getFacebookPosts("me", 0, 10);
   }, [getFacebookPosts]);
-
-  console.log(posts);
 
   if (posts.length === 0) {
     return (
@@ -70,6 +57,7 @@ export function FacebookPostsContainer() {
     );
   }
 
+  console.log(posts);
   return (
     <div className="max-h-[calc(100vh-120px)] overflow-y-auto pr-1 scrollbar-thin dark:scrollbar-thumb-gray-600 scrollbar-thumb-rounded-full scrollbar-thumb-gray-300 scrollbar-track-transparent">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
@@ -82,47 +70,33 @@ export function FacebookPostsContainer() {
           >
             <div className="flex-grow">
               <p className="line-clamp-3 mb-2">
-                {post.content || post.content || "No content"}
+                {post.message || "No content"}
               </p>
 
-              {post.picture && (
+              {post.attachments?.data?.[0]?.media?.image?.src && (
                 <div className="relative h-40 mb-3 bg-muted rounded overflow-hidden">
                   <div
                     style={{
-                      backgroundImage: `url(${post.picture || ""})`,
+                      backgroundImage: `url(${post.attachments?.data?.[0]?.media?.image?.src})`,
                     }}
                     className="absolute inset-0 bg-cover bg-center"
-                    role="img"
-                    aria-label="Post image"
-                    onClick={() => {
-                      // Log which image field is being used
-                      console.log(
-                        "Image displayed from field:",
-                        post.picture ? "picture" : ""
-                      );
-                    }}
                   />
                 </div>
               )}
             </div>
 
-            <div className="mt-auto">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{formatDate(post.publishedAt)}</span>
-                <div className="flex gap-3">
-                  <span>{post.likes || 0} likes</span>
-                  <span>{post.comments || 0} comments</span>
-                  <span>{post.shares || 0} shares</span>
-                </div>
-              </div>
+            <div className="mt-auto flex justify-between">
+              <span className="text-xs text-muted-foreground">
+                Date: {new Date(post.created_time).toLocaleString()}
+              </span>
 
-              {post.url && (
-                <div className="mt-2 text-xs">
+              {post.permalink_url && (
+                <div className="text-xs">
                   <Link
-                    href={post.url}
+                    href={post.permalink_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="hover:underline"
+                    className="hover:underline text-blue-500"
                   >
                     View on Facebook
                   </Link>
