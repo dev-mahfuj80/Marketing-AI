@@ -41,7 +41,7 @@ export const authApi = {
     return api.get("/api/auth/me");
   },
 
-  checkStatus: async () => {
+  getCurrentUser: async () => {
     const response = await api.get("/api/auth/me");
     return response.data;
   },

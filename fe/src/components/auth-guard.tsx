@@ -16,13 +16,13 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   // Use individual selectors to avoid recreating objects on every render
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
+  const getCurrentUser = useAuthStore((state) => state.getCurrentUser);
   const isLoading = useAuthStore((state) => state.isLoading);
 
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        await checkAuthStatus();
+        await getCurrentUser();
       } catch (error) {
         console.error("Auth verification failed:", error);
       } finally {
@@ -31,7 +31,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     };
 
     verifyAuth();
-  }, [checkAuthStatus]);
+  }, [getCurrentUser]);
 
   useEffect(() => {
     // Only redirect after we've checked authentication status

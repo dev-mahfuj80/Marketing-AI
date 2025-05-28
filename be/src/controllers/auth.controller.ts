@@ -14,9 +14,7 @@ import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
-/**
- * User registration controller
- */
+// User registration controller
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password } = req.body;
@@ -76,9 +74,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * User login controller
- */
+// User login controller
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
@@ -181,9 +177,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Token refresh controller
- */
+// Token refresh controller
 export const refresh = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -205,7 +199,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: env.isProduction(),
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 150 * 60 * 1000, // 15 minutes
       sameSite: "lax",
     });
 
@@ -220,9 +214,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Logout controller
- */
+// Logout controller
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -244,10 +236,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-/**
- * Get current user controller
- */
-
+// Request password reset controller
 export const requestPasswordReset = async (
   req: Request,
   res: Response
@@ -325,9 +314,7 @@ export const requestPasswordReset = async (
   }
 };
 
-/**
- * Reset password with token
- */
+// Reset password with token
 export const resetPassword = async (
   req: Request,
   res: Response
@@ -392,6 +379,7 @@ export const resetPassword = async (
   }
 };
 
+// Get current user controller
 export const getCurrentUser = async (
   req: AuthenticatedRequest,
   res: Response
@@ -415,7 +403,6 @@ export const getCurrentUser = async (
         createdAt: true,
         updatedAt: true,
         organizations: {
-          // Include organizations
           select: {
             id: true,
             name: true,
@@ -445,6 +432,47 @@ export const getCurrentUser = async (
     res.status(200).json({ user });
   } catch (error) {
     console.error("Get current user error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update user controller
+export const updateUser = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ message: "Authentication required" });
+    return;
+  }
+
+  try {
+    const { name, email } = req.body;
+    console.log("hello hello");
+    // Check if email is already taken by another user
+    if (email && email !== req.user.email) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser && existingUser.id !== req.user.id) {
+        res.status(400).json({ message: "Email is already in use" });
+        return;
+      }
+    }
+
+    // Update the user
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        name,
+        email,
+      },
+    });
+
+    res.status(200).json({ user: updatedUser });
+  } catch (error) {
+    console.error("Update user error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

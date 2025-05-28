@@ -1,8 +1,11 @@
 "use client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { PencilIcon } from "lucide-react";
+import Link from "next/link";
 
 export default function AccountTab() {
   const user = useAuthStore((state) => state.user);
@@ -33,12 +36,21 @@ export default function AccountTab() {
       <Card>
         <div className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Account Profile
-            </h2>
-            <Badge variant="outline" className="mt-2 sm:mt-0">
-              {user?.role || "USER"}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold tracking-tight">
+                Account Profile
+              </h2>
+              <Link href="/dashboard/settings/update-user">
+                <Button variant="outline" className="cursor-pointer">
+                  <PencilIcon className="h-4 w-4" /> Edit
+                </Button>
+              </Link>
+            </div>
+            <div>
+              <Badge variant="outline" className="mt-2 sm:mt-0">
+                {user?.role || "USER"}
+              </Badge>
+            </div>
           </div>
 
           <Separator className="my-4" />
@@ -165,12 +177,19 @@ export default function AccountTab() {
       {user?.organizations && user.organizations.length > 0 && (
         <Card>
           <div className="p-6">
-            <h2 className="flex items-center justify-between">
-              <span className="text-2xl font-bold tracking-tight mb-6">
-                Organizations
-              </span>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold tracking-tight ">
+                  Organizations
+                </h2>
+                <Link href="/dashboard/settings/update-user">
+                  <Button variant="outline" className="cursor-pointer">
+                    <PencilIcon className="h-4 w-4" /> Edit
+                  </Button>
+                </Link>
+              </div>
               <Badge variant="outline">Organization</Badge>
-            </h2>
+            </div>
             <Separator className="mb-6" />
 
             <div className="space-y-8">

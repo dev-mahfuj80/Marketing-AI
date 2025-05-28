@@ -37,6 +37,6 @@ export interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<boolean>;
-  checkAuthStatus: () => Promise<void>;
+  getCurrentUser: () => Promise<void>;
   resetError: () => void;
 }

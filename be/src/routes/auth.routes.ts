@@ -9,6 +9,7 @@ import {
   getCurrentUser,
   requestPasswordReset,
   resetPassword,
+  updateUser,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 
@@ -42,7 +43,6 @@ router.post(
 router.post("/refresh", ((req: Request, res: Response, next: NextFunction) => {
   refresh(req, res).catch(next);
 }) as RequestHandler);
-
 
 router.post("/logout", ((req: Request, res: Response, next: NextFunction) => {
   logout(req, res).catch(next);
@@ -82,6 +82,19 @@ router.post(
   ],
   ((req: Request, res: Response, next: NextFunction) => {
     resetPassword(req, res).catch(next);
+  }) as RequestHandler
+);
+
+router.post(
+  "/update-user",
+  [
+    body("name").notEmpty().withMessage("Name is required"),
+    body("email").isEmail().withMessage("Please provide a valid email"),
+  ],
+
+  authenticate,
+  ((req: Request, res: Response, next: NextFunction) => {
+    updateUser(req, res).catch(next);
   }) as RequestHandler
 );
 

@@ -94,10 +94,10 @@ export const useAuthStore = create(
       },
 
       // Check if user is authenticated
-      checkAuthStatus: async () => {
+      getCurrentUser: async () => {
         try {
           set({ isLoading: true, error: null });
-          const response = await authApi.checkStatus();
+          const response = await authApi.getCurrentUser();
           set({
             user: response.user,
             isAuthenticated: true,
@@ -118,6 +118,7 @@ export const useAuthStore = create(
       // Reset error
       resetError: () => set({ error: null }),
     }),
+
     {
       name: "auth-storage",
       // Only store non-function values
