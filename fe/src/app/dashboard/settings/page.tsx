@@ -1,5 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AccountTab from "./_components/account";
+import FacebookTab from "./_components/facebook";
+import LinkedinTab from "./_components/linkedin";
 
 export default function SettingsPage() {
   // Type-safe selectors
@@ -27,20 +29,12 @@ export default function SettingsPage() {
 
         {/* LinkedIn Tab */}
         <TabsContent value="linkedin" className="space-y-4">
-          <div>LinkedIn Permissions</div>
-          <div>LinkedIn Posts</div>
-          <div>LinkedIn Analytics</div>
-          <div>LinkedIn Settings</div>
-          <div>LinkedIn Help</div>
+          <LinkedinTab />
         </TabsContent>
 
         {/* Facebook Tab */}
         <TabsContent value="facebook" className="space-y-4">
-          <div>Facebook Permissions</div>
-          <div>Facebook Posts</div>
-          <div>Facebook Analytics</div>
-          <div>Facebook Settings</div>
-          <div>Facebook Help</div>
+          <FacebookTab />
         </TabsContent>
       </Tabs>
     </div>
