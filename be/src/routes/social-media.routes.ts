@@ -1,7 +1,5 @@
 import { Router } from "express";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
-import axios from "axios";
-import { env } from "../config/env.js";
 import { socialMediaController } from "../controllers/social-media.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
 
@@ -14,18 +12,18 @@ const asyncHandler =
     return Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-//============================================================= FACEBOOK ROUTES =============================================================
+//========================================== FACEBOOK ROUTES ====================================
 
 //check facebook status
 router.get(
-  "/facebook/status", 
+  "/facebook/status",
   asyncHandler(socialMediaController.checkFacebookStatus)
 );
 
 //get facebook posts
 router.get(
-  "/facebook/posts", 
-  authenticate, 
+  "/facebook/posts",
+  authenticate,
   asyncHandler(socialMediaController.getFacebookPosts)
 );
 
@@ -43,41 +41,40 @@ router.post(
   asyncHandler(socialMediaController.publishPagePost)
 );
 
-//============================================================= LINKEDIN ROUTES =============================================================
+//========================================== LINKEDIN ROUTES ====================================
 
 //get linkedin profile info
 router.get(
-  "/linkedin/profile", 
-  authenticate, 
+  "/linkedin/profile",
+  authenticate,
   asyncHandler(socialMediaController.getLinkedInProfile)
 );
 
 //check linkedin status
 router.get(
-  "/linkedin/status", 
+  "/linkedin/status",
   asyncHandler(socialMediaController.checkLinkedInStatus)
 );
 
 //get linkedin page posts
 router.get(
-  "/linkedin/page/posts", 
+  "/linkedin/page/posts",
   asyncHandler(socialMediaController.getLinkedInPagePosts)
 );
 
 //publish linkedin page post
 router.post(
-  "/linkedin/page/publish", 
+  "/linkedin/page/publish",
   authenticate,
   asyncHandler(socialMediaController.publishLinkedInPost)
 );
 
-
-//============================================================= CROSS-PLATFORM ROUTES =============================================================
+//========================================== CROSS-PLATFORM ROUTES ====================================
 
 //create post
 router.post(
-  "/posts", 
-  authenticate, 
+  "/posts",
+  authenticate,
   asyncHandler(socialMediaController.createPost)
 );
 

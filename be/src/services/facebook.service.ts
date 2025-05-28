@@ -20,7 +20,7 @@ export class FacebookService {
           },
         }
       );
-      
+
       // Process the response to ensure images are properly included
       if (response.data && response.data.data) {
         response.data.data = response.data.data.map((post: any) => {
@@ -31,7 +31,7 @@ export class FacebookService {
           return post;
         });
       }
-      
+
       return response.data;
     } catch (error) {
       console.error("Error fetching Facebook page posts:", error);
@@ -49,7 +49,6 @@ export class FacebookService {
     try {
       // If we have an image buffer, we need to use the photos edge instead of feed
       if (imageBuffer) {
-
         // Create FormData for multipart upload
         const form = new FormData();
         form.append("access_token", pageAccessToken);

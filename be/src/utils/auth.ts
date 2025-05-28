@@ -19,17 +19,13 @@ interface TokenResponse {
   refreshToken: string;
 }
 
-/**
- * Generate a hashed password
- */
+// Generate hashed password
 export const hashPassword = async (password: string): Promise<string> => {
   const saltRounds = 10;
   return bcrypt.hash(password, saltRounds);
 };
 
-/**
- * Verify if password matches the hashed password
- */
+// Verify if password matches the hashed password
 export const verifyPassword = async (
   password: string,
   hashedPassword: string | null
@@ -38,9 +34,7 @@ export const verifyPassword = async (
   return bcrypt.compare(password, hashedPassword);
 };
 
-/**
- * Generate JWT access token
- */
+// Generate JWT access token
 export const generateAccessToken = (payload: TokenPayload): string => {
   // Create a properly typed options object
   const options: SignOptions = {
@@ -52,9 +46,7 @@ export const generateAccessToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, env.JWT_SECRET as any, options);
 };
 
-/**
- * Generate JWT refresh token and save to database
- */
+// Generate JWT refresh token and save to database
 export const generateRefreshToken = async (
   payload: TokenPayload
 ): Promise<string> => {
@@ -84,9 +76,7 @@ export const generateRefreshToken = async (
   return token;
 };
 
-/**
- * Generate both access and refresh tokens
- */
+// Generate both access and refresh tokens
 export const generateTokens = async (user: User): Promise<TokenResponse> => {
   const payload: TokenPayload = {
     userId: user.id,
@@ -103,9 +93,7 @@ export const generateTokens = async (user: User): Promise<TokenResponse> => {
   };
 };
 
-/**
- * Verify JWT token
- */
+// Verify JWT token
 export const verifyToken = (token: string): TokenPayload | null => {
   try {
     // Using any to bypass TypeScript's strict checking for jwt.verify
@@ -115,9 +103,7 @@ export const verifyToken = (token: string): TokenPayload | null => {
   }
 };
 
-/**
- * Refresh access token using refresh token
- */
+// Refresh access token using refresh token
 export const refreshAccessToken = async (
   refreshToken: string
 ): Promise<string | null> => {
@@ -148,9 +134,7 @@ export const refreshAccessToken = async (
   }
 };
 
-/**
- * Revoke refresh token
- */
+// Revoke refresh token
 export const revokeRefreshToken = async (token: string): Promise<boolean> => {
   try {
     await prisma.refreshToken.delete({

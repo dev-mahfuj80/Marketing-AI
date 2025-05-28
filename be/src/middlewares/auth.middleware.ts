@@ -17,9 +17,7 @@ declare global {
   }
 }
 
-/**
- * Authentication middleware - verifies JWT token from Authorization header or cookies
- */
+// Authentication middleware - verifies JWT token from Authorization header or cookies
 export const authenticate = async (
   req: Request,
   res: Response,
@@ -67,9 +65,7 @@ export const authenticate = async (
   }
 };
 
-/**
- * Role-based authorization middleware
- */
+// Role-based authorization middleware
 export const authorize = (roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {

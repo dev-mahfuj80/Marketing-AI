@@ -7,8 +7,6 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
   FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",
 
-  // Database - handled by Prisma
-
   // Authentication
   JWT_SECRET: process.env.JWT_SECRET || "development-jwt-secret",
   JWT_ACCESS_EXPIRY: process.env.JWT_ACCESS_EXPIRY || "15m",
@@ -22,8 +20,8 @@ export const env = {
   FACEBOOK_PAGE_ID: process.env.FACEBOOK_PAGE_ID || "me",
   LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID || "",
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
-  LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "", // Direct access token for LinkedIn API
-  LINKEDIN_REFRESH_TOKEN: process.env.LINKEDIN_REFRESH_TOKEN || "", // Refresh token for LinkedIn API
+  LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "",
+  LINKEDIN_REFRESH_TOKEN: process.env.LINKEDIN_REFRESH_TOKEN || "",
 
   // Email
   SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
