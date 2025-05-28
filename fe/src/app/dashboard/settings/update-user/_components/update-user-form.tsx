@@ -96,7 +96,6 @@ export default function UpdateUserForm() {
     }
   }, [user, form]);
 
-  // Handle form submission
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
 

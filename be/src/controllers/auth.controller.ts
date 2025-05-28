@@ -448,25 +448,68 @@ export const updateUser = async (
 
   try {
     const { name, email } = req.body;
-    console.log("hello hello");
-    // Check if email is already taken by another user
-    if (email && email !== req.user.email) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
 
-      if (existingUser && existingUser.id !== req.user.id) {
-        res.status(400).json({ message: "Email is already in use" });
-        return;
-      }
+    // First, fetch the user with their organizations to get the organization ID if it exists
+    const userWithOrgs = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      include: { organizations: true },
+    });
+
+    if (!userWithOrgs) {
+      res.status(404).json({ message: "User not found" });
+      return;
     }
 
-    // Update the user
+    // Basic user data to update
+    const updateData: any = {
+      name,
+      email,
+      facebookToken: req.body.facebookToken,
+      linkedInAccessToken: req.body.linkedInAccessToken,
+    };
+
+    // Check if user has organizations
+    if (userWithOrgs.organizations && userWithOrgs.organizations.length > 0) {
+      // If the user has an organization, update it
+      await prisma.organization.update({
+        where: { id: userWithOrgs.organizations[0].id },
+        data: {
+          name: req.body.organization?.name,
+          website: req.body.organization?.website,
+          category: req.body.organization?.category,
+          location: req.body.organization?.location,
+          description: req.body.organization?.description,
+          established: req.body.organization?.established,
+          size: req.body.organization?.size,
+          employees: req.body.organization?.employees,
+          revenue: req.body.organization?.revenue,
+          marketArea: req.body.organization?.marketArea,
+        },
+      });
+    } else if (req.body.organization) {
+      // If the user doesn't have an organization but provided organization data, create one
+      updateData.organizations = {
+        create: {
+          name: req.body.organization.name || "New Organization",
+          website: req.body.organization.website,
+          category: req.body.organization.category,
+          location: req.body.organization.location,
+          description: req.body.organization.description,
+          established: req.body.organization.established,
+          size: req.body.organization.size,
+          employees: req.body.organization.employees,
+          revenue: req.body.organization.revenue,
+          marketArea: req.body.organization.marketArea,
+        },
+      };
+    }
+
+    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
-      data: {
-        name,
-        email,
+      data: updateData,
+      include: {
+        organizations: true,
       },
     });
 
