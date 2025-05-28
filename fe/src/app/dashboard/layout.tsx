@@ -185,7 +185,9 @@ export default function DashboardLayout({
           )}
 
           {/* Main Content */}
-          <main className="flex-1 p-4 md:px-8">{children}</main>
+          <main className="flex-1 p-4 md:px-8 max-h-screen overflow-y-auto">
+            {children}
+          </main>
         </div>
       </div>
     </AuthGuard>

@@ -1,119 +1,262 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useAuthStore } from "@/lib/store/auth-store";
 
 export default function AccountTab() {
   const user = useAuthStore((state) => state.user);
-  console.log(user);
-  //   {
-  //     "id": 1,
-  //     "name": "Md Mahfujur Rahman",
-  //     "email": "mahfujurrahman06627@gmail.com",
-  //     "role": "USER",
-  //     "emailVerified": false,
-  //     "facebookToken": "EAAJhrB5quZCwBOwm7qkE4WGdmZBOboZARgf7Es4B96QkN4rYtgD1nvj9eOBHafNMXNZCSX1mCaGfGuj8EhezRUF2kXPJZCmcdtDRJsLIdUbgHxeNhzimUmZAynqYdL6ongsEPZBZAWxOITPGDTZCnmGERtb971scamxOwRdldUAciFZCFnjPeICKQiaUGVnSFvDrROGlQKlY7ffZABjrqQ4YZBvUUv1H",
-  //     "linkedInAccessToken": "AQWsnwiSy5h8xT272rDZemd8ZG0qimiNVMWxPU-LrAZ2ZbEyYQ5OaPNgLLYHQE-sBBwQ_f3V4pSAUG1IBH6oHn7bVsElp6sOefR5q4qZ7n5qkWy-nxvxIQR7drPQDY-E5yUylNOtSjPlm_T8AUJd3VJo_OmEWrhzaVtyyBbqeEEtEhGkDPaAnGnLprj7lFMAsKxg-9iLnjGFuWZZVhBACuRfDU89p0PSisokPAhrXavkMJLbf7MsIO0otwsAD8CB88ygldmwL4HsqcaDqAiO5Tmv35Mce6HPdZvV7jUgTBmEp4DL3Yc0mPh9TOzpaBD4kezEahDBCugz1ifsrIuTKIrrW-1Qsw",
-  //     "createdAt": "2025-05-19T04:58:48.776Z",
-  //     "updatedAt": "2025-05-27T10:07:12.784Z",
-  //     "organizations": [
-  //         {
-  //             "id": 1,
-  //             "name": "OxyManager",
-  //             "website": "https://oxymanager.com",
-  //             "category": "Software",
-  //             "location": "Bangladesh, Khulna, Kushtia",
-  //             "description": "OxyManager is an all-in-one business management software designed to help small and medium-sized businesses streamline operations. It offers real-time inventory management to track stock levels and product movements efficiently. The platform automates sales tracking and financial reporting, providing clear insights into business performance. With its built-in CRM features, businesses can manage customer information and interactions effectively. OxyManager also includes integrated banking support to handle financial transactions securely. SMS marketing tools are available to help businesses engage with customers through promotional and informational messages. The software delivers advanced analytics and reporting features to support data-driven decision-making. It simplifies everyday tasks and reduces manual work, improving overall productivity. The user-friendly interface ensures that both technical and non-technical users can operate the system easily. Designed with the needs of Bangladeshi businesses in mind, OxyManager is a reliable solution for modern business growth.",
-  //             "established": "2020",
-  //             "size": "large",
-  //             "employees": "10",
-  //             "turnover": null,
-  //             "revenue": "50000",
-  //             "profit": null,
-  //             "marketArea": "Bangladesh",
-  //             "createdAt": "2025-05-26T16:12:58.661Z",
-  //             "updatedAt": "2025-05-26T16:12:58.661Z"
-  //         }
-  //     ]
-  // }
-  // Put all those value in ui
+
+  // Format date to readable format
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
+  };
+
+  // Truncate long strings like tokens
+  const truncateString = (str: string, maxLength = 20) => {
+    if (!str) return "N/A";
+    if (str.length <= maxLength) return str;
+    return `${str.substring(0, maxLength)}...`;
+  };
+
   return (
-    // need to seperate 2 section user and organaizatin information
+    <div className="space-y-6">
+      {/* User Profile Card */}
+      <Card>
+        <div className="p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+            <h2 className="text-2xl font-bold tracking-tight">
+              Account Profile
+            </h2>
+            <Badge variant="outline" className="mt-2 sm:mt-0">
+              {user?.role || "USER"}
+            </Badge>
+          </div>
 
-    <Card>
-      <div className="p-6 space-y-6 flex flex-col gap-6">
-        <div>
-          <h2 className="text-xl font-medium">Account</h2>
-          <div className="flex items-center gap-2">
-            <p>Username :</p>
-            <p className="text-muted-foreground italic">{user?.name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Email :</p>
-            <p className="text-muted-foreground italic">
-              {user?.email}
-              <span className="ml-2 text-xs italic">Can&apos;t be changed</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Role :</p>
-            <p className="text-muted-foreground italic">{user?.role}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Organizations :</p>
-            <p className="text-muted-foreground italic">
-              {user?.organizations?.length}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Created At :</p>
-            <p className="text-muted-foreground italic">{user?.createdAt}</p>
-          </div>
-        </div>
-        <div>
-          <h2 className="text-xl font-medium mb-4 grid gap-4 md:grid-cols-4">
-            Organizations
-          </h2>
-          {user?.organizations?.map((organization) => (
-            <div key={organization.id}>
-              <p>{organization.name}</p>
-              <p>{organization.website}</p>
-              <p>{organization.category}</p>
-              <p>{organization.location}</p>
-              <p>{organization.description}</p>
-              <p>{organization.established}</p>
-              <p>{organization.size}</p>
-              <p>{organization.employees}</p>
-              <p>{organization.turnover}</p>
-              <p>{organization.revenue}</p>
-              <p>{organization.profit}</p>
-              <p>{organization.marketArea}</p>
+          <Separator className="my-4" />
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Personal Information
+                </h3>
+                <div className="mt-2 space-y-3">
+                  <div>
+                    <span className="font-medium">Username:</span>
+                    <span className="ml-2">{user?.name || "N/A"}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <span className="ml-2">{user?.email || "N/A"}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      (Can&apos;t be changed)
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Email Verified:</span>
+                    <span className="ml-2">
+                      {user?.emailVerified ? (
+                        <Badge
+                          variant="default"
+                          className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                        >
+                          Verified
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="destructive"
+                          className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                        >
+                          Not Verified
+                        </Badge>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
 
-          <div className="flex items-center gap-2">
-            <p>Updated At :</p>
-            <p className="text-muted-foreground italic">{user?.updatedAt}</p>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Account Details
+                </h3>
+                <div className="mt-2 space-y-3">
+                  <div>
+                    <span className="font-medium">Organizations:</span>
+                    <span className="ml-2">
+                      {user?.organizations?.length || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Created:</span>
+                    <span className="ml-2">{formatDate(user?.createdAt)}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Last Updated:</span>
+                    <span className="ml-2">{formatDate(user?.updatedAt)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <p>Facebook Token :</p>
-            <p className="text-muted-foreground italic">
-              {user?.facebookToken}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Linkedin Token :</p>
-            <p className="text-muted-foreground italic">
-              {user?.linkedInAccessToken}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <p>Email Verified :</p>
-            <p className="text-muted-foreground italic">
-              {user?.emailVerified ? "Yes" : "No"}
-            </p>
+
+          <Separator className="my-6" />
+
+          <div>
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">
+              Connected Accounts
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="p-3 border rounded-md bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">Facebook</span>
+                  {user?.facebookToken ? (
+                    <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                      Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Not Connected
+                    </Badge>
+                  )}
+                </div>
+                {user?.facebookToken && (
+                  <p className="mt-1 text-xs text-muted-foreground overflow-hidden text-ellipsis">
+                    Token: {truncateString(user.facebookToken, 30)}
+                  </p>
+                )}
+              </div>
+
+              <div className="p-3 border rounded-md bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">LinkedIn</span>
+                  {user?.linkedInAccessToken ? (
+                    <Badge className="bg-blue-700 text-white dark:bg-blue-900 dark:text-blue-100">
+                      Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      Not Connected
+                    </Badge>
+                  )}
+                </div>
+                {user?.linkedInAccessToken && (
+                  <p className="mt-1 text-xs text-muted-foreground overflow-hidden text-ellipsis">
+                    Token: {truncateString(user.linkedInAccessToken, 30)}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+
+      {/* Organizations Card */}
+      {user?.organizations && user.organizations.length > 0 && (
+        <Card>
+          <div className="p-6">
+            <h2 className="flex items-center justify-between">
+              <span className="text-2xl font-bold tracking-tight mb-6">
+                Organizations
+              </span>
+              <Badge variant="outline">Organization</Badge>
+            </h2>
+            <Separator className="mb-6" />
+
+            <div className="space-y-8">
+              {user.organizations.map((org) => (
+                <div key={org.id} className="border rounded-lg p-5 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <h3 className="text-xl font-semibold">{org.name}</h3>
+                    <div className="flex gap-2 mt-2 sm:mt-0">
+                      <Badge variant="outline">{org.category}</Badge>
+                      <Badge variant="outline">{org.size}</Badge>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Website
+                      </p>
+                      <p className="mt-1">
+                        {org.website ? (
+                          <a
+                            href={org.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {org.website}
+                          </a>
+                        ) : (
+                          "N/A"
+                        )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Location
+                      </p>
+                      <p className="mt-1">{org.location || "N/A"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Established
+                      </p>
+                      <p className="mt-1">{org.established || "N/A"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Employees
+                      </p>
+                      <p className="mt-1">{org.employees || "N/A"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Revenue
+                      </p>
+                      <p className="mt-1">
+                        {org.revenue ? `$${org.revenue}` : "N/A"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Market Area
+                      </p>
+                      <p className="mt-1">{org.marketArea || "N/A"}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">
+                      Description
+                    </p>
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {org.description || "No description available"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
   );
 }
