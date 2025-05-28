@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "@/lib/store/auth-store";
 import api from "@/lib/api";
 import { AxiosError } from "axios";
+import { Calendar } from "lucide-react";
 
 // Form schema using Zod
 const formSchema = z.object({
@@ -65,6 +66,20 @@ export default function UpdateUserForm() {
     defaultValues: {
       name: "",
       email: "",
+      facebookToken: "",
+      linkedInAccessToken: "",
+      organization: {
+        name: "",
+        website: "",
+        category: "",
+        location: "",
+        description: "",
+        established: "",
+        size: "",
+        employees: "",
+        revenue: "",
+        marketArea: "",
+      },
     },
   });
 
@@ -301,6 +316,78 @@ export default function UpdateUserForm() {
                         {...field}
                         value={field.value || ""}
                       />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Established Date */}
+              <FormField
+                control={form.control}
+                name="organization.established"
+                render={({ field }) => (
+                  <FormItem className="relative">
+                    <FormLabel>Established Date</FormLabel>
+                    <div className="relative">
+                      <Input
+                        type="date"
+                        className="pl-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                        {...field}
+                        value={
+                          field.value
+                            ? new Date(field.value).toISOString().split("T")[0]
+                            : ""
+                        }
+                      />
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Number of Employees */}
+              <FormField
+                control={form.control}
+                name="organization.employees"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Number of Employees</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="e.g., 50"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Annual Revenue */}
+              <FormField
+                control={form.control}
+                name="organization.revenue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Annual Revenue (USD)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1.5 text-muted-foreground">
+                          $
+                        </span>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="e.g., 1000000"
+                          className="pl-8"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

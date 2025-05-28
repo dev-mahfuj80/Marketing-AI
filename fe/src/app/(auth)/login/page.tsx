@@ -15,7 +15,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthStore, AuthState } from "@/lib/store/auth-store";
+import { useAuthStore } from "@/lib/store/auth-store";
 import { useEffect, Suspense } from "react";
 import { AlertCircle } from "lucide-react";
 
@@ -34,13 +34,11 @@ function LoginContent() {
   const redirectUrl = searchParams?.get("redirect") || "/dashboard";
 
   // Type-safe state selectors
-  const login = useAuthStore((state: AuthState) => state.login);
-  const isAuthenticated = useAuthStore(
-    (state: AuthState) => state.isAuthenticated
-  );
-  const isLoading = useAuthStore((state: AuthState) => state.isLoading);
-  const error = useAuthStore((state: AuthState) => state.error);
-  const resetError = useAuthStore((state: AuthState) => state.resetError);
+  const login = useAuthStore((state) => state.login);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const error = useAuthStore((state) => state.error);
+  const resetError = useAuthStore((state) => state.resetError);
 
   // Handle OAuth errors and redirects
   useEffect(() => {
@@ -51,29 +49,38 @@ function LoginContent() {
     }
 
     // Check for OAuth errors in URL parameters
-    const error = searchParams?.get('error');
-    const errorMessage = searchParams?.get('message');
-    
+    const error = searchParams?.get("error");
+    const errorMessage = searchParams?.get("message");
+
     if (error) {
       // Map specific LinkedIn OAuth errors to user-friendly messages
       const errorMessages: Record<string, string> = {
-        'access_denied': 'Login was cancelled. Please try again.',
-        'invalid_request': 'Invalid authentication request. Please try again.',
-        'unauthorized_client': 'Authentication not authorized. Please contact support.',
-        'unsupported_response_type': 'Unsupported response type. Please contact support.',
-        'invalid_scope': 'Invalid permissions requested. Please contact support.',
-        'server_error': 'Server error during authentication. Please try again later.',
-        'temporarily_unavailable': 'Authentication service is temporarily unavailable. Please try again later.',
-        'linkedin_scope_error': 'LinkedIn permissions issue. Please ensure all requested permissions are approved in the LinkedIn Developer Portal.',
-        'linkedin_auth_failed': 'LinkedIn authentication failed. Please try again.'
+        access_denied: "Login was cancelled. Please try again.",
+        invalid_request: "Invalid authentication request. Please try again.",
+        unauthorized_client:
+          "Authentication not authorized. Please contact support.",
+        unsupported_response_type:
+          "Unsupported response type. Please contact support.",
+        invalid_scope: "Invalid permissions requested. Please contact support.",
+        server_error:
+          "Server error during authentication. Please try again later.",
+        temporarily_unavailable:
+          "Authentication service is temporarily unavailable. Please try again later.",
+        linkedin_scope_error:
+          "LinkedIn permissions issue. Please ensure all requested permissions are approved in the LinkedIn Developer Portal.",
+        linkedin_auth_failed:
+          "LinkedIn authentication failed. Please try again.",
       };
-      
+
       // Use the specific error message if available, otherwise use the generic one
-      const errorMsg = errorMessages[error] || errorMessage || 'An error occurred during login. Please try again.';
-      
+      const errorMsg =
+        errorMessages[error] ||
+        errorMessage ||
+        "An error occurred during login. Please try again.";
+
       // Set the error in the auth store to display it
       useAuthStore.setState({ error: errorMsg });
-      
+
       // Clean up the URL to prevent showing the error again on refresh
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
@@ -122,12 +129,16 @@ function LoginContent() {
             <div>
               <p className="font-medium">Authentication Error</p>
               <p className="text-sm">{error}</p>
-              {error.includes('LinkedIn') && (
+              {error.includes("LinkedIn") && (
                 <div className="mt-2 text-sm bg-white/50 dark:bg-gray-800/50 p-2 rounded border border-red-100 dark:border-red-900">
                   <p className="font-medium">Need help?</p>
                   <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Ensure you&apos;re using the correct LinkedIn account</li>
-                    <li>Check if you&apos;ve granted all required permissions</li>
+                    <li>
+                      Ensure you&apos;re using the correct LinkedIn account
+                    </li>
+                    <li>
+                      Check if you&apos;ve granted all required permissions
+                    </li>
                     <li>Try again in a few minutes if the issue persists</li>
                   </ul>
                 </div>
