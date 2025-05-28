@@ -30,7 +30,9 @@
     "tailwind-merge": "^3.2.0",
     "use-immer": "^0.11.0",
     "zod": "^3.24.4",
-    "zustand": "^5.0.4"
+    "zustand": "^5.0.4",
+    "@langchain/community": "^0.3.44",
+    "@langchain/openai": "^0.5.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

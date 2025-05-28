@@ -12,6 +12,19 @@ declare global {
         id: number;
         email: string;
         role: string;
+        organizations?: {
+          id: number;
+          name: string;
+          website: string;
+          category: string;
+          location: string;
+          description: string;
+          established: string;
+          size: string;
+          employees: string;
+          revenue: string;
+          marketArea: string;
+        }[];
       };
     }
   }

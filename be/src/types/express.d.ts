@@ -4,7 +4,7 @@ export interface AuthenticatedUser {
   id: number;
   email: string;
   role: string;
-  organizations: {
+  organizations?: {
     id: number;
     name: string;
     website: string;
