@@ -37,17 +37,9 @@ export const authApi = {
     return api.post("/api/auth/logout");
   },
 
-  me: async () => {
-    return api.get("/api/auth/me");
-  },
-
   getCurrentUser: async () => {
     const response = await api.get("/api/auth/me");
     return response.data;
-  },
-
-  getConnections: async () => {
-    return api.get("/api/auth/connections");
   },
 
   forgotPassword: async (email: string) => {
@@ -92,9 +84,9 @@ export const authApi = {
 // LinkedIn API specific calls
 export const linkedinApi = {
   // Get LinkedIn user profile information - available even with limited permissions
-  getProfileInfo: async () => {
+  getLinkedInPageStatus: async () => {
     try {
-      return await api.get("/api/social/linkedin/profile");
+      return await api.get("/api/social/linkedin/status");
     } catch (error) {
       console.error("Error getting LinkedIn profile info:", error);
       throw error;
@@ -117,21 +109,11 @@ export const linkedinApi = {
 // Facebook API specific calls
 export const facebookApi = {
   // Check Facebook connection status and permissions
-  checkStatus: async () => {
+  getFacebookPageStatus: async () => {
     try {
-      const response = await api.get("/api/social/facebook/status");
-      return response;
+      return await api.get("/api/social/facebook/status");
     } catch (error) {
-      console.error("Error checking Facebook status:", error);
-      throw error;
-    }
-  },
-
-  // Get Facebook page details
-  getPageDetails: async (pageId = "me") => {
-    try {
-      return await api.get(`/api/social/facebook/pages/${pageId}`);
-    } catch (error) {
+      console.error("Error getting Facebook page info:", error);
       throw error;
     }
   },
@@ -146,6 +128,7 @@ export const facebookApi = {
       );
       return response;
     } catch (error) {
+      console.error("Error getting Facebook page posts:", error);
       throw error;
     }
   },
@@ -153,85 +136,14 @@ export const facebookApi = {
 
 // Social Media Posts API calls
 export const postsApi = {
-  createFacebookPost: async (
-    content: string,
-    image?: File,
-    pageId: string = "me"
-  ) => {
-    try {
-      // If we have an image, we need to use FormData
-      if (image) {
-        const formData = new FormData();
-        formData.append("message", content);
-        formData.append("image", image);
-
-        return await api.post(
-          `/api/social/facebook/pages/${pageId}/publish`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-      } else {
-        // No image, just send a regular JSON request
-        return await api.post(`/api/social/facebook/pages/${pageId}/publish`, {
-          message: content,
-        });
-      }
-    } catch (error) {
-      console.error("Error creating Facebook post:", error);
-      // Check for common permission errors
-      if (
-        axios.isAxiosError(error) &&
-        error.response?.data?.error?.includes("permission")
-      ) {
-        throw new Error(
-          "Permission denied: Make sure your Facebook access token has posting permissions"
-        );
-      }
-      throw error;
-    }
-  },
-
-  createLinkedinPost: async (content: string, imageUrl?: string) => {
-    return api.post("/api/social/linkedin/posts", { content, imageUrl });
-  },
-
   // Generic post creation function
   createPost: async (formData: FormData) => {
-    // Extract data from formData to determine which platform to post to
-    const content = formData.get("content") as string;
-    const platform = formData.get("platform") as string;
-    const image = formData.get("image") as File | null;
-
-    console.log(
-      "Creating post with platform:",
-      platform,
-      "has image:",
-      !!image
-    );
-
-    // If a specific platform is specified, use the dedicated endpoint
-    if (platform === "facebook") {
-      // For Facebook, pass the actual File object, not a URL
-      return postsApi.createFacebookPost(content, image || undefined);
-    } else if (platform === "linkedin") {
-      // For LinkedIn, pass the actual content and image
-      return postsApi.createLinkedinPost(
-        content,
-        image ? URL.createObjectURL(image) : undefined
-      );
+    try {
+      return await api.post("/api/social/posts", formData);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      throw error;
     }
-
-    // If no platform specified or other platform, use the generic endpoint
-    console.warn("Using generic post endpoint");
-    return api.post("/api/social/posts", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
   },
 };
 

@@ -1,9 +1,7 @@
 import axios from "axios";
 import FormData from "form-data";
 
-/**
- * Simplified Facebook API service using page access token directly
- */
+// Facebook service
 export class FacebookService {
   private apiVersion = "v19.0"; // Current Facebook Graph API version
 
@@ -89,33 +87,6 @@ export class FacebookService {
     } catch (error) {
       console.error("Error publishing Facebook post:", error);
       throw new Error("Failed to publish Facebook post");
-    }
-  }
-
-  async uploadPhotoToPage(
-    pageId: string,
-    pageAccessToken: string,
-    imageUrl: string,
-    message?: string
-  ) {
-    try {
-      // For publicly accessible image URLs
-      const response = await axios.post(
-        `https://graph.facebook.com/${this.apiVersion}/${pageId}/photos`,
-        null,
-        {
-          params: {
-            url: imageUrl,
-            caption: message || "",
-            access_token: pageAccessToken,
-          },
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      console.error("Error uploading photo to Facebook:", error);
-      throw new Error("Failed to upload photo to Facebook");
     }
   }
 }

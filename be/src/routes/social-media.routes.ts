@@ -12,19 +12,12 @@ const asyncHandler =
     return Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-//========================================== FACEBOOK ROUTES ====================================
+//================================== FACEBOOK ROUTES ====================================
 
 //check facebook status
 router.get(
   "/facebook/status",
-  asyncHandler(socialMediaController.checkFacebookStatus)
-);
-
-//get facebook posts
-router.get(
-  "/facebook/posts",
-  authenticate,
-  asyncHandler(socialMediaController.getFacebookPosts)
+  asyncHandler(socialMediaController.getFacebookProfileStatus)
 );
 
 //get facebook page posts
@@ -34,26 +27,13 @@ router.get(
   asyncHandler(socialMediaController.getFacebookPosts)
 );
 
-//publish facebook page post
-router.post(
-  "/facebook/pages/:pageId/publish",
-  authenticate,
-  asyncHandler(socialMediaController.publishPagePost)
-);
-
-//========================================== LINKEDIN ROUTES ====================================
+//================================== LINKEDIN ROUTES ====================================
 
 //get linkedin profile info
 router.get(
-  "/linkedin/profile",
-  authenticate,
-  asyncHandler(socialMediaController.getLinkedInProfile)
-);
-
-//check linkedin status
-router.get(
   "/linkedin/status",
-  asyncHandler(socialMediaController.checkLinkedInStatus)
+  authenticate,
+  asyncHandler(socialMediaController.getLinkedInProfileStatus)
 );
 
 //get linkedin page posts
@@ -62,14 +42,7 @@ router.get(
   asyncHandler(socialMediaController.getLinkedInPagePosts)
 );
 
-//publish linkedin page post
-router.post(
-  "/linkedin/page/publish",
-  authenticate,
-  asyncHandler(socialMediaController.publishLinkedInPost)
-);
-
-//========================================== CROSS-PLATFORM ROUTES ====================================
+//================================== CROSS-PLATFORM ROUTES ====================================
 
 //create post
 router.post(

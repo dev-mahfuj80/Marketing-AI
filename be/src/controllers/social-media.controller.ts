@@ -24,13 +24,11 @@ const upload = multer({
 const uploadMiddleware = upload.single("image");
 const uploadAsync = util.promisify(uploadMiddleware);
 
-/**
- * Social Media Controller - handles all social media platform interactions
- */
+// Social Media Controller
 export class SocialMediaController {
   // ============================================ FACEBOOK ============================================
   // Check Facebook status
-  async checkFacebookStatus(req: Request, res: Response) {
+  async getFacebookProfileStatus(req: Request, res: Response) {
     try {
       if (!env.FACEBOOK_PAGE_ACCESS_TOKEN) {
         return res.status(200).json({
@@ -87,113 +85,10 @@ export class SocialMediaController {
     }
   }
 
-  // Publish Facebook page post
-  async publishPagePost(req: MulterRequest, res: Response) {
-    try {
-      // Default to the page ID in the environment or use the one from the request
-      const pageId = req.params.pageId || env.FACEBOOK_PAGE_ID;
-
-      // Process file upload if present - do this BEFORE we try to access body
-      try {
-        await uploadAsync(req, res);
-      } catch (uploadError) {
-        console.error("File upload error:", uploadError);
-        return res.status(400).json({ message: "File upload failed" });
-      }
-
-      // Now we can safely access the body
-      // Initialize message and link in case req.body is undefined
-      let message = "";
-      let link = undefined;
-
-      // Safely access req.body properties
-      if (req.body) {
-        message = req.body.message || "";
-        link = req.body.link;
-      }
-
-      if (!pageId || !message) {
-        return res
-          .status(400)
-          .json({ message: "Page ID and message are required" });
-      }
-
-      if (!env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-        return res
-          .status(500)
-          .json({ message: "Facebook page access token not configured" });
-      }
-
-      const facebookService = new FacebookService();
-      let result;
-
-      // Check if we have an image file
-      if (req.file) {
-        console.log("Image file detected, uploading to Facebook");
-        result = await facebookService.publishPagePost(
-          pageId,
-          env.FACEBOOK_PAGE_ACCESS_TOKEN,
-          message,
-          link,
-          req.file.buffer
-        );
-      } else {
-        // No image, just publish the text post
-        result = await facebookService.publishPagePost(
-          pageId,
-          env.FACEBOOK_PAGE_ACCESS_TOKEN,
-          message,
-          link
-        );
-      }
-
-      // Save the post to our database
-      if (result && result.id) {
-        await prisma.post.create({
-          data: {
-            content: message,
-            mediaUrl: link || (req.file ? "uploaded-image" : null),
-            status: "PUBLISHED",
-            platform: "FACEBOOK",
-            platformId: result.id,
-            publishedAt: new Date(),
-            userId: req.user?.id || 1, // Default to user ID 1 if not authenticated
-          },
-        });
-      }
-
-      return res.status(200).json({
-        message: "Post published successfully",
-        postId: result.id,
-      });
-    } catch (error) {
-      console.error("Error publishing Facebook post:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to publish Facebook post" });
-    }
-  }
-
-  // ===================================================================== LINKEDIN =====================================================================
-
-  // Get LinkedIn profile
-  async getLinkedInProfile(req: Request, res: Response) {
-    try {
-      const linkedInService = new LinkedInService();
-      const profileInfo = await linkedInService.getProfileInfo(
-        env.LINKEDIN_ACCESS_TOKEN
-      );
-      return res.status(200).json({ profileInfo });
-    } catch (error) {
-      console.error("Error fetching LinkedIn profile:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to fetch LinkedIn profile" });
-    }
-  }
+  // ================================================ LINKEDIN =====================================================
 
   // Check LinkedIn status
-  async checkLinkedInStatus(req: Request, res: Response) {
+  async getLinkedInProfileStatus(req: Request, res: Response) {
     try {
       // First check if LinkedIn credentials are configured
       if (!env.LINKEDIN_CLIENT_ID || !env.LINKEDIN_ACCESS_TOKEN) {
@@ -293,94 +188,10 @@ export class SocialMediaController {
       });
     }
   }
-  // Publish LinkedIn post
-  async publishLinkedInPost(req: MulterRequest, res: Response) {
-    try {
-      // Process file upload if present - do this BEFORE we try to access body
-      try {
-        await uploadAsync(req, res);
-      } catch (uploadError) {
-        console.error("File upload error:", uploadError);
-        return res.status(400).json({ message: "File upload failed" });
-      }
-
-      // Now we can safely access the body
-      // Initialize message and link in case req.body is undefined
-      let message = "";
-      let link = undefined;
-
-      // Safely access req.body properties
-      if (req.body) {
-        message = req.body.message || "";
-        link = req.body.link;
-      }
-
-      if (!message) {
-        return res.status(400).json({ message: "Message is required" });
-      }
-
-      if (!env.LINKEDIN_ACCESS_TOKEN) {
-        return res
-          .status(500)
-          .json({ message: "LinkedIn access token not configured" });
-      }
-
-      const linkedInService = new LinkedInService();
-      let result;
-
-      // Check if we have an image file or link
-      if (req.file) {
-        // This would require uploading to a publicly accessible URL first
-        // For simplicity, we'll just note that this functionality would need additional implementation
-        return res.status(400).json({
-          message:
-            "Direct image uploads for LinkedIn not supported. Please provide a public image URL instead.",
-        });
-      } else if (link) {
-        // If we have a link, use it as the article URL
-        result = await linkedInService.publishPost(
-          env.LINKEDIN_ACCESS_TOKEN,
-          message,
-          undefined,
-          link
-        );
-      } else {
-        // No image or link, just publish the text post
-        result = await linkedInService.publishPost(
-          env.LINKEDIN_ACCESS_TOKEN,
-          message
-        );
-      }
-
-      // Save the post to our database
-      if (result && result.id) {
-        await prisma.post.create({
-          data: {
-            content: message,
-            mediaUrl: link || null,
-            status: "PUBLISHED",
-            platform: "LINKEDIN",
-            platformId: result.id,
-            publishedAt: new Date(),
-            userId: req.user?.id || 1, // Default to user ID 1 if not authenticated
-          },
-        });
-      }
-
-      return res.status(200).json({
-        message: "Post published successfully to LinkedIn",
-        postId: result.id,
-      });
-    } catch (error) {
-      console.error("Error publishing LinkedIn post:", error);
-      return res
-        .status(500)
-        .json({ message: "Failed to publish LinkedIn post" });
-    }
-  }
 
   // ======================================= CROSS-PLATFORM ============================================
 
+  // Create post
   async createPost(req: Request, res: Response) {
     try {
       if (!req.user?.id) {
