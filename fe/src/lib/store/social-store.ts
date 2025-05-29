@@ -41,7 +41,7 @@ export const useSocialStore = create<SocialState>()(
       getLinkedInPosts: async (start = 0, count = 10) => {
         set({ loading: true });
         try {
-          const response = await linkedinApi.getPagePosts(start, count);
+          const response = await linkedinApi.getLinkedInPagePosts(start, count);
           const data = await response.data;
           set({ linkedinPosts: data.posts || [] });
         } catch (error) {

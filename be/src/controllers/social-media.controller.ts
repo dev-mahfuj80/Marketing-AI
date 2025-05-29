@@ -15,14 +15,7 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-});
-const uploadMiddleware = upload.single("image");
-const uploadAsync = util.promisify(uploadMiddleware);
+// Multer configuration has been moved to the routes file
 
 // Social Media Controller
 export class SocialMediaController {
@@ -30,18 +23,10 @@ export class SocialMediaController {
   // Check Facebook status
   async getFacebookProfileStatus(req: Request, res: Response) {
     try {
-      if (!env.FACEBOOK_PAGE_ACCESS_TOKEN) {
-        return res.status(200).json({
-          connected: false,
-          credentialsValid: false,
-          message: "Facebook page access token not configured",
-          lastChecked: new Date().toISOString(),
-          permissionNote:
-            "Please add Facebook page access token to your environment variables",
-          nextSteps:
-            "Contact your administrator to set up Facebook page access token",
-        });
-      }
+      const facebookService = new FacebookService();
+      const result = await facebookService.getFacebookProfileStatus(
+        env.FACEBOOK_PAGE_ACCESS_TOKEN
+      );
       return res.status(200).json({
         message: "Facebook connection active",
       });
@@ -90,59 +75,37 @@ export class SocialMediaController {
   // Check LinkedIn status
   async getLinkedInProfileStatus(req: Request, res: Response) {
     try {
-      // First check if LinkedIn credentials are configured
-      if (!env.LINKEDIN_CLIENT_ID || !env.LINKEDIN_ACCESS_TOKEN) {
+      // get linkedin access token from env
+      const linkedinAccessToken = env.LINKEDIN_ACCESS_TOKEN;
+      if (!linkedinAccessToken) {
         return res.status(200).json({
           connected: false,
           credentialsValid: false,
-          message: "LinkedIn API credentials are not configured",
+          profileInfo: null,
+          message: "LinkedIn access token not configured",
           lastChecked: new Date().toISOString(),
-          permissionNote:
-            "Please add LinkedIn client ID and access token to your environment variables",
-          nextSteps:
-            "Contact your administrator to set up LinkedIn API credentials",
+          error: "LinkedIn access token not configured",
         });
       }
 
-      // Test if the access token is valid
-      let tokenValid = false;
-      let profileInfo = null;
+      const linkedInService = new LinkedInService();
+      const profileResponse = await linkedInService.getLinkedInProfileStatus(
+        linkedinAccessToken
+      );
 
-      try {
-        // Check if the token is valid by making a request to the LinkedIn API
-        const linkedInService = new LinkedInService();
-        const profileResponse = await linkedInService.getLinkedInPInfo(
-          env.LINKEDIN_ACCESS_TOKEN
-        );
-
-        if (profileResponse && profileResponse.id) {
-          tokenValid = true;
-          profileInfo = profileResponse;
-        }
-      } catch (error) {
-        console.error("LinkedIn token validation failed:", error);
-        tokenValid = false;
+      if (profileResponse && profileResponse.id) {
+        return res.status(200).json({
+          connected: true,
+          credentialsValid: true,
+          profileInfo: profileResponse,
+        });
       }
-
-      // Response with status information
-      return res.status(200).json({
-        connected: tokenValid,
-        credentialsValid: true, // If we have credentials set, consider them valid
-        lastChecked: new Date().toISOString(),
-        message: tokenValid
-          ? "LinkedIn connection active"
-          : "LinkedIn connection inactive or invalid token",
-        permissionNote: tokenValid
-          ? "LinkedIn access token is valid"
-          : "LinkedIn integration requires a valid access token",
-        nextSteps: "Ensure your LinkedIn access token has not expired",
-        profileInfo: profileInfo,
-      });
     } catch (error) {
-      console.error("Error checking LinkedIn status:", error);
-      return res.status(500).json({
+      console.error("LinkedIn token validation failed:", error);
+      return res.status(200).json({
         connected: false,
         credentialsValid: false,
+        profileInfo: null,
         message: "Error checking LinkedIn status",
         lastChecked: new Date().toISOString(),
         error: (error as Error).message,
@@ -194,260 +157,42 @@ export class SocialMediaController {
   // Create post
   async createPost(req: Request, res: Response) {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ message: "User not authenticated" });
+      console.log("Received post data:", req.body);
+      
+      if (!req.body) {
+        return res.status(400).json({ message: "No post data provided" });
       }
 
-      const { content, platforms, mediaUrl, scheduledDate } = req.body;
-
-      if (
-        !content ||
-        !platforms ||
-        !Array.isArray(platforms) ||
-        platforms.length === 0
-      ) {
-        return res
-          .status(400)
-          .json({ message: "Content and at least one platform are required" });
-      }
-
-      // Validate platforms
-      const validPlatforms = ["FACEBOOK", "LINKEDIN"];
-      const invalidPlatforms = platforms.filter(
-        (platform: string) => !validPlatforms.includes(platform)
-      );
-
-      if (invalidPlatforms.length > 0) {
-        return res.status(400).json({
-          message: `Invalid platforms: ${invalidPlatforms.join(", ")}`,
-        });
-      }
-
-      // Get user
-      const user = await prisma.user.findUnique({
-        where: { id: req.user.id },
-      });
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const postResults: Array<{
-        id: number;
-        content: string;
-        mediaUrl: string | null;
-        status: string;
-        platform: string;
-        platformId: string | null;
-        publishedAt: Date | null;
-        userId: number;
-      }> = [];
-      const errors: { platform: string; message: string }[] = [];
-
-      // Handle scheduled posts
-      if (scheduledDate) {
-        const scheduledTime = new Date(scheduledDate);
-
-        if (isNaN(scheduledTime.getTime()) || scheduledTime <= new Date()) {
-          return res
-            .status(400)
-            .json({ message: "Scheduled date must be in the future" });
+      // Get the file from the request if it was uploaded
+      const file = (req as any).file;
+      
+      // Prepare the response data
+      const responseData: any = {
+        message: "Post created successfully",
+        post: {
+          ...req.body,
+          hasImage: !!file,
+          imageInfo: file ? {
+            originalname: file.originalname,
+            mimetype: file.mimetype,
+            size: file.size
+          } : null
         }
+      };
 
-        // Create scheduled post in our database
-        const scheduledPost = await prisma.post.create({
-          data: {
-            content,
-            mediaUrl,
-            status: "SCHEDULED",
-            publishedAt: scheduledTime,
-            platform: platforms[0], // Use first platform for now
-            userId: req.user.id,
-          },
-        });
-
-        return res.status(201).json({
-          message: "Post scheduled successfully",
-          post: scheduledPost,
-        });
+      // If you need to process the file, you can access it here
+      if (file) {
+        // Example: file.buffer contains the file data
+        console.log(`Received file: ${file.originalname} (${file.size} bytes)`);
       }
 
-      // Handle immediate posting to platforms
-      for (const platform of platforms) {
-        try {
-          if (platform === "FACEBOOK" && user.facebookToken) {
-            // Get Facebook Pages
-            const pagesResponse = await axios.get(
-              "https://graph.facebook.com/v18.0/me/accounts",
-              {
-                params: {
-                  access_token: user.facebookToken,
-                  fields: "id,name,access_token",
-                },
-              }
-            );
-
-            const pages = pagesResponse.data.data || [];
-
-            if (pages.length === 0) {
-              errors.push({ platform, message: "No Facebook pages found" });
-              continue;
-            }
-
-            // Use the first page's access token
-            const pageAccessToken = pages[0].access_token;
-            const pageId = pages[0].id;
-
-            // Create post payload
-            const postData: Record<string, unknown> = { message: content };
-
-            // Add media if provided
-            if (mediaUrl) {
-              if (mediaUrl.startsWith("http")) {
-                postData.link = mediaUrl;
-              } else {
-                // For uploaded images, a different endpoint would be needed
-                errors.push({
-                  platform,
-                  message: "Direct image upload not implemented yet",
-                });
-                continue;
-              }
-            }
-
-            // Post to Facebook
-            const response = await axios.post(
-              `https://graph.facebook.com/v18.0/${pageId}/feed`,
-              null,
-              {
-                params: {
-                  ...postData,
-                  access_token: pageAccessToken,
-                },
-              }
-            );
-
-            if (response.data?.id) {
-              // Save post to database
-              const savedPost = await prisma.post.create({
-                data: {
-                  content,
-                  mediaUrl,
-                  status: "PUBLISHED",
-                  platform: "FACEBOOK",
-                  platformId: response.data.id,
-                  publishedAt: new Date(),
-                  userId: req.user.id,
-                },
-              });
-
-              postResults.push(savedPost);
-            }
-          } else if (platform === "LINKEDIN" && user.linkedInAccessToken) {
-            // Get user profile to get URN
-            const profileResponse = await axios.get(
-              "https://api.linkedin.com/v2/me",
-              {
-                headers: {
-                  Authorization: `Bearer ${user.linkedInAccessToken}`,
-                },
-              }
-            );
-
-            const personId = profileResponse.data.id;
-            const personUrn = `urn:li:person:${personId}`;
-
-            // Create post payload
-            const postPayload: Record<string, unknown> = {
-              author: personUrn,
-              lifecycleState: "PUBLISHED",
-              specificContent: {
-                "com.linkedin.ugc.ShareContent": {
-                  shareCommentary: {
-                    text: content,
-                  },
-                  shareMediaCategory: "NONE",
-                },
-              },
-              visibility: {
-                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-              },
-            };
-
-            // Add media if provided
-            if (mediaUrl && mediaUrl.startsWith("http")) {
-              // Type assertion to safely access ShareContent
-              (postPayload.specificContent as any)[
-                "com.linkedin.ugc.ShareContent"
-              ].shareMediaCategory = "ARTICLE";
-              // Type assertion for ShareContent
-              (postPayload.specificContent as any)[
-                "com.linkedin.ugc.ShareContent"
-              ].media = [
-                {
-                  status: "READY",
-                  originalUrl: mediaUrl,
-                },
-              ];
-            }
-
-            // Post to LinkedIn
-            const response = await axios.post(
-              "https://api.linkedin.com/v2/ugcPosts",
-              postPayload,
-              {
-                headers: {
-                  Authorization: `Bearer ${user.linkedInAccessToken}`,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-
-            if (response.data?.id) {
-              // Save post to database
-              const savedPost = await prisma.post.create({
-                data: {
-                  content,
-                  mediaUrl,
-                  status: "PUBLISHED",
-                  platform: "LINKEDIN",
-                  platformId: response.data.id,
-                  publishedAt: new Date(),
-                  userId: req.user.id,
-                },
-              });
-
-              postResults.push(savedPost);
-            }
-          } else {
-            errors.push({ platform, message: "Platform not connected" });
-          }
-        } catch (error: any) {
-          console.error(
-            `Error posting to ${platform}:`,
-            error.response?.data || error.message
-          );
-          errors.push({
-            platform,
-            message: error.response?.data?.error?.message || error.message,
-          });
-        }
-      }
-
-      if (postResults.length === 0 && errors.length > 0) {
-        return res
-          .status(400)
-          .json({ message: "Failed to create posts", errors });
-      }
-
-      return res.status(201).json({
-        message: "Posts created successfully",
-        posts: postResults,
-        errors: errors.length > 0 ? errors : undefined,
-      });
+      return res.status(200).json(responseData);
     } catch (error: any) {
-      console.error("Error creating post:", error.message);
-      return res.status(500).json({ message: "Server error creating post" });
+      console.error("Error creating post:", error);
+      return res.status(500).json({ 
+        message: "Server error creating post",
+        error: error.message 
+      });
     }
   }
 }

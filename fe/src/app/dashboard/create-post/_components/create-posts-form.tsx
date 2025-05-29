@@ -16,17 +16,20 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loader2, Facebook, Linkedin } from "lucide-react";
 import { toast } from "sonner";
 
 // Form schema using Zod
 const formSchema = z.object({
-  content: z
-    .string()
-    .min(5, { message: "Post content must be at least 5 characters long" })
-    .max(1000, { message: "Post content must be less than 1000 characters" }),
-  image: z.instanceof(FileList).optional(),
+  content: z.string().min(5, "Content must be at least 5 characters long"),
   publishToFacebook: z.boolean().default(false),
   publishToLinkedin: z.boolean().default(false),
+  image: z.instanceof(File).optional(),
+  schedulePost: z.boolean().default(false),
+  scheduledTime: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -51,94 +54,50 @@ export default function CreatePostsForm() {
   // Handle form submission
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
-    console.log(values);
-    // Validate form - at least one platform must be selected
-    if (!values.publishToFacebook && !values.publishToLinkedin) {
-      toast.error("Please select at least one platform to publish to");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      const promises = [];
-      let successCount = 0;
+      const formData = new FormData();
 
-      // Handle post creation for each selected platform
-      if (values.publishToFacebook) {
-        try {
-          // Get the actual image file if provided
-          const imageFile =
-            values.image && values.image.length > 0
-              ? values.image[0]
-              : undefined;
+      // Append all form values
+      formData.append("content", values.content);
+      formData.append("publishToFacebook", values.publishToFacebook.toString());
+      formData.append("publishToLinkedin", values.publishToLinkedin.toString());
 
-          const formData = new FormData();
-          formData.append("content", values.content);
-          if (imageFile) {
-            formData.append("image", imageFile);
-          }
-
-          // Send directly to Facebook API using the dedicated function with the image file
-          const fbPromise = postsApi.createPost(formData);
-          promises.push(fbPromise);
-          await fbPromise;
-          successCount++;
-        } catch (fbError) {
-          console.error("Error publishing to Facebook:", fbError);
-        }
+      // Handle image upload if exists
+      if (values.image) {
+        formData.append("image", values.image);
       }
 
-      // Handle post creation for LinkedIn
-      if (values.publishToLinkedin) {
-        try {
-          // Prepare image URL for LinkedIn if provided
-          const imageUrl =
-            values.image && values.image.length > 0
-              ? URL.createObjectURL(values.image[0])
-              : undefined;
-
-          const formData = new FormData();
-          formData.append("content", values.content);
-          if (imageUrl) {
-            formData.append("image", imageUrl);
-          }
-
-          // Send directly to LinkedIn API using the dedicated function
-          const liPromise = postsApi.createPost(formData);
-          promises.push(liPromise);
-          await liPromise;
-          successCount++;
-        } catch (liError) {
-          console.error("Error publishing to LinkedIn:", liError);
-        }
+      // Handle scheduling
+      if (values.schedulePost && values.scheduledTime) {
+        formData.append("scheduledTime", values.scheduledTime);
       }
+      console.log(formData);
+      const response = await postsApi.createPost(formData);
 
-      // Wait for all promises to complete
-      await Promise.allSettled(promises);
-
-      if (successCount > 0) {
+      if (response.status === 200) {
         toast.success(
-          `Post created successfully on ${successCount} platform${
-            successCount > 1 ? "s" : ""
-          }!`
+          values.schedulePost
+            ? "Post scheduled successfully!"
+            : "Post created successfully!"
         );
-        form.reset();
-      } else {
-        toast.error("Failed to publish to any selected platforms.");
+        // form.reset();
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         toast.error(error.response.data.message || "Failed to create post");
       } else {
+        console.error("Error:", error);
         toast.error("An error occurred while creating the post");
       }
     } finally {
       setIsSubmitting(false);
     }
   }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Content Field */}
         <FormField
           control={form.control}
           name="content"
@@ -146,110 +105,152 @@ export default function CreatePostsForm() {
             <FormItem>
               <FormLabel>Post Content</FormLabel>
               <FormControl>
-                <textarea
-                  className="flex min-h-[200px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="What would you like to share today?"
+                <Textarea
+                  placeholder="What's on your mind?"
+                  className="min-h-[150px]"
                   {...field}
                 />
               </FormControl>
-              <div className="flex justify-between">
-                <FormMessage />
-                <div className="text-xs text-muted-foreground">
-                  {characterCount}/1000 characters
-                </div>
-              </div>
-              <div className="flex justify-end ">
-                {/* style it like button cause if i gve here button it submit the form */}
-                <p className="text-xs text-muted-foreground cursor-pointer hover:text-black py-2 px-4 rounded border border-primary hover:bg-primary transition-colors">
-                  Generate Content Using AI
-                </p>
-              </div>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="image"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image (Optional)</FormLabel>
-              <FormControl>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  // We don't spread the field props because FileList can't be used as a value
-                  // Instead we handle the onChange manually
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    field.onChange(e.target.files);
-                  }}
-                  // Don't include value prop for file inputs
-                  onBlur={field.onBlur}
-                  name={field.name}
-                  ref={field.ref}
-                />
-              </FormControl>
               <FormDescription>
-                Upload an image to include with your post. Maximum size: 5MB
+                {characterCount}/1000 characters
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex gap-4 pt-4">
-          <FormField
-            control={form.control}
-            name="publishToFacebook"
-            render={({ field }) => (
-              <FormItem className="flex items-center space-x-2">
+        {/* Image Upload */}
+        <FormField
+          control={form.control}
+          name="image"
+          render={({ field: { onChange, value, ...field } }) => {
+            return (
+              <FormItem>
+                <FormLabel>Image (Optional)</FormLabel>
                 <FormControl>
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    aria-checked={field.value}
-                    aria-label="Publish to Facebook"
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      onChange(e.target.files?.[0] || null);
+                    }}
+                    // Don't set value for file inputs to avoid controlled/uncontrolled warning
+                    value=""
+                    {...field}
                   />
                 </FormControl>
-                <FormLabel className="text-base font-normal">
-                  Publish to Facebook
-                </FormLabel>
+                {value && (
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Selected: {value.name} ({(value.size / 1024).toFixed(2)} KB)
+                  </div>
+                )}
+                <FormMessage />
               </FormItem>
-            )}
-          />
+            );
+          }}
+        />
 
+        {/* Schedule Post Toggle */}
+        <FormField
+          control={form.control}
+          name="schedulePost"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Schedule Post</FormLabel>
+                <FormDescription>
+                  Set a specific time to publish this post
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {/* Scheduled Time Picker - Only show if schedulePost is true */}
+        {form.watch("schedulePost") && (
           <FormField
             control={form.control}
-            name="publishToLinkedin"
+            name="scheduledTime"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2">
+              <FormItem>
+                <FormLabel>Scheduled Time</FormLabel>
                 <FormControl>
-                  <input
-                    type="checkbox"
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    aria-checked={field.value}
-                    aria-label="Publish to LinkedIn"
+                  <Input
+                    type="datetime-local"
+                    min={new Date().toISOString().slice(0, 16)}
+                    {...field}
                   />
                 </FormControl>
-                <FormLabel className="text-base font-normal">
-                  Publish to LinkedIn
-                </FormLabel>
+                <FormMessage />
               </FormItem>
             )}
           />
+        )}
+
+        {/* Social Media Selection */}
+        <div className="space-y-4">
+          <FormLabel>Publish to:</FormLabel>
+          <div className="flex space-x-4">
+            <FormField
+              control={form.control}
+              name="publishToFacebook"
+              render={({ field }) => (
+                <FormItem className="flex items-center">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0 flex items-center">
+                    <Facebook className="h-5 w-5 text-blue-600" />
+                    Facebook
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="publishToLinkedin"
+              render={({ field }) => (
+                <FormItem className="flex items-center">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0 flex items-center">
+                    <Linkedin className="h-5 w-5 text-blue-500" />
+                    LinkedIn
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full md:w-auto"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "Publishing..." : "Publish Post"}
+        {/* Submit Button */}
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {form.watch("schedulePost") ? "Scheduling..." : "Posting..."}
+            </>
+          ) : form.watch("schedulePost") ? (
+            "Schedule Post"
+          ) : (
+            "Create Post"
+          )}
         </Button>
+
+        {/* Content Field */}
       </form>
     </Form>
   );

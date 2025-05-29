@@ -94,7 +94,7 @@ export const linkedinApi = {
   },
 
   // Get LinkedIn posts directly from page using access token - no auth required
-  getPagePosts: async (start = 0, count = 10) => {
+  getLinkedInPagePosts: async (start = 0, count = 10) => {
     try {
       return await api.get("/api/social/linkedin/page/posts", {
         params: { start, count },
@@ -139,7 +139,11 @@ export const postsApi = {
   // Generic post creation function
   createPost: async (formData: FormData) => {
     try {
-      return await api.post("/api/social/posts", formData);
+      return await api.post("/api/social/posts", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     } catch (error) {
       console.error("Error creating post:", error);
       throw error;

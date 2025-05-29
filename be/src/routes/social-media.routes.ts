@@ -44,10 +44,28 @@ router.get(
 
 //================================== CROSS-PLATFORM ROUTES ====================================
 
-//create post
+// Import the upload middleware directly
+import multer from "multer";
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
+
+// Create post route with file upload handling
 router.post(
   "/posts",
   authenticate,
+  upload.single('image'), // Handle single file upload with field name 'image'
   asyncHandler(socialMediaController.createPost)
 );
 
