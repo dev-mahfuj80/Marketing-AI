@@ -4,8 +4,8 @@ import axios from "axios";
 import { env } from "../config/env.js";
 import multer from "multer";
 import util from "util";
-import { FacebookService } from "../services/facebook.service.js";
-import { LinkedInService } from "../services/linkedin.service.js";
+import { FacebookService } from "../services/social.service.js";
+import { LinkedInService } from "../services/social.service.js";
 
 // Prisma client
 const prisma = new PrismaClient();
@@ -111,7 +111,7 @@ export class SocialMediaController {
       try {
         // Check if the token is valid by making a request to the LinkedIn API
         const linkedInService = new LinkedInService();
-        const profileResponse = await linkedInService.getProfileInfo(
+        const profileResponse = await linkedInService.getLinkedInPInfo(
           env.LINKEDIN_ACCESS_TOKEN
         );
 

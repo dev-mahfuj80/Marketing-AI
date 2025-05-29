@@ -1,58 +1,31 @@
 import type { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
-import { sendPasswordResetEmail } from "../utils/email.js";
 import type { AuthenticatedRequest } from "../types/express.js";
-import {
-  hashPassword,
-  verifyPassword,
-  generateTokens,
-  refreshAccessToken,
-  revokeRefreshToken,
-} from "../utils/auth.js";
+import { refreshAccessToken, revokeRefreshToken } from "../utils/auth.js";
 import { env } from "../config/env.js";
-import crypto from "crypto";
+import { AuthService } from "../services/auth.service.js";
 
-const prisma = new PrismaClient();
-
-// User registration controller
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, email, password } = req.body;
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Call the service
+    const result = await AuthService.register(name, email, password);
 
-    if (existingUser) {
-      res.status(400).json({ message: "User already exists" });
+    // Handle error cases
+    if (!result.success) {
+      res.status(result.status || 500).json({ message: result.message });
       return;
     }
 
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
-    });
-
-    // Generate tokens
-    const tokens = await generateTokens(user);
-
     // Set cookies
-    res.cookie("accessToken", tokens.accessToken, {
+    res.cookie("accessToken", result?.tokens?.accessToken, {
       httpOnly: true,
       secure: env.isProduction(),
       maxAge: 15 * 60 * 1000, // 15 minutes
       sameSite: "lax",
     });
 
-    res.cookie("refreshToken", tokens.refreshToken, {
+    res.cookie("refreshToken", result?.tokens?.refreshToken, {
       httpOnly: true,
       secure: env.isProduction(),
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -60,120 +33,63 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       path: "/api/auth/refresh", // Only send cookie to refresh endpoint
     });
 
-    // Return user data (excluding sensitive information)
-    const { password: _, ...userWithoutPassword } = user;
+    // Return success response
     res.status(201).json({
       message: "User registered successfully",
-      user: userWithoutPassword,
-      accessToken: tokens.accessToken,
+      user: result.user,
+      accessToken: result?.tokens?.accessToken,
     });
   } catch (error) {
-    console.error("Registration error:", error);
-    res.status(500).json({ message: "Server error during registration" });
-    return;
+    console.error("Registration controller error:", error);
+    res.status(500).json({
+      message: "An error occurred during registration. Please try again.",
+    });
   }
 };
 
-// User login controller
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    // Check if tables exist first
-    try {
-      await prisma.$connect();
-    } catch (dbError) {
-      res.status(500).json({ message: "Database connection error" });
-      return;
-    }
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    // Call the service
+    const result = await AuthService.login(email, password);
 
-    // Check if user exists and provide a more helpful message
-    if (!user) {
-      res.status(404).json({
-        message: "Account not found. Please sign up first.",
-        code: "USER_NOT_FOUND",
+    // Handle error cases
+    if (!result.success) {
+      res.status(result.status || 500).json({
+        message: result.message,
+        code: result.code,
       });
       return;
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password);
-
-    if (!isPasswordValid) {
-      res.status(401).json({ message: "Invalid credentials" });
-      return;
-    }
-
-    // Generate tokens
-    const tokens = await generateTokens(user);
-
     // Set cookies
-    res.cookie("accessToken", tokens.accessToken, {
+    res.cookie("accessToken", result?.tokens?.accessToken, {
       httpOnly: true,
       secure: env.isProduction(),
       maxAge: 600 * 60 * 1000, // 10 minutes
       sameSite: "lax",
     });
 
-    res.cookie("refreshToken", tokens.refreshToken, {
+    res.cookie("refreshToken", result?.tokens?.refreshToken, {
       httpOnly: true,
       secure: env.isProduction(),
       maxAge: 70 * 24 * 60 * 60 * 1000, // 70 days
       sameSite: "lax",
       path: "/api/auth/refresh", // Only send cookie to refresh endpoint
     });
-    // if linkedin access token is not set in user database & environment variables are set
-    if (
-      env.LINKEDIN_ACCESS_TOKEN &&
-      env.LINKEDIN_CLIENT_ID &&
-      env.LINKEDIN_CLIENT_SECRET &&
-      user.linkedInAccessToken === null
-    ) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          linkedInAppId: env.LINKEDIN_CLIENT_ID,
-          linkedInAppSecret: env.LINKEDIN_CLIENT_SECRET,
-          linkedInAccessToken: env.LINKEDIN_ACCESS_TOKEN,
-          linkedInRefreshToken: env.LINKEDIN_REFRESH_TOKEN,
-        },
-      });
-    }
 
-    // if facebook access token is not set in user database & environment variables are set
-    if (env.FACEBOOK_PAGE_ACCESS_TOKEN && user.facebookToken === null) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          facebookAppId: env.FACEBOOK_APP_ID,
-          facebookAppSecret: env.FACEBOOK_APP_SECRET,
-          facebookToken: env.FACEBOOK_PAGE_ACCESS_TOKEN,
-          facebookPageId: env.FACEBOOK_PAGE_ID,
-        },
-      });
-    }
-    // Return user data (excluding sensitive information)
-    const {
-      password: _,
-      linkedInAccessToken: _1,
-      linkedInRefreshToken: _2,
-      facebookToken: _3,
-      facebookPageId: _4,
-      ...userWithoutSensitiveInfo
-    } = user;
+    // Return success response
     res.status(200).json({
       message: "Login successful",
-      user: userWithoutSensitiveInfo,
-      accessToken: tokens.accessToken,
+      user: result.user,
+      accessToken: result?.tokens?.accessToken,
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(401).json({ message: "Please verify your email first" });
-    return;
+    console.error("Login controller error:", error);
+    res.status(500).json({
+      message: "An error occurred during login. Please try again.",
+    });
   }
 };
 
@@ -241,72 +157,17 @@ export const requestPasswordReset = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  console.log("📧 PASSWORD RESET REQUEST RECEIVED");
-  console.log("📧 Request body:", req.body);
-
   try {
     const { email } = req.body;
-    console.log("📧 Email to reset password for:", email);
+    const result = await AuthService.requestPasswordReset(email);
 
-    // Find user by email
-    console.log("📧 Searching for user with email:", email);
-
-    let user;
-    try {
-      user = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      console.log("📧 User search result:", user ? "FOUND" : "NOT FOUND");
-
-      // Return error if user doesn't exist (Note: This is not recommended for security reasons, but implementing as requested)
-      if (!user) {
-        console.log("📧 No user found with email:", email);
-        res.status(404).json({
-          success: false,
-          message:
-            "No account found with this email address. Please check your email or register.",
-        });
-        return;
-      }
-
-      console.log("📧 Found user. User ID:", user.id);
-    } catch (dbError) {
-      console.error("📧 ERROR SEARCHING FOR USER:", dbError);
-      throw dbError;
+    if (result.status) {
+      res.status(result.status).json(result);
+    } else {
+      res.json(result);
     }
-
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
-
-    // Save token to user
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        resetPasswordToken: resetToken,
-        resetPasswordExpires: resetTokenExpiry,
-      } as any, // Type assertion needed until Prisma client is regenerated
-    });
-
-    // Send email
-    console.log("📧 ABOUT TO SEND PASSWORD RESET EMAIL TO:", user.email);
-    console.log("📧 WITH TOKEN:", resetToken);
-
-    try {
-      const emailSent = await sendPasswordResetEmail(user.email, resetToken);
-      console.log("📧 Email sending result:", emailSent ? "SUCCESS" : "FAILED");
-    } catch (emailError) {
-      console.error("📧 ERROR SENDING RESET EMAIL:", emailError);
-    }
-
-    res.json({
-      success: true,
-      message:
-        "If an account with that email exists, a password reset link has been sent.",
-    });
   } catch (error) {
-    console.error("Error in requestPasswordReset:", error);
+    console.error("Error in requestPasswordReset controller:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred while processing your request.",
@@ -321,57 +182,15 @@ export const resetPassword = async (
 ): Promise<void> => {
   try {
     const { token, password } = req.body;
+    const result = await AuthService.resetPassword(token, password);
 
-    if (!token || !password) {
-      res.status(400).json({
-        success: false,
-        message: "Token and password are required",
-      });
-      return;
+    if (result.status) {
+      res.status(result.status).json(result);
+    } else {
+      res.json(result);
     }
-
-    // Find user by token and check expiration
-    const user = await prisma.user.findFirst({
-      where: {
-        resetPasswordToken: token,
-        resetPasswordExpires: {
-          gt: new Date(),
-        },
-      } as any, // Type assertion needed until Prisma client is regenerated
-    });
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "Invalid or expired reset token",
-      });
-      return;
-    }
-
-    // Hash new password
-    const hashedPassword = await hashPassword(password);
-
-    // Update user password and clear reset token
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetPasswordToken: null,
-        resetPasswordExpires: null,
-      } as any, // Type assertion needed until Prisma client is regenerated
-    });
-
-    // Invalidate all refresh tokens for this user
-    await prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
-    });
-
-    res.json({
-      success: true,
-      message: "Password has been reset successfully",
-    });
   } catch (error) {
-    console.error("Error in resetPassword:", error);
+    console.error("Error in resetPassword controller:", error);
     res.status(500).json({
       success: false,
       message: "An error occurred while resetting your password.",
@@ -390,46 +209,14 @@ export const getCurrentUser = async (
   }
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        emailVerified: true,
-        facebookToken: true,
-        linkedInAccessToken: true,
-        createdAt: true,
-        updatedAt: true,
-        organizations: {
-          select: {
-            id: true,
-            name: true,
-            website: true,
-            category: true,
-            location: true,
-            description: true,
-            established: true,
-            size: true,
-            employees: true,
-            turnover: true,
-            revenue: true,
-            profit: true,
-            marketArea: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-      },
-    });
+    const result = await AuthService.getUserById(req.user.id);
 
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
+    if (!result.success) {
+      res.status(result.status || 500).json({ message: result.message });
       return;
     }
 
-    res.status(200).json({ user });
+    res.status(200).json({ user: result.user });
   } catch (error) {
     console.error("Get current user error:", error);
     res.status(500).json({ message: "Server error" });
@@ -447,73 +234,14 @@ export const updateUser = async (
   }
 
   try {
-    const { name, email } = req.body;
+    const result = await AuthService.updateUser(req.user.id, req.body);
 
-    // First, fetch the user with their organizations to get the organization ID if it exists
-    const userWithOrgs = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      include: { organizations: true },
-    });
-
-    if (!userWithOrgs) {
-      res.status(404).json({ message: "User not found" });
+    if (!result.success) {
+      res.status(result.status || 500).json({ message: result.message });
       return;
     }
 
-    // Basic user data to update
-    const updateData: any = {
-      name,
-      email,
-      facebookToken: req.body.facebookToken,
-      linkedInAccessToken: req.body.linkedInAccessToken,
-    };
-
-    // Check if user has organizations
-    if (userWithOrgs.organizations && userWithOrgs.organizations.length > 0) {
-      // If the user has an organization, update it
-      await prisma.organization.update({
-        where: { id: userWithOrgs.organizations[0].id },
-        data: {
-          name: req.body.organization?.name,
-          website: req.body.organization?.website,
-          category: req.body.organization?.category,
-          location: req.body.organization?.location,
-          description: req.body.organization?.description,
-          established: req.body.organization?.established,
-          size: req.body.organization?.size,
-          employees: req.body.organization?.employees,
-          revenue: req.body.organization?.revenue,
-          marketArea: req.body.organization?.marketArea,
-        },
-      });
-    } else if (req.body.organization) {
-      // If the user doesn't have an organization but provided organization data, create one
-      updateData.organizations = {
-        create: {
-          name: req.body.organization.name || "New Organization",
-          website: req.body.organization.website,
-          category: req.body.organization.category,
-          location: req.body.organization.location,
-          description: req.body.organization.description,
-          established: req.body.organization.established,
-          size: req.body.organization.size,
-          employees: req.body.organization.employees,
-          revenue: req.body.organization.revenue,
-          marketArea: req.body.organization.marketArea,
-        },
-      };
-    }
-
-    // Update user
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: updateData,
-      include: {
-        organizations: true,
-      },
-    });
-
-    res.status(200).json({ user: updatedUser });
+    res.status(200).json({ user: result.user });
   } catch (error) {
     console.error("Update user error:", error);
     res.status(500).json({ message: "Server error" });
