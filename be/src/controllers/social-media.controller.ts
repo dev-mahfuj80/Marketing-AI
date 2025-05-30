@@ -194,24 +194,24 @@ export class SocialMediaController {
       };
 
       // Process Facebook post if requested
-      // if (publishToFacebook === "true") {
-      //   try {
-      //     const facebookService = new FacebookService();
-      //     const facebookResponse = await facebookService.createPost(
-      //       env.FACEBOOK_PAGE_ID || "me",
-      //       env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
-      //       content,
-      //       file?.buffer
-      //     );
-      //     console.log("Facebook post created:", facebookResponse);
-      //     responseData.post.publishedTo.facebook = true;
-      //     responseData.post.facebookResponse = facebookResponse;
-      //   } catch (facebookError: any) {
-      //     console.error("Error posting to Facebook:", facebookError);
-      //     responseData.post.publishedTo.facebook = false;
-      //     responseData.post.errors.facebook = facebookError.message;
-      //   }
-      // }
+      if (publishToFacebook === "true") {
+        try {
+          const facebookService = new FacebookService();
+          const facebookResponse = await facebookService.createPost(
+            env.FACEBOOK_PAGE_ID || "me",
+            env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
+            content,
+            file?.buffer
+          );
+          console.log("Facebook post created:", facebookResponse);
+          responseData.post.publishedTo.facebook = true;
+          responseData.post.facebookResponse = facebookResponse;
+        } catch (facebookError: any) {
+          console.error("Error posting to Facebook:", facebookError);
+          responseData.post.publishedTo.facebook = false;
+          responseData.post.errors.facebook = facebookError.message;
+        }
+      }
 
       // Process LinkedIn post if requested
       if (publishToLinkedin === "true") {

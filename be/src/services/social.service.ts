@@ -21,10 +21,6 @@ export class LinkedInService {
       if (!accessToken) {
         throw new Error("LinkedIn access token is required");
       }
-
-      // Try to create a text-only post first to simplify troubleshooting
-      // This helps us test if the access token and organization ID are working
-
       // For LinkedIn, we need to try a person URN first if organization posting fails
       let postAsOrganization = true;
       let personId = null;
@@ -73,7 +69,7 @@ export class LinkedInService {
       console.log(`Image provided: ${!!image}`);
 
       // Add a timestamp to make each post unique
-      const uniqueText = `${text}\n\nPosted at: ${new Date().toISOString()}`;
+      const uniqueText = `${text}`;
 
       // Create a text-only post first
       if (!image) {
