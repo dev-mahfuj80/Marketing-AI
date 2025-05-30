@@ -146,16 +146,28 @@ export class LinkedInService {
           JSON.stringify(registerResponse.data, null, 2)
         );
 
-        if (
-          !registerResponse.data ||
-          !registerResponse.data.value ||
-          !registerResponse.data.value.uploadUrl
-        ) {
-          console.error("Invalid register response:", registerResponse.data);
-          throw new Error("Could not get upload URL from LinkedIn");
+        console.log(
+          "Register response:",
+          JSON.stringify(registerResponse.data, null, 2)
+        );
+
+        // Check for the upload URL in the new response format
+        const uploadUrl =
+          registerResponse.data?.value?.uploadMechanism?.[
+            "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+          ]?.uploadUrl;
+        const asset = registerResponse.data?.value?.asset;
+
+        if (!uploadUrl || !asset) {
+          console.error(
+            "Could not get upload URL or asset from LinkedIn response:",
+            registerResponse.data
+          );
+          throw new Error("Could not get upload URL or asset from LinkedIn");
         }
 
-        const { uploadUrl, asset } = registerResponse.data.value;
+        console.log(`Upload URL: ${uploadUrl}`);
+        console.log(`Asset URN: ${asset}`);
 
         // Upload the image
         console.log(`Step 2: Uploading image to ${uploadUrl}`);
@@ -164,10 +176,12 @@ export class LinkedInService {
           method: "put",
           url: uploadUrl,
           headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/octet-stream",
+            "Content-Type": "image/png", // or "image/jpeg" based on your image type
+            "x-li-format": "json",
           },
           data: image,
+          maxContentLength: 10 * 1024 * 1024, // 10MB
+          maxBodyLength: 10 * 1024 * 1024, // 10MB
         });
 
         console.log(`Upload status code: ${uploadResponse.status}`);
@@ -211,7 +225,12 @@ export class LinkedInService {
         const response = await axios.post(
           `${this.apiBaseUrl}/v2/ugcPosts`,
           postData,
-          { headers: this.getAuthHeaders(accessToken) }
+          {
+            headers: {
+              ...this.getAuthHeaders(accessToken),
+              "X-Restli-Protocol-Version": "2.0.0",
+            },
+          }
         );
 
         console.log("Post created successfully:", response.data);

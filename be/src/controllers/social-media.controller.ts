@@ -194,43 +194,43 @@ export class SocialMediaController {
       };
 
       // Process Facebook post if requested
-      if (publishToFacebook === "true") {
-        try {
-          const facebookService = new FacebookService();
-          const facebookResponse = await facebookService.createPost(
-            env.FACEBOOK_PAGE_ID || "me",
-            env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
-            content,
-            file?.buffer
-          );
-          console.log("Facebook post created:", facebookResponse);
-          responseData.post.publishedTo.facebook = true;
-          responseData.post.facebookResponse = facebookResponse;
-        } catch (facebookError: any) {
-          console.error("Error posting to Facebook:", facebookError);
-          responseData.post.publishedTo.facebook = false;
-          responseData.post.errors.facebook = facebookError.message;
-        }
-      }
-
-      // Process LinkedIn post if requested
-      // if (publishToLinkedin === "true") {
+      // if (publishToFacebook === "true") {
       //   try {
-      //     const linkedInService = new LinkedInService();
-      //     const linkedInResponse = await linkedInService.createPost(
-      //       env.LINKEDIN_ACCESS_TOKEN || "",
+      //     const facebookService = new FacebookService();
+      //     const facebookResponse = await facebookService.createPost(
+      //       env.FACEBOOK_PAGE_ID || "me",
+      //       env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
       //       content,
       //       file?.buffer
       //     );
-      //     console.log("LinkedIn post created:", linkedInResponse);
-      //     responseData.post.publishedTo.linkedin = true;
-      //     responseData.post.linkedInResponse = linkedInResponse;
-      //   } catch (linkedInError: any) {
-      //     console.error("Error posting to LinkedIn:", linkedInError);
-      //     responseData.post.publishedTo.linkedin = false;
-      //     responseData.post.errors.linkedin = linkedInError.message;
+      //     console.log("Facebook post created:", facebookResponse);
+      //     responseData.post.publishedTo.facebook = true;
+      //     responseData.post.facebookResponse = facebookResponse;
+      //   } catch (facebookError: any) {
+      //     console.error("Error posting to Facebook:", facebookError);
+      //     responseData.post.publishedTo.facebook = false;
+      //     responseData.post.errors.facebook = facebookError.message;
       //   }
       // }
+
+      // Process LinkedIn post if requested
+      if (publishToLinkedin === "true") {
+        try {
+          const linkedInService = new LinkedInService();
+          const linkedInResponse = await linkedInService.createPost(
+            env.LINKEDIN_ACCESS_TOKEN || "",
+            content,
+            file?.buffer
+          );
+          console.log("LinkedIn post created:", linkedInResponse);
+          responseData.post.publishedTo.linkedin = true;
+          responseData.post.linkedInResponse = linkedInResponse;
+        } catch (linkedInError: any) {
+          console.error("Error posting to LinkedIn:", linkedInError);
+          responseData.post.publishedTo.linkedin = false;
+          responseData.post.errors.linkedin = linkedInError.message;
+        }
+      }
 
       // Log the file info if it exists
       if (file) {
