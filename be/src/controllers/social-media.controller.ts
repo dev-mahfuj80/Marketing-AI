@@ -137,7 +137,6 @@ export class SocialMediaController {
 
       // Normalize posts array
       const posts = result.elements || (Array.isArray(result) ? result : []);
-      console.log("posts", posts);
       // update posts array so that it can be useful in frontend and database
 
       return res.status(200).json({ posts });
@@ -158,40 +157,108 @@ export class SocialMediaController {
   async createPost(req: Request, res: Response) {
     try {
       console.log("Received post data:", req.body);
-      
+
       if (!req.body) {
         return res.status(400).json({ message: "No post data provided" });
       }
 
       // Get the file from the request if it was uploaded
       const file = (req as any).file;
-      
+      const { content, publishToFacebook, publishToLinkedin } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ message: "Post content is required" });
+      }
+
       // Prepare the response data
       const responseData: any = {
         message: "Post created successfully",
         post: {
-          ...req.body,
+          content,
+          publishToFacebook: publishToFacebook === "true",
+          publishToLinkedin: publishToLinkedin === "true",
           hasImage: !!file,
-          imageInfo: file ? {
-            originalname: file.originalname,
-            mimetype: file.mimetype,
-            size: file.size
-          } : null
-        }
+          imageInfo: file
+            ? {
+                originalname: file.originalname,
+                mimetype: file.mimetype,
+                size: file.size,
+              }
+            : null,
+          publishedTo: {
+            facebook: false,
+            linkedin: false,
+          },
+          errors: {},
+        },
       };
 
-      // If you need to process the file, you can access it here
-      if (file) {
-        // Example: file.buffer contains the file data
-        console.log(`Received file: ${file.originalname} (${file.size} bytes)`);
+      // Process Facebook post if requested
+      if (publishToFacebook === "true") {
+        try {
+          const facebookService = new FacebookService();
+          const facebookResponse = await facebookService.createPost(
+            env.FACEBOOK_PAGE_ID || "me",
+            env.FACEBOOK_PAGE_ACCESS_TOKEN || "",
+            content,
+            file?.buffer
+          );
+          console.log("Facebook post created:", facebookResponse);
+          responseData.post.publishedTo.facebook = true;
+          responseData.post.facebookResponse = facebookResponse;
+        } catch (facebookError: any) {
+          console.error("Error posting to Facebook:", facebookError);
+          responseData.post.publishedTo.facebook = false;
+          responseData.post.errors.facebook = facebookError.message;
+        }
       }
 
+      // Process LinkedIn post if requested
+      // if (publishToLinkedin === "true") {
+      //   try {
+      //     const linkedInService = new LinkedInService();
+      //     const linkedInResponse = await linkedInService.createPost(
+      //       env.LINKEDIN_ACCESS_TOKEN || "",
+      //       content,
+      //       file?.buffer
+      //     );
+      //     console.log("LinkedIn post created:", linkedInResponse);
+      //     responseData.post.publishedTo.linkedin = true;
+      //     responseData.post.linkedInResponse = linkedInResponse;
+      //   } catch (linkedInError: any) {
+      //     console.error("Error posting to LinkedIn:", linkedInError);
+      //     responseData.post.publishedTo.linkedin = false;
+      //     responseData.post.errors.linkedin = linkedInError.message;
+      //   }
+      // }
+
+      // Log the file info if it exists
+      if (file) {
+        console.log(
+          `Processed file: ${file.originalname} (${file.size} bytes)`
+        );
+      }
+
+      // If both posts failed, return an error
+      if (
+        publishToFacebook === "true" &&
+        publishToLinkedin === "true" &&
+        !responseData.post.publishedTo.facebook &&
+        !responseData.post.publishedTo.linkedin
+      ) {
+        return res.status(500).json({
+          message: "Failed to post to both Facebook and LinkedIn",
+          details: responseData.post.errors,
+        });
+      }
+
+      // If at least one post was successful, return success
       return res.status(200).json(responseData);
     } catch (error: any) {
-      console.error("Error creating post:", error);
-      return res.status(500).json({ 
-        message: "Server error creating post",
-        error: error.message 
+      console.error("Error in createPost:", error);
+      return res.status(500).json({
+        message: "Error creating post",
+        error: error.message,
       });
     }
   }

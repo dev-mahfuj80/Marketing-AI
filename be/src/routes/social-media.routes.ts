@@ -2,8 +2,22 @@ import { Router } from "express";
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import { socialMediaController } from "../controllers/social-media.controller.js";
 import { authenticate } from "../middlewares/auth.middleware.js";
+import multer from "multer";
 
 const router = Router();
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+});
 
 // Helper to wrap async route handlers to properly handle promise rejections
 const asyncHandler =
@@ -44,28 +58,10 @@ router.get(
 
 //================================== CROSS-PLATFORM ROUTES ====================================
 
-// Import the upload middleware directly
-import multer from "multer";
-
-// Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'));
-    }
-  },
-});
-
-// Create post route with file upload handling
 router.post(
   "/posts",
   authenticate,
-  upload.single('image'), // Handle single file upload with field name 'image'
+  upload.single("image"),
   asyncHandler(socialMediaController.createPost)
 );
 

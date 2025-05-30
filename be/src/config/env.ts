@@ -22,6 +22,7 @@ export const env = {
   LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET || "",
   LINKEDIN_ACCESS_TOKEN: process.env.LINKEDIN_ACCESS_TOKEN || "",
   LINKEDIN_REFRESH_TOKEN: process.env.LINKEDIN_REFRESH_TOKEN || "",
+  LINKEDIN_ORGANIZATION_ID: process.env.LINKEDIN_ORGANIZATION_ID || "",
 
   // Email
   SMTP_HOST: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -47,6 +48,7 @@ if (env.isProduction()) {
     "LINKEDIN_CLIENT_SECRET",
     "LINKEDIN_ACCESS_TOKEN",
     "LINKEDIN_REFRESH_TOKEN",
+    "LINKEDIN_ORGANIZATION_ID",
     "LINKEDIN_REDIRECT_URI",
     "REDIRECT_URI",
     "SMTP_HOST",
