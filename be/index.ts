@@ -21,9 +21,14 @@ try {
     (m) => m.default
   );
 
-  var socialMediaRoutes = await import("./src/routes/social-media.routes.js").then(
+  var socialMediaRoutes = await import(
+    "./src/routes/social-media.routes.js"
+  ).then((m) => m.default);
+
+  var langChainRoutes = await import("./src/routes/lang-chain.routes.js").then(
     (m) => m.default
   );
+
   console.log("Routes imported successfully");
 } catch (err) {
   console.error("Error importing routes:", err);
@@ -80,6 +85,7 @@ app.use(
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/social", socialMediaRoutes);
+app.use("/api/lang-chain", langChainRoutes);
 
 app.get("/", (req, res) => {
   res

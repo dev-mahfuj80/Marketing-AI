@@ -141,11 +141,34 @@ export const postsApi = {
     try {
       return await api.post("/api/social/posts", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
     } catch (error) {
       console.error("Error creating post:", error);
+      throw error;
+    }
+  },
+};
+
+// LangChain API calls
+export const langChainApi = {
+  // Generic post creation function
+  getLangChainResponse: async (content: string) => {
+    try {
+      // send with authentication
+      return await api.post(
+        "/api/lang-chain",
+        { content },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        }
+      );
+    } catch (error) {
+      console.error("Error getting LangChain response:", error);
       throw error;
     }
   },

@@ -9,7 +9,7 @@ import { authenticate } from "../middlewares/auth.middleware.js";
 import { langChainController } from "../controllers/lang-chain.controller.js";
 
 // LangChain Routes
-export const langChainRoutes = Router();
+export const router = Router();
 
 // Helper to wrap async route handlers to properly handle promise rejections
 const asyncHandler =
@@ -21,8 +21,10 @@ const asyncHandler =
 //================================== LANG-CHAIN ROUTES ====================================
 
 //get langChain response
-langChainRoutes.post(
-  "/lang-chain",
+router.post(
+  "/",
   authenticate,
   asyncHandler(langChainController.getLangChainResponse)
 );
+
+export default router;

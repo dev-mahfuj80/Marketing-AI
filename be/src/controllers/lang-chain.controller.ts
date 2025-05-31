@@ -7,6 +7,7 @@ export class LangChainController {
   async getLangChainResponse(req: Request, res: Response): Promise<void> {
     try {
       const { message } = req.body;
+      console.log(message);
       // ned open ai langChain
       const result = await langChainService.getLangChainResponse(message);
       res.status(200).json({

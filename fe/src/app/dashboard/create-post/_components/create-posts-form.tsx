@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { postsApi } from "@/lib/api";
+import { langChainApi, postsApi } from "@/lib/api";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import {
@@ -105,9 +105,13 @@ export default function CreatePostsForm() {
   }
 
   const [isGenerating, setIsGenerating] = useState(false);
-  const handleGenerateAIContent = () => {
+  const handleGenerateAIContent = async () => {
     setIsGenerating(true);
     // Simulate AI content generation
+    const response = await langChainApi.getLangChainResponse(
+      form.getValues("content")
+    );
+    console.log(response);
 
     setTimeout(() => {
       setIsGenerating(false);
