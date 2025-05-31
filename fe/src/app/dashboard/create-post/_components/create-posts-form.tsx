@@ -104,6 +104,17 @@ export default function CreatePostsForm() {
     }
   }
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const handleGenerateAIContent = () => {
+    setIsGenerating(true);
+    // Simulate AI content generation
+
+    setTimeout(() => {
+      setIsGenerating(false);
+      form.setValue("content", "Generated AI content");
+    }, 2000);
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -125,6 +136,22 @@ export default function CreatePostsForm() {
                 {characterCount}/1000 characters
               </FormDescription>
               <FormMessage />
+              {/* style Like button*/}
+              <div
+                className="flex items-center justify-end cursor-pointer"
+                onClick={handleGenerateAIContent}
+              >
+                <p className="text-md rounded-lg border border-primary p-2 hover:bg-primary hover:text-black">
+                  {isGenerating ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <p>Generating AI Content...</p>
+                    </div>
+                  ) : (
+                    <p>Generate AI Content</p>
+                  )}
+                </p>
+              </div>
             </FormItem>
           )}
         />
