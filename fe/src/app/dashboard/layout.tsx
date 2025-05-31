@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { AuthGuard } from "@/components/auth-guard";
+import Image from "next/image";
 
 interface NavItemProps {
   path: string;
@@ -102,7 +103,10 @@ export default function DashboardLayout({
         <div className="hidden md:flex w-64 flex-col border-r bg-card p-4">
           <div className="flex items-center justify-center py-4 mb-8">
             <Link href="/" className="text-xl font-bold">
-              Marketing AI
+              <div className="flex items-center gap-2">
+                <Image src="/globe.svg" alt="Logo" width={20} height={20} />
+                Marketing AI
+              </div>
             </Link>
           </div>
 

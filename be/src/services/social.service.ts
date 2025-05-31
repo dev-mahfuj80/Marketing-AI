@@ -369,10 +369,7 @@ export class FacebookService {
     try {
       console.log("Creating Facebook post with message:", message);
       console.log("Image provided:", !!image);
-
-      // Generate a unique identifier to avoid duplicate posts
-      const timestamp = new Date().toISOString();
-      const postMessage = `${message}\n\nPosted at: ${timestamp}`;
+      const postMessage = `${message}`;
 
       // If there's an image, we need to first upload the image, then create a post with it
       if (image) {

@@ -55,32 +55,42 @@ export default function CreatePostsForm() {
   async function onSubmit(values: FormValues) {
     setIsSubmitting(true);
     try {
-      const formData = new FormData();
+      if (values.publishToFacebook || values.publishToLinkedin) {
+        const formData = new FormData();
 
-      // Append all form values
-      formData.append("content", values.content);
-      formData.append("publishToFacebook", values.publishToFacebook.toString());
-      formData.append("publishToLinkedin", values.publishToLinkedin.toString());
-
-      // Handle image upload if exists
-      if (values.image) {
-        formData.append("image", values.image);
-      }
-
-      // Handle scheduling
-      if (values.schedulePost && values.scheduledTime) {
-        formData.append("scheduledTime", values.scheduledTime);
-      }
-      console.log(formData);
-      const response = await postsApi.createPost(formData);
-
-      if (response.status === 200) {
-        toast.success(
-          values.schedulePost
-            ? "Post scheduled successfully!"
-            : "Post created successfully!"
+        // Append all form values
+        formData.append("content", values.content);
+        formData.append(
+          "publishToFacebook",
+          values.publishToFacebook.toString()
         );
-        // form.reset();
+        formData.append(
+          "publishToLinkedin",
+          values.publishToLinkedin.toString()
+        );
+
+        // Handle image upload if exists
+        if (values.image) {
+          formData.append("image", values.image);
+        }
+
+        // Handle scheduling
+        if (values.schedulePost && values.scheduledTime) {
+          formData.append("scheduledTime", values.scheduledTime);
+        }
+        console.log(formData);
+        const response = await postsApi.createPost(formData);
+
+        if (response.status === 200) {
+          toast.success(
+            values.schedulePost
+              ? "Post scheduled successfully!"
+              : "Post created successfully!"
+          );
+          form.reset();
+        }
+      } else {
+        toast.error("Please select at least one platform to publish the post");
       }
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
@@ -134,8 +144,7 @@ export default function CreatePostsForm() {
                     onChange={(e) => {
                       onChange(e.target.files?.[0] || null);
                     }}
-                    // Don't set value for file inputs to avoid controlled/uncontrolled warning
-                    value=""
+                    value={undefined}
                     {...field}
                   />
                 </FormControl>
