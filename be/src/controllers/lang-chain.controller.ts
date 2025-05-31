@@ -6,14 +6,14 @@ import { langChainService } from "../services/lang-chain.service.js";
 export class LangChainController {
   async getLangChainResponse(req: Request, res: Response): Promise<void> {
     try {
-      const { message } = req.body;
-      console.log(message);
+      const { content } = req.body;
+      console.log("LangChainController: ", req.body);
       // ned open ai langChain
-      const result = await langChainService.getLangChainResponse(message);
+      const result = await langChainService.getLangChainResponse(content);
       res.status(200).json({
         success: true,
         message: "LangChain response generated successfully.",
-        data: result,
+        content: result,
       });
     } catch (error) {
       console.error("Error in getLangChainResponse controller:", error);

@@ -2,6 +2,7 @@
 
 export class LangChainService {
   getLangChainResponse(message: string) {
+    console.log("LangChainService: ", message);
     return message;
   }
 }
