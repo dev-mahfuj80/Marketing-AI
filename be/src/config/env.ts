@@ -13,6 +13,10 @@ export const env = {
   JWT_REFRESH_EXPIRY: process.env.JWT_REFRESH_EXPIRY || "7d",
   COOKIE_SECRET: process.env.COOKIE_SECRET || "development-cookie-secret",
 
+  // OpenAI
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || "",
+  OPENAI_MODEL_NAME: process.env.OPENAI_MODEL_NAME || "gpt-3.5-turbo",
+
   // OAuth
   FACEBOOK_APP_ID: process.env.FACEBOOK_APP_ID || "",
   FACEBOOK_APP_SECRET: process.env.FACEBOOK_APP_SECRET || "",
