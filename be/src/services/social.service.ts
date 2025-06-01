@@ -465,6 +465,7 @@ export class FacebookService {
   }
 
   async getFacebookProfileStatus(accessToken: string) {
+    // send request to get profile info
     try {
       const response = await axios.get(
         `https://graph.facebook.com/${this.apiVersion}/me?fields=id,name,picture`,

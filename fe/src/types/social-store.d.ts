@@ -78,11 +78,13 @@ export interface SocialState {
     linkedin: boolean;
   };
   linkedinProfile: {
-    id?: string;
-    name?: string;
-    email?: string;
-    profileImage?: string;
-    // Add other profile fields as needed
+    connected: boolean;
+    credentialsValid: boolean;
+    profileInfo?: {
+      id: string;
+      name: string;
+      profilePicture?: string;
+    };
   };
   facebookProfile: {
     id?: string;
@@ -92,6 +94,11 @@ export interface SocialState {
       data?: {
         url?: string;
       };
+    };
+    profileInfo?: {
+      id: string;
+      name: string;
+      profilePicture?: string;
     };
     // Add other profile fields as needed
   };

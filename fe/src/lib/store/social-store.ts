@@ -16,7 +16,11 @@ export const useSocialStore = create<SocialState>()(
         facebook: false,
         linkedin: false,
       },
-      linkedinProfile: {},
+      linkedinProfile: {
+        connected: false,
+        credentialsValid: false,
+        profileInfo: undefined
+      },
       facebookProfile: {},
 
       // functions

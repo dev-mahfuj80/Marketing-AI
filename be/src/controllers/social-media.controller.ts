@@ -29,6 +29,7 @@ export class SocialMediaController {
       );
       return res.status(200).json({
         message: "Facebook connection active",
+        profileInfo: result,
       });
     } catch (error) {
       console.error("Error checking Facebook status:", error);
