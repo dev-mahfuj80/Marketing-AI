@@ -52,16 +52,32 @@ export const useSocialStore = create<SocialState>()(
         }
       },
 
-      checkConnectionStatus: () => {
-        // Implement connection status check
+      getLinkedInProfileStatus: async () => {
+        set({ loading: true });
+        try {
+          const response = await linkedinApi.getLinkedInProfileStatus();
+          const data = await response.data;
+          set({ linkedinProfile: data });
+        } catch (error) {
+          console.error("Error fetching LinkedIn profile:", error);
+          set({ error: "Failed to fetch LinkedIn profile" });
+        } finally {
+          set({ loading: false });
+        }
       },
 
-      getLinkedInProfile: async () => {
-        // Implement LinkedIn profile fetching
-      },
-
-      getFacebookProfile: async () => {
-        // Implement Facebook profile fetching
+      getFacebookProfileStatus: async () => {
+        set({ loading: true });
+        try {
+          const response = await facebookApi.getFacebookProfileStatus();
+          const data = await response.data;
+          set({ facebookProfile: data });
+        } catch (error) {
+          console.error("Error fetching Facebook profile:", error);
+          set({ error: "Failed to fetch Facebook profile" });
+        } finally {
+          set({ loading: false });
+        }
       },
     }),
     {

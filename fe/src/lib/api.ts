@@ -84,9 +84,9 @@ export const authApi = {
 // LinkedIn API specific calls
 export const linkedinApi = {
   // Get LinkedIn user profile information - available even with limited permissions
-  getLinkedInPageStatus: async () => {
+  getLinkedInProfileStatus: async () => {
     try {
-      return await api.get("/api/social/linkedin/status");
+      return await api.get("/api/social/linkedin/profile/status");
     } catch (error) {
       console.error("Error getting LinkedIn profile info:", error);
       throw error;
@@ -109,11 +109,11 @@ export const linkedinApi = {
 // Facebook API specific calls
 export const facebookApi = {
   // Check Facebook connection status and permissions
-  getFacebookPageStatus: async () => {
+  getFacebookProfileStatus: async () => {
     try {
-      return await api.get("/api/social/facebook/status");
+      return await api.get("/api/social/facebook/profile/status");
     } catch (error) {
-      console.error("Error getting Facebook page info:", error);
+      console.error("Error getting Facebook profile info:", error);
       throw error;
     }
   },

@@ -30,7 +30,8 @@ const asyncHandler =
 
 //check facebook status
 router.get(
-  "/facebook/status",
+  "/facebook/profile/status",
+  authenticate,
   asyncHandler(socialMediaController.getFacebookProfileStatus)
 );
 
@@ -45,7 +46,7 @@ router.get(
 
 //get linkedin profile info
 router.get(
-  "/linkedin/status",
+  "/linkedin/profile/status",
   authenticate,
   asyncHandler(socialMediaController.getLinkedInProfileStatus)
 );
@@ -53,6 +54,7 @@ router.get(
 //get linkedin page posts
 router.get(
   "/linkedin/page/posts",
+  authenticate,
   asyncHandler(socialMediaController.getLinkedInPagePosts)
 );
 

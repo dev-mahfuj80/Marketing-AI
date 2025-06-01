@@ -106,6 +106,11 @@ export default function CreatePostsForm() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const handleGenerateAIContent = async () => {
+    // if content is empty then show from error when submit like that
+    // if (!form.getValues("content")) {
+    //   toast.error("Please enter content");
+    //   return;
+    // }
     setIsGenerating(true);
     // Simulate AI content generation
     const response = await langChainApi.getLangChainResponse(
@@ -141,11 +146,11 @@ export default function CreatePostsForm() {
               </FormDescription>
               <FormMessage />
               {/* style Like button*/}
-              <div
-                className="flex items-center justify-end cursor-pointer"
-                onClick={handleGenerateAIContent}
-              >
-                <p className="text-md rounded-lg border border-primary p-2 hover:bg-primary hover:text-black">
+              <div className="flex items-center justify-end">
+                <p
+                  className="text-md rounded-lg border border-primary p-2 hover:bg-primary hover:text-black cursor-pointer"
+                  onClick={handleGenerateAIContent}
+                >
                   {isGenerating ? (
                     <div className="flex items-center">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

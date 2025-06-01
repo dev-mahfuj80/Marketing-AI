@@ -103,6 +103,6 @@ export interface SocialState {
     count: number
   ) => Promise<void>;
   getLinkedInPosts: (start: number, count: number) => Promise<void>;
-  getFacebookProfile: (pageId: string) => Promise<void>;
-  getLinkedInProfile: (pageId: string) => Promise<void>;
+  getFacebookProfileStatus: () => Promise<void>;
+  getLinkedInProfileStatus: () => Promise<void>;
 }
