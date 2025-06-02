@@ -14,7 +14,7 @@ export class LangChainService {
     console.log("User ID:", userId);
     const model = new ChatOpenAI({
       apiKey: env.OPENAI_API_KEY,
-      modelName: "gpt-4o",
+      modelName: env.OPENAI_MODEL_NAME,
     });
     const response = model.invoke([
       new SystemMessage("You are a helpful assistant."),

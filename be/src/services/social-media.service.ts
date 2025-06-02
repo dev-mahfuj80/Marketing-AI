@@ -1,5 +1,25 @@
 import axios from "axios";
 import FormData from "form-data";
+import { env } from "../config/env.js";
+// Type definitions for Facebook API responses
+interface FacebookPage {
+  id: string;
+  name: string;
+  access_token: string;
+  category?: string;
+  tasks?: string[];
+  is_current_token?: boolean;
+}
+
+interface FacebookPagesResponse {
+  data: FacebookPage[];
+  paging?: {
+    cursors: {
+      before: string;
+      after: string;
+    };
+  };
+}
 
 export class LinkedInService {
   // Use v2 API version
@@ -39,7 +59,7 @@ export class LinkedInService {
       }
 
       // Now try to get organization info if we have an org ID in env
-      const organizationId = process.env.LINKEDIN_ORGANIZATION_ID;
+      const organizationId = env.LINKEDIN_ORGANIZATION_ID;
       if (!organizationId) {
         console.log("No organization ID provided, will post as person");
         postAsOrganization = false;
@@ -276,7 +296,8 @@ export class LinkedInService {
 
   async getLinkedInProfileStatus(accessToken: string) {
     try {
-      const response = await axios.get(
+      // Get basic profile information
+      const profileResponse = await axios.get(
         `https://api.linkedin.com/${this.apiVersion}/me?projection=(id,firstName,lastName,profilePicture(displayImage~:playableStreams))`,
         {
           headers: {
@@ -287,7 +308,7 @@ export class LinkedInService {
       );
 
       // Process the response to get a simpler format
-      const profile = response.data;
+      const profile = profileResponse.data;
       const firstName = profile.firstName?.localized?.en_US || "";
       const lastName = profile.lastName?.localized?.en_US || "";
 
@@ -304,10 +325,99 @@ export class LinkedInService {
             .identifier;
       }
 
+      // Get the LinkedIn token introspection
+      // LinkedIn doesn't have a direct token debug endpoint like Facebook,
+      // but we can get token info by checking permissions/scopes
+      let tokenInfo = null;
+      try {
+        // Check token validity and permissions
+        const tokenStatusResponse = await axios.get(
+          `https://api.linkedin.com/${this.apiVersion}/me?projection=(id)`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "X-Restli-Protocol-Version": "2.0.0",
+            },
+          }
+        );
+
+        // If the above request didn't throw an error, token is valid
+        tokenInfo = {
+          valid: true,
+          userId: tokenStatusResponse.data.id,
+          // We cannot get exact expiry time from LinkedIn API
+          // but we know it's valid now
+          validatedAt: new Date().toISOString(),
+        };
+      } catch (tokenError) {
+        // Token is invalid or expired
+        tokenInfo = {
+          valid: false,
+          error:
+            axios.isAxiosError(tokenError) && tokenError.response
+              ? tokenError.response.data
+              : (tokenError as Error).message,
+          validatedAt: new Date().toISOString(),
+        };
+      }
+
+      // Get organizations that the user can access
+      let accessibleOrganizations = [];
+      try {
+        const orgResponse = await axios.get(
+          `https://api.linkedin.com/${this.apiVersion}/organizationAcls?q=roleAssignee&role=ADMINISTRATOR`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "X-Restli-Protocol-Version": "2.0.0",
+            },
+          }
+        );
+
+        // Extract organization data from the response
+        accessibleOrganizations = orgResponse.data.elements || [];
+
+        // If there are organizations, get more details for the first one
+        if (
+          accessibleOrganizations.length > 0 &&
+          accessibleOrganizations[0].organization
+        ) {
+          const orgUrn = accessibleOrganizations[0].organization;
+          const orgId = orgUrn.split(":").pop();
+
+          try {
+            const orgDetailsResponse = await axios.get(
+              `https://api.linkedin.com/${this.apiVersion}/organizations/${orgId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "X-Restli-Protocol-Version": "2.0.0",
+                },
+              }
+            );
+
+            // Add organization details to the first entry
+            accessibleOrganizations[0].details = orgDetailsResponse.data;
+          } catch (orgDetailsError) {
+            console.error(
+              "Error getting organization details:",
+              orgDetailsError
+            );
+          }
+        }
+      } catch (orgError) {
+        console.error("Error getting accessible organizations:", orgError);
+        accessibleOrganizations = [];
+      }
+
       return {
-        id: profile.id,
-        name: `${firstName} ${lastName}`.trim(),
-        profilePicture,
+        profileInfo: {
+          id: profile.id,
+          name: `${firstName} ${lastName}`.trim(),
+          profilePicture,
+        },
+        tokenInfo: tokenInfo,
+        accessibleOrganizations: accessibleOrganizations,
       };
     } catch (error) {
       console.error("Error getting LinkedIn profile info:", error);
@@ -464,20 +574,109 @@ export class FacebookService {
     }
   }
 
-  async getFacebookProfileStatus(accessToken: string) {
+  async getFacebookProfileStatus(accessToken: string, pageId: string) {
     // send request to get profile info
     try {
-      const response = await axios.get(
-        `https://graph.facebook.com/${this.apiVersion}/me?fields=id,name,picture`,
+      // Get page info
+      const pageResponse = await axios.get(
+        `https://graph.facebook.com/${this.apiVersion}/${pageId}?fields=id,name,picture`,
         {
           params: {
             access_token: accessToken,
           },
         }
       );
-      return response.data;
+
+      // Get token info using debug_token endpoint
+      // Note: Typically we'd use app_id|app_secret as the access token for inspecting tokens
+      // but we'll use the same token for now and later update to use app credentials
+      const appId = env.FACEBOOK_APP_ID;
+      const appSecret = env.FACEBOOK_APP_SECRET;
+      let tokenInfo = null;
+
+      if (appId && appSecret) {
+        // Use app credentials to inspect token (more reliable)
+        const appAccessToken = `${appId}|${appSecret}`;
+        const tokenResponse = await axios.get(
+          `https://graph.facebook.com/debug_token`,
+          {
+            params: {
+              input_token: accessToken,
+              access_token: appAccessToken,
+            },
+          }
+        );
+        tokenInfo = tokenResponse.data;
+      } else {
+        // Fallback to using the same token for inspection
+        // Note: This is less reliable and may not work for all token types
+        const tokenResponse = await axios.get(
+          `https://graph.facebook.com/debug_token`,
+          {
+            params: {
+              input_token: accessToken,
+              access_token: accessToken,
+            },
+          }
+        );
+        tokenInfo = tokenResponse.data;
+      }
+
+      // Initialize accessiblePages
+      let accessiblePages: FacebookPagesResponse = { data: [] };
+
+      // Check token type from debug_token response
+      const isUserToken = tokenInfo?.data?.type === "USER";
+
+      if (isUserToken) {
+        try {
+          // Only try to get accounts if it's a user token
+          const pagesResponse = await axios.get<FacebookPagesResponse>(
+            `https://graph.facebook.com/${this.apiVersion}/me/accounts`,
+            {
+              params: {
+                access_token: accessToken,
+              },
+            }
+          );
+          accessiblePages = pagesResponse.data;
+          console.log("Successfully retrieved user's accessible pages");
+        } catch (pagesError) {
+          console.error("Error getting user's accessible pages:", pagesError);
+          // Don't throw here, just continue with empty pages list
+        }
+      } else {
+        // If it's a page token, we're already authenticated as the page
+        console.log(
+          "This appears to be a page access token, not attempting to fetch accounts"
+        );
+        // Add the current page to the accessiblePages
+        if (pageResponse.data && pageResponse.data.id) {
+          const currentPage: FacebookPage = {
+            id: pageResponse.data.id,
+            name: pageResponse.data.name,
+            access_token: accessToken, // Same token
+            is_current_token: true,
+          };
+          accessiblePages = { data: [currentPage] };
+        }
+      }
+
+      return {
+        pageInfo: pageResponse.data,
+        tokenInfo: tokenInfo,
+        accessiblePages: accessiblePages,
+        isUserToken: isUserToken,
+      };
     } catch (error) {
       console.error("Error getting Facebook profile info:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Facebook API error details:", {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+        });
+      }
       throw new Error("Failed to get Facebook profile info");
     }
   }

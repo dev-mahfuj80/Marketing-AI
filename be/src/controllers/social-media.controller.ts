@@ -1,11 +1,8 @@
 import type { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import axios from "axios";
 import { env } from "../config/env.js";
-import multer from "multer";
-import util from "util";
-import { FacebookService } from "../services/social.service.js";
-import { LinkedInService } from "../services/social.service.js";
+import { FacebookService } from "../services/social-media.service.js";
+import { LinkedInService } from "../services/social-media.service.js";
 
 // Prisma client
 const prisma = new PrismaClient();
@@ -23,18 +20,41 @@ export class SocialMediaController {
   // Check Facebook status
   async getFacebookProfileStatus(req: Request, res: Response) {
     try {
+      const { token } = req.query;
+      const accessToken = (token as string) || env.FACEBOOK_PAGE_ACCESS_TOKEN;
+      const pageId = env.FACEBOOK_PAGE_ID || "me";
+
+      if (!accessToken) {
+        return res.status(400).json({
+          connected: false,
+          message: "Facebook access token not provided",
+          lastChecked: new Date().toISOString(),
+        });
+      }
+
       const facebookService = new FacebookService();
       const result = await facebookService.getFacebookProfileStatus(
-        env.FACEBOOK_PAGE_ACCESS_TOKEN
+        accessToken,
+        pageId
       );
+
       return res.status(200).json({
-        message: "Facebook connection active",
-        profileInfo: result,
+        message: "Facebook connection info retrieved",
+        connected: true,
+        credentialsValid: true,
+        lastChecked: new Date().toISOString(),
+        pageInfo: result.pageInfo,
+        tokenInfo: result.tokenInfo,
+        accessiblePages: result.accessiblePages,
       });
     } catch (error) {
       console.error("Error checking Facebook status:", error);
-      return res.status(500).json({
+      return res.status(200).json({
+        connected: false,
+        credentialsValid: false,
         message: "Error checking Facebook status",
+        lastChecked: new Date().toISOString(),
+        error: (error as Error).message,
       });
     }
   }
@@ -71,21 +91,24 @@ export class SocialMediaController {
     }
   }
 
-  // ================================================ LINKEDIN =====================================================
+  // ============================================ LINKEDIN =============================================
 
   // Check LinkedIn status
   async getLinkedInProfileStatus(req: Request, res: Response) {
     try {
-      // get linkedin access token from env
-      const linkedinAccessToken = env.LINKEDIN_ACCESS_TOKEN;
+      // Get token from query or environment variables
+      const { token } = req.query;
+      const linkedinAccessToken =
+        (token as string) || env.LINKEDIN_ACCESS_TOKEN;
+
       if (!linkedinAccessToken) {
         return res.status(200).json({
           connected: false,
           credentialsValid: false,
           profileInfo: null,
-          message: "LinkedIn access token not configured",
+          message: "LinkedIn access token not provided",
           lastChecked: new Date().toISOString(),
-          error: "LinkedIn access token not configured",
+          error: "LinkedIn access token not provided",
         });
       }
 
@@ -94,11 +117,27 @@ export class SocialMediaController {
         linkedinAccessToken
       );
 
-      if (profileResponse && profileResponse.id) {
+      if (
+        profileResponse &&
+        profileResponse.profileInfo &&
+        profileResponse.profileInfo.id
+      ) {
         return res.status(200).json({
           connected: true,
           credentialsValid: true,
-          profileInfo: profileResponse,
+          lastChecked: new Date().toISOString(),
+          profileInfo: profileResponse.profileInfo,
+          tokenInfo: profileResponse.tokenInfo,
+          accessibleOrganizations: profileResponse.accessibleOrganizations,
+        });
+      } else {
+        return res.status(200).json({
+          connected: false,
+          credentialsValid: false,
+          profileInfo: null,
+          tokenInfo: profileResponse?.tokenInfo || null,
+          message: "Invalid LinkedIn profile response",
+          lastChecked: new Date().toISOString(),
         });
       }
     } catch (error) {
