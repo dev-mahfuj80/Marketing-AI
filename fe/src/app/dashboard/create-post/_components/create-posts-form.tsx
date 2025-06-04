@@ -120,7 +120,7 @@ export default function CreatePostsForm() {
 
     setTimeout(() => {
       setIsGenerating(false);
-      form.setValue("content", response.data.content.kwargs.content);
+      form.setValue("content", response.data.content);
     }, 2000);
   };
 
