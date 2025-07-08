@@ -11,7 +11,7 @@ import {
   SiteFooter,
 } from "@/components/home-page/home-page";
 
-// The main exported component that wraps the content in Suspense
+
 export default function Home() {
   return (
     <Suspense
