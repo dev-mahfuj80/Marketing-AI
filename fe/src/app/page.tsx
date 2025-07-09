@@ -11,7 +11,7 @@ import {
   SiteFooter,
 } from "@/components/home-page/home-page";
 
-
+// Default Export function
 export default function Home() {
   return (
     <Suspense
